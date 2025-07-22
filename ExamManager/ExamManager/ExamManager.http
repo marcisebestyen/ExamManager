@@ -1,0 +1,6 @@
+@Thesis_ExamManager_HostAddress = http://localhost:5262
+
+GET {{Thesis_ExamManager_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
