@@ -1,6 +1,6 @@
 ﻿namespace ExamManager.Models;
 
-public class Examiner
+public class Examiner : SoftDeletableEntity
 {
     public int Id { get; set; }
     public string FirstName { get; set; } = string.Empty;

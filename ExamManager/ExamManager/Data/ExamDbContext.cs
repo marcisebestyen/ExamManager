@@ -36,6 +36,18 @@ public class ExamDbContext : DbContext
         modelBuilder.Entity<Operator>()
             .Property(o => o.Role)
             .HasConversion<int>();
+        
+        modelBuilder.Entity<Exam>()
+            .HasQueryFilter(e => !e.IsDeleted);
+        
+        modelBuilder.Entity<Examiner>()
+            .HasQueryFilter(ex => !ex.IsDeleted);
+        
+        modelBuilder.Entity<ExamBoard>()
+            .HasQueryFilter(eb => !eb.IsDeleted);
+        
+        modelBuilder.Entity<Operator>()
+            .HasQueryFilter(op => !op.IsDeleted);
 
         // ENTITY CONFIGURATIONS
 
@@ -96,6 +108,11 @@ public class ExamDbContext : DbContext
                 .WithMany()
                 .HasForeignKey(e => e.OperatorId)
                 .OnDelete(DeleteBehavior.Restrict);
+            
+            exam.HasOne(e => e.DeletedBy)
+                .WithMany()
+                .HasForeignKey(e => e.DeletedById)
+                .OnDelete(DeleteBehavior.Restrict);
         });
 
         // ExamBoards entity configuration 
@@ -118,6 +135,11 @@ public class ExamDbContext : DbContext
                 .WithMany(ex => ex.ExamBoard)
                 .HasForeignKey(eb => eb.ExaminerId)
                 .OnDelete(DeleteBehavior.Cascade);
+            
+            examBoard.HasOne(eb => eb.DeletedBy)
+                .WithMany()
+                .HasForeignKey(eb => eb.DeletedById)
+                .OnDelete(DeleteBehavior.Restrict);
         });
         
         // Examiner entity configuration
@@ -150,6 +172,11 @@ public class ExamDbContext : DbContext
             examiner.Property(ex => ex.Phone)
                 .HasMaxLength(30)
                 .IsRequired();
+
+            examiner.HasOne(ex => ex.DeletedBy)
+                .WithMany()
+                .HasForeignKey(ex => ex.DeletedById)
+                .OnDelete(DeleteBehavior.Restrict);
         });
         
         // ExamType entity configuration 
@@ -219,7 +246,7 @@ public class ExamDbContext : DbContext
             
             oper.Property(o => o.LastName)
                 .HasMaxLength(256)
-                .IsRequired();
+                .IsRequired();  
         });
         
         // PasswordReset entity configuration 

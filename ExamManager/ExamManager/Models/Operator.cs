@@ -6,7 +6,7 @@ public enum Role
     Admin
 }
 
-public class Operator
+public class Operator : SoftDeletableEntity
 {
     public int Id { get; set; }
     public string UserName { get; set; } = string.Empty;

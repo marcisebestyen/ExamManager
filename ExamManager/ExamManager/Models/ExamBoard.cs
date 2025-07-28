@@ -1,6 +1,6 @@
 ﻿namespace ExamManager.Models;
 
-public class ExamBoard
+public class ExamBoard : SoftDeletableEntity
 {
     // foreign keys
     public int ExamId { get; set; }
