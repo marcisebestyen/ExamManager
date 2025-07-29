@@ -8,7 +8,7 @@ public enum Status
     Completed
 }
 
-public class Exam
+public class Exam : SoftDeletableEntity
 {
     public int Id { get; set; }
     public string ExamName { get; set; } = string.Empty;
