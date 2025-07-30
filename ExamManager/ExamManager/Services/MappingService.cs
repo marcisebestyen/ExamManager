@@ -9,6 +9,7 @@ using ExamManager.Dtos.OperatorDtos;
 using ExamManager.Dtos.PasswordResetDtos;
 using ExamManager.Dtos.ProfessionDtos;
 using ExamManager.Models;
+using ExamManager.Responses;
 
 namespace ExamManager.Services;
 
@@ -26,9 +27,11 @@ public class MappingService : Profile
             .ForMember(dest => dest.DeletedByOperatorName,
                 opt => opt.MapFrom(src =>
                     src.DeletedBy != null ? $"{src.DeletedBy.FirstName} {src.DeletedBy.LastName}" : null));
+        CreateMap<Operator, OperatorRegisterResponseDto>();
+        CreateMap<Operator, OperatorLoginResponseDto>();
 
-        CreateMap<ExamCreateDto, ExamType>();
-        CreateMap<ExamUpdateDto, Exam>()
+        CreateMap<ExamTypeCreateDto, ExamType>();
+        CreateMap<ExamTypeUpdateDto, ExamType>()
             .ForAllMembers(opt => opt.Condition((src, dest, srcMember) => srcMember != null));
         CreateMap<ExamType, ExamTypeResponseDto>();
 

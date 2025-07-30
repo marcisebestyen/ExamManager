@@ -2,6 +2,7 @@ using System.Security.Claims;
 using System.Text;
 using Microsoft.EntityFrameworkCore;
 using ExamManager.Data;
+using ExamManager.Interfaces;
 using ExamManager.Models;
 using ExamManager.Repositories;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -20,6 +21,13 @@ builder.Services.AddDbContext<ExamDbContext>(options =>
 
 var jwtSettings = builder.Configuration.GetSection("JwtSettings");
 var secretKey = jwtSettings["SecretKey"];
+var issuer = jwtSettings["Issuer"];
+var audience = jwtSettings["Audience"];
+
+if (string.IsNullOrEmpty(secretKey) || string.IsNullOrEmpty(issuer) || string.IsNullOrEmpty(audience))
+{
+    throw new InvalidOperationException("JWT settings are not properly configured.");
+}
 
 builder.Services.AddAuthentication(options =>
     {
@@ -34,11 +42,11 @@ builder.Services.AddAuthentication(options =>
             ValidateAudience = true,
             ValidateLifetime = true,
             ValidateIssuerSigningKey = true,
-            ValidIssuer = jwtSettings["Issuer"],
-            ValidAudience = jwtSettings["Audience"],
+            ValidIssuer = issuer,
+            ValidAudience = audience,
             IssuerSigningKey =
                 new SymmetricSecurityKey(
-                    Encoding.UTF8.GetBytes(secretKey ?? throw new InvalidOperationException("JWT key not found."))),
+                    Encoding.UTF8.GetBytes(secretKey)),
             RoleClaimType = ClaimTypes.Role,
             NameClaimType = ClaimTypes.NameIdentifier
         };
@@ -46,9 +54,8 @@ builder.Services.AddAuthentication(options =>
 
 builder.Services.AddSwaggerGen(c =>
 {
-    c.SwaggerDoc("v1", new OpenApiInfo { Title = "Berauto API", Version = "v1" });
-
-    //swagger xml file
+    c.SwaggerDoc("v1", new OpenApiInfo { Title = "ExamManager API", Version = "v1" });
+    
     var servicesAssemblyXmlFile = $"{typeof(MappingService).Assembly.GetName().Name}.xml";
     var servicesAssemblyXmlPath = Path.Combine(AppContext.BaseDirectory, servicesAssemblyXmlFile);
     if (File.Exists(servicesAssemblyXmlPath))
@@ -88,6 +95,8 @@ builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 builder.Services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
 
 // Service registrations
+builder.Services.AddAutoMapper(cfg => { }, typeof(Program).Assembly);
+builder.Services.AddScoped<IOperatorService, OperatorService>();
 
 var app = builder.Build();
 
@@ -129,6 +138,7 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
 
