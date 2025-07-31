@@ -10,7 +10,6 @@ public interface IRepository<T> where T : class
     Task<IEnumerable<T>> GetAllAsync(string[]? includeProperties = null);
     Task InsertAsync(T entity);
     Task DeleteAsync(params object[] keyValues);
-    Task SoftDeleteAsync(params object[] keyValues);
     Task UpdateASync(T entity);
 
     Task<(IEnumerable<T> Items, int TotalCount)> GetPagedAsync(

@@ -9,4 +9,7 @@ public interface IOperatorService
     Task<OperatorRegisterResponseDto> RegisterAsync(OperatorCreateDto createRequest);
     Task<bool> UserExistsAsync(string userName);
     Task<OperatorResponseDto?> GetOperatorByIdAsync(int id);
+    Task<OperatorUpdateResponseDto> UpdateOperatorAsync(int operatorId,  OperatorUpdateDto updateRequest);
+    Task<OperatorDeleteResponseDto> DeleteOperatorAsync(int operatorId, int? deletedById = null);
+    Task<OperatorRestoreResponseDto> RestoreOperatorAsync(int operatorId);
 }

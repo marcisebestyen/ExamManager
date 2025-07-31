@@ -119,24 +119,6 @@ public class Repository<T> : IRepository<T> where T : class
         }
     }
 
-    public async Task SoftDeleteAsync(params object[] keyValues)
-    {
-        T? entity = await _dbSet.FindAsync(keyValues);
-
-        if (entity != null && entity is SoftDeletableEntity softDeletableEntity)
-        {
-            softDeletableEntity.IsDeleted = true;
-            softDeletableEntity.DeletedAt = DateTime.UtcNow;
-
-            _dbSet.Update(entity);
-        }
-        else
-        {
-            throw new KeyNotFoundException(
-                $"Entity of type {typeof(T).Name} with the provided key values was not found.");
-        }
-    }
-
     public Task UpdateASync(T entity)
     {
         _dbSet.Update(entity);

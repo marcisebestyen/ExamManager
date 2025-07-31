@@ -96,6 +96,7 @@ builder.Services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
 
 // Service registrations
 builder.Services.AddAutoMapper(cfg => { }, typeof(Program).Assembly);
+builder.Services.AddControllers().AddNewtonsoftJson();
 builder.Services.AddScoped<IOperatorService, OperatorService>();
 
 var app = builder.Build();

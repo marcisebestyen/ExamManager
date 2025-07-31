@@ -1,5 +1,10 @@
-﻿using ExamManager.Dtos.OperatorDtos;
+﻿using System.Security.Claims;
+using AutoMapper;
+using ExamManager.Dtos.OperatorDtos;
 using ExamManager.Interfaces;
+using ExamManager.Models;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.AspNetCore.Mvc;
 
 namespace ExamManager.Controllers;
@@ -10,11 +15,13 @@ public class OperatorController : ControllerBase
 {
     private readonly IOperatorService _operatorService;
     private readonly ILogger<OperatorController> _logger;
+    private readonly IMapper _mapper;
 
-    public OperatorController(IOperatorService operatorService, ILogger<OperatorController> logger)
+    public OperatorController(IOperatorService operatorService, ILogger<OperatorController> logger, IMapper mapper)
     {
         _operatorService = operatorService ?? throw new ArgumentNullException(nameof(operatorService));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _mapper = mapper ?? throw new ArgumentNullException(nameof(mapper));
     }
 
     [HttpPost("login")]
@@ -54,7 +61,7 @@ public class OperatorController : ControllerBase
             }
 
             var result = await _operatorService.RegisterAsync(createRequest);
-            return CreatedAtAction(nameof(GetOperator), new { operatorId = result.Id }, result);
+            return CreatedAtAction(nameof(GetOperatorById), new { operatorId = result.Id }, result);
         }
         catch (InvalidOperationException ex)
         {
@@ -70,9 +77,96 @@ public class OperatorController : ControllerBase
             return StatusCode(500, new { message = "An error occurred during registration" });
         }
     }
-    
+
+    [Authorize]
+    [HttpGet("get-profile")]
+    public async Task<IActionResult> GetMyProfile()
+    {
+        try
+        {
+            var userId = GetCurrentUserIdFromToken();
+            var userDto = await _operatorService.GetOperatorByIdAsync(userId);
+
+            if (userDto == null)
+            {
+                _logger?.LogInformation("User profile not found for user ID: {RequestedUserId}", userId);
+                return NotFound(new { Message = $"Profile with ID: {userId} cannot be found." });
+            }
+
+            return Ok(userDto);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting operator");
+            throw;
+        }
+    }
+
+    [HttpPatch("update-profile/{operatorId}")]
+    public async Task<IActionResult> UpdateOperator(int operatorId,
+        [FromBody] JsonPatchDocument<OperatorUpdateDto> patchDoc)
+    {
+        try
+        {
+            if (patchDoc == null)
+            {
+                return BadRequest(new { Message = "The PATCH document cannot be empty." });
+            }
+
+            var operatorGetDto = await _operatorService.GetOperatorByIdAsync(operatorId);
+
+            if (operatorGetDto == null)
+            {
+                return NotFound(new { Message = $"Operator with ID: {operatorId} cannot be found." });
+            }
+
+            var operatorPatchDto = _mapper.Map<OperatorUpdateDto>(operatorGetDto);
+
+            patchDoc.ApplyTo(operatorPatchDto, ModelState);
+
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+
+            TryValidateModel(operatorPatchDto);
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+
+            var result = await _operatorService.UpdateOperatorAsync(operatorId, operatorPatchDto);
+
+            if (result.Succeeded)
+            {
+                return NoContent();
+            }
+
+            if (result.Errors.Any())
+            {
+                string firstError = result.Errors.First().ToLowerInvariant();
+
+                if (firstError.Contains("cannot be found"))
+                {
+                    return NotFound(new { Errors = result.Errors });
+                }
+
+                return BadRequest(new { Error = result.Errors });
+            }
+
+            _logger?.LogError("UpdateOperator (PATCH) failed for operator ID {OperatorId} without specific errors.",
+                operatorId);
+            return StatusCode(500, new { message = "An unexpected error occurred during update." });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error updating operator");
+            throw;
+        }
+    }
+
     [HttpGet("get-operator/{operatorId}")]
-    public async Task<IActionResult> GetOperator(int operatorId)
+    public async Task<IActionResult> GetOperatorById(int operatorId)
     {
         try
         {
@@ -80,7 +174,7 @@ public class OperatorController : ControllerBase
 
             if (result == null)
             {
-                return NotFound();
+                return NotFound(new { message = $"Operator with ID: {operatorId} cannot be found." });
             }
 
             return Ok(result);
@@ -88,23 +182,138 @@ public class OperatorController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error getting operator with id: {Id}", operatorId);
-            throw;
+            return StatusCode(500, new { message = "An error occured while retrieving operator." });
         }
     }
 
-    [HttpGet("check-username/{username}")]
-    public async Task<IActionResult> CheckUsername(string username)
+    [Authorize(Roles = "Admin")]
+    [HttpDelete("delete-operator/{operatorId}")]
+    public async Task<IActionResult> DeleteOperator(int operatorId)
     {
         try
         {
-            var exists = await _operatorService.UserExistsAsync(username);
+            if (operatorId <= 0)
+            {
+                return BadRequest(new { Message = "Invalid operator ID." });
+            }
 
-            return Ok(new { exists });
+            int? deletedById = null;
+
+            try
+            {
+                deletedById = GetCurrentUserIdFromToken();
+            }
+            catch (UnauthorizedAccessException)
+            {
+                _logger.LogWarning("Could not determine user ID for operator deletion tracking.");
+            }
+
+            var result = await _operatorService.DeleteOperatorAsync(operatorId, deletedById);
+
+            if (result.Succeeded)
+            {
+                return Ok(new { message = result.Message });
+            }
+
+            if (result.Errors.Any())
+            {
+                string firstError = result.Errors.First().ToLowerInvariant();
+
+                if (firstError.Contains("cannot be found"))
+                {
+                    return NotFound(new { Errors = result.Errors });
+                }
+
+                if (firstError.Contains("already deleted"))
+                {
+                    return Conflict(new { Errors = result.Errors });
+                }
+
+                if (firstError.Contains("has since been") || firstError.Contains("modified"))
+                {
+                    return Conflict(new { Errors = result.Errors });
+                }
+
+                return BadRequest(new { message = result.Errors });
+            }
+
+            _logger.LogError("DeleteOperator failed for operator ID {OperatorId} without specific errors.", operatorId);
+            return StatusCode(StatusCodes.Status500InternalServerError,
+                new { message = "Unknown error happened during the deletion of operator." });
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error checking username: {Username}", username);
-            return StatusCode(500, new { message = "An error occurred while checking username" });
+            _logger.LogError(ex, "Unexpected error in DeleteOperator controller action for operator ID {OperatorId}.",
+                operatorId);
+            return StatusCode(StatusCodes.Status500InternalServerError,
+                new { message = "Unknown error happened during the deletion of operator." });
         }
+    }
+
+    [Authorize(Roles = "Admin")]
+    [HttpPost("restore-operator/{operatorId}")]
+    public async Task<IActionResult> RestoreOperator(int operatorId)
+    {
+        try
+        {
+            if (operatorId <= 0)
+            {
+                return BadRequest(new { Message = "Invalid operator ID." });
+            }
+            
+            var result =  await _operatorService.RestoreOperatorAsync(operatorId);
+
+            if (result.Succeeded)
+            {
+                return Ok(new { message = result.Message });
+            }
+
+            if (result.Errors.Any())
+            {
+                string firstError = result.Errors.First().ToLowerInvariant();
+
+                if (firstError.Contains("cannot be found"))
+                {
+                    return NotFound(new { Errors = result.Errors });
+                }
+
+                if (firstError.Contains("not currently deleted"))
+                {
+                    return Conflict(new { Errors = result.Errors });
+                }
+
+                if (firstError.Contains("has since been") || firstError.Contains("modified"))
+                {
+                    return Conflict(new { Errors = result.Errors });
+                }
+                
+                return BadRequest(new { message = result.Errors });
+            }
+            
+            _logger.LogError("RestoreOperator failed for operator ID {OperatorId} without specific errors.", operatorId);
+            return StatusCode(StatusCodes.Status500InternalServerError,
+                new { message = "Unknown error happened during the restoration of operator." });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Unexpected error in RestoreOperator controller action for operator ID {OperatorId}.",
+                operatorId);
+            return StatusCode(StatusCodes.Status500InternalServerError,
+                new { message = "Unknown error happened during the restoration of operator." });
+        }
+    }
+
+    private int GetCurrentUserIdFromToken()
+    {
+        var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+        if (string.IsNullOrEmpty(userIdClaim) || !int.TryParse(userIdClaim, out var userId))
+        {
+            _logger.LogError("User ID claim (NameIdentifier) not found or invalid in token for an authorized request.");
+            throw new UnauthorizedAccessException(
+                "User ID (ClaimTypes.NameIdentifier) cannot be found or not int the token, despite the request is authenticated.");
+        }
+
+        return userId;
     }
 }

@@ -29,6 +29,8 @@ public class MappingService : Profile
                     src.DeletedBy != null ? $"{src.DeletedBy.FirstName} {src.DeletedBy.LastName}" : null));
         CreateMap<Operator, OperatorRegisterResponseDto>();
         CreateMap<Operator, OperatorLoginResponseDto>();
+        CreateMap<Operator, OperatorUpdateResponseDto>();
+        CreateMap<OperatorResponseDto, OperatorUpdateDto>();
 
         CreateMap<ExamTypeCreateDto, ExamType>();
         CreateMap<ExamTypeUpdateDto, ExamType>()
