@@ -33,17 +33,17 @@ public class OperatorService : IOperatorService
         _configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
     }
 
-    public async Task<OperatorLoginResponseDto?> LoginAsync(OperatorLoginRequestDto loginRequest)
+    public async Task<BaseServiceResponse<OperatorLoginResponseDto>> LoginAsync(OperatorLoginRequestDto loginRequest)
     {
+        if (string.IsNullOrWhiteSpace(loginRequest.UserName) ||
+            string.IsNullOrWhiteSpace(loginRequest.Password))
+        {
+            _logger.LogWarning("Login attempt with empty username or password");
+            return BaseServiceResponse<OperatorLoginResponseDto>.Failed("Username and password are required.");
+        }
+
         try
         {
-            if (string.IsNullOrWhiteSpace(loginRequest.UserName) ||
-                string.IsNullOrWhiteSpace(loginRequest.Password))
-            {
-                _logger.LogWarning("Login attempt with empty username or password");
-                return null;
-            }
-
             var operatorEntity =
                 (await _unitOfWork.OperatorRepository.GetAsync(o => o.UserName == loginRequest.UserName.Trim()))
                 .FirstOrDefault();
@@ -51,29 +51,29 @@ public class OperatorService : IOperatorService
             if (operatorEntity == null)
             {
                 _logger.LogWarning("Login attempt for non-existent user: {UserName}", loginRequest.UserName);
-                return null;
+                return BaseServiceResponse<OperatorLoginResponseDto>.Failed("Invalid username or password.");
             }
 
             if (!BCrypt.Net.BCrypt.Verify(loginRequest.Password, operatorEntity.Password))
             {
                 _logger.LogWarning("Failed login attempt for user: {UserName}", loginRequest.UserName);
-                return null;
+                return BaseServiceResponse<OperatorLoginResponseDto>.Failed("Invalid username or password.");
             }
 
-            var response = _mapper.Map<OperatorLoginResponseDto>(operatorEntity);
-            response.Token = GenerateJwtToken(operatorEntity);
+            var loginResponseDto = _mapper.Map<OperatorLoginResponseDto>(operatorEntity);
+            loginResponseDto.Token = GenerateJwtToken(operatorEntity);
 
             _logger.LogInformation("Successful login for user: {UserName}", loginRequest.UserName);
-            return response;
+            return BaseServiceResponse<OperatorLoginResponseDto>.Success(loginResponseDto, "Login successful.");
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error during login attempt for user: {UserName}", loginRequest.UserName);
-            throw;
+            return BaseServiceResponse<OperatorLoginResponseDto>.Failed("An unexpected error occurred during login.");
         }
     }
 
-    public async Task<OperatorRegisterResponseDto> RegisterAsync(OperatorCreateDto createRequest)
+    public async Task<BaseServiceResponse<OperatorRegisterResponseDto>> RegisterAsync(OperatorCreateDto createRequest)
     {
         try
         {
@@ -84,7 +84,8 @@ public class OperatorService : IOperatorService
                 string.IsNullOrWhiteSpace(createRequest.LastName)
             )
             {
-                throw new ArgumentException("All fields are required for registration");
+                return BaseServiceResponse<OperatorRegisterResponseDto>.Failed(
+                    "All fields are required for registration.");
             }
 
             if (await UserExistsAsync(createRequest.UserName))
@@ -100,12 +101,15 @@ public class OperatorService : IOperatorService
 
             _logger.LogInformation("New operator registered: {UserName}", createRequest.UserName);
 
-            return _mapper.Map<OperatorRegisterResponseDto>(operatorEntity);
+            var registerResponseDto = _mapper.Map<OperatorRegisterResponseDto>(operatorEntity);
+            return BaseServiceResponse<OperatorRegisterResponseDto>.Success(registerResponseDto,
+                "Registration successful.");
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error during registration for user: {UserName}", createRequest.UserName);
-            throw;
+            return BaseServiceResponse<OperatorRegisterResponseDto>.Failed(
+                "An unexpected error occurred during registration.");
         }
     }
 
@@ -129,7 +133,7 @@ public class OperatorService : IOperatorService
         }
     }
 
-    public async Task<OperatorResponseDto?> GetOperatorByIdAsync(int id)
+    public async Task<BaseServiceResponse<OperatorResponseDto>> GetOperatorByIdAsync(int id)
     {
         try
         {
@@ -137,19 +141,21 @@ public class OperatorService : IOperatorService
 
             if (operatorEntity == null)
             {
-                return null;
+                return BaseServiceResponse<OperatorResponseDto>.Failed($"Operator with ID {id} cannot be found.");
             }
 
-            return _mapper.Map<OperatorResponseDto>(operatorEntity);
+            var operatorResponseDto = _mapper.Map<OperatorResponseDto>(operatorEntity);
+            return BaseServiceResponse<OperatorResponseDto>.Success(operatorResponseDto);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error getting operator with id: {Id}", id);
-            throw;
+            return BaseServiceResponse<OperatorResponseDto>.Failed(
+                $"An error occurred while retrieving operator with ID {id}.");
         }
     }
 
-    public async Task<OperatorUpdateResponseDto> UpdateOperatorAsync(int operatorId, OperatorUpdateDto updateRequest)
+    public async Task<BaseServiceResponse<bool>> UpdateOperatorAsync(int operatorId, OperatorUpdateDto updateRequest)
     {
         try
         {
@@ -157,7 +163,7 @@ public class OperatorService : IOperatorService
 
             if (operatorEntity == null)
             {
-                return OperatorUpdateResponseDto.Failed("The user to be modified cannot be found.");
+                return BaseServiceResponse<bool>.Failed("The user to be modified cannot be found.");
             }
 
             bool changed = false;
@@ -182,38 +188,39 @@ public class OperatorService : IOperatorService
 
             if (!changed)
             {
-                return OperatorUpdateResponseDto.Success();
+                return BaseServiceResponse<bool>.Success(true, "No changes detected for update.");
             }
 
             try
             {
                 await _unitOfWork.OperatorRepository.UpdateASync(operatorEntity);
                 await _unitOfWork.SaveAsync();
-                return OperatorUpdateResponseDto.Success();
+                return BaseServiceResponse<bool>.Success(true, "Operator updated successfully.");
             }
             catch (DbUpdateConcurrencyException)
             {
-                return OperatorUpdateResponseDto.Failed("Someone has changed the data. Try again please.");
+                return BaseServiceResponse<bool>.Failed("Someone has changed the data. Try again please.");
             }
             catch (DbUpdateException ex)
             {
-                return OperatorUpdateResponseDto.Failed(
+                return BaseServiceResponse<bool>.Failed(
                     $"Database error during update: {ex.InnerException?.Message ?? ex.Message}");
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Unexpected error during operator's data update.");
-                return OperatorUpdateResponseDto.Failed($"Unexpected error: {ex.Message}");
+                return BaseServiceResponse<bool>.Failed($"Unexpected error: {ex.Message}");
             }
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error updating operator with id: {operatorId}", operatorId);
-            throw;
+            return BaseServiceResponse<bool>.Failed(
+                $"An unexpected error occurred while updating operator with ID {operatorId}.");
         }
     }
 
-    public async Task<OperatorDeleteResponseDto> DeleteOperatorAsync(int operatorId, int? deletedById = null)
+    public async Task<BaseServiceResponse<string>> DeleteOperatorAsync(int operatorId, int? deletedById = null)
     {
         try
         {
@@ -221,12 +228,12 @@ public class OperatorService : IOperatorService
 
             if (operatorEntity == null)
             {
-                return OperatorDeleteResponseDto.Failed("The user to be deleted cannot be found.");
+                return BaseServiceResponse<string>.Failed("The user to be deleted cannot be found.");
             }
 
             if (operatorEntity.IsDeleted)
             {
-                return OperatorDeleteResponseDto.Failed("The operator is already deleted.");
+                return BaseServiceResponse<string>.Failed("The operator is already deleted.");
             }
 
             operatorEntity.IsDeleted = true;
@@ -237,34 +244,34 @@ public class OperatorService : IOperatorService
             await _unitOfWork.SaveAsync();
 
             _logger.LogInformation("Deleted operator with id: {Id}", operatorId);
-            return OperatorDeleteResponseDto.Success($"Operator with ID {operatorId} deleted successfully.");
+            return BaseServiceResponse<string>.Success($"Operator with ID {operatorId} deleted successfully.");
         }
         catch (KeyNotFoundException ex)
         {
             _logger.LogWarning(ex, "Attempted to delete non-existing operator with ID: {OperatorId}", operatorId);
-            return OperatorDeleteResponseDto.Failed($"Operator with ID {operatorId} cannot be found.");
+            return BaseServiceResponse<string>.Failed($"Operator with ID {operatorId} cannot be found.");
         }
         catch (DbUpdateConcurrencyException ex)
         {
             _logger.LogWarning(ex,
                 "Concurrency conflicts when deleting operator with ID {OperatorId}. Try again please.", operatorId);
-            return OperatorDeleteResponseDto.Failed(
+            return BaseServiceResponse<string>.Failed(
                 $"The operator has since been modified by someone else. Try again please.");
         }
         catch (DbUpdateException ex)
         {
             _logger.LogError(ex, "Database error occurred while deleting operator with ID {OperatorId}.", operatorId);
-            return OperatorDeleteResponseDto.Failed(
+            return BaseServiceResponse<string>.Failed(
                 $"Database error during deleting: {ex.InnerException?.Message ?? ex.Message}");
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Unexpected error occurred while deleting operator with ID {OperatorId}.", operatorId);
-            return OperatorDeleteResponseDto.Failed($"Unexpected error: {ex.Message}");
+            return BaseServiceResponse<string>.Failed($"Unexpected error: {ex.Message}");
         }
     }
 
-    public async Task<OperatorRestoreResponseDto> RestoreOperatorAsync(int operatorId)
+    public async Task<BaseServiceResponse<string>> RestoreOperatorAsync(int operatorId)
     {
         try
         {
@@ -273,12 +280,12 @@ public class OperatorService : IOperatorService
 
             if (operatorEntity == null)
             {
-                return OperatorRestoreResponseDto.Failed("The operator to be restored cannot be found.");
+                return BaseServiceResponse<string>.Failed("The operator to be restored cannot be found.");
             }
 
             if (!operatorEntity.IsDeleted)
             {
-                return OperatorRestoreResponseDto.Failed("The operator is not currently deleted.");
+                return BaseServiceResponse<string>.Failed("The operator is not currently deleted.");
             }
 
             operatorEntity.IsDeleted = false;
@@ -289,25 +296,105 @@ public class OperatorService : IOperatorService
             await _unitOfWork.SaveAsync();
 
             _logger.LogInformation("Restored operator with id: {Id}", operatorId);
-            return OperatorRestoreResponseDto.Success($"Operator with ID {operatorId} restored successfully.");
+            return BaseServiceResponse<string>.Success($"Operator with ID {operatorId} restored successfully.");
         }
         catch (DbUpdateConcurrencyException ex)
         {
             _logger.LogWarning(ex,
                 "Concurrency conflict when restoring operator with ID {OperatorId}. Try again please.", operatorId);
-            return OperatorRestoreResponseDto.Failed(
+            return BaseServiceResponse<string>.Failed(
                 $"The operator has since been modified by someone else. Try again please.");
         }
         catch (DbUpdateException ex)
         {
             _logger.LogError(ex, "Database error occurred while restoring operator with ID {OperatorId}.", operatorId);
-            return OperatorRestoreResponseDto.Failed(
+            return BaseServiceResponse<string>.Failed(
                 $"Database error during restoration: {ex.InnerException?.Message ?? ex.Message}");
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Unexpected error occurred while restoring operator with ID {OperatorId}.", operatorId);
-            return OperatorRestoreResponseDto.Failed($"Unexpected error: {ex.Message}");
+            _logger.LogError(ex, "Unexpected error occurred while restoring operator with ID {OperatorId}.",
+                operatorId);
+            return BaseServiceResponse<string>.Failed($"Unexpected error: {ex.Message}");
+        }
+    }
+
+    public async Task<BaseServiceResponse<string>> AssignRoleAsync(int targetOperatorId, Role newRole, int assignedById)
+    {
+        try
+        {
+            if (targetOperatorId <= 0)
+            {
+                return BaseServiceResponse<string>.Failed("Invalid target operator ID.");
+            }
+
+            var targetOperator = await _unitOfWork.OperatorRepository.GetByIdAsync(new object[] { targetOperatorId });
+            if (targetOperator == null)
+            {
+                _logger.LogWarning("Role assignment failed: Target operator with ID {TargetOperatorId} not found.",
+                    targetOperatorId);
+                return BaseServiceResponse<string>.Failed($"Operator with ID {targetOperatorId} not found.");
+            }
+
+            var assigningAdmin = await _unitOfWork.OperatorRepository.GetByIdAsync(new object[] { assignedById });
+            if (assigningAdmin == null || assigningAdmin.Role != Role.Admin)
+            {
+                _logger.LogWarning("Role assignment failed: Unauthorized attempt by non-admin user ID {AssignedById}.",
+                    assignedById);
+                return BaseServiceResponse<string>.Failed("Only administrators can assign or revoke roles.");
+            }
+
+            if (targetOperatorId == assignedById && newRole != Role.Admin && targetOperator.Role == Role.Admin)
+            {
+                return BaseServiceResponse<string>.Failed(
+                    "An administrator cannot demote themselves to Operator role. Another admin must perform this action.");
+            }
+
+            if (targetOperatorId == assignedById && newRole == Role.Admin && targetOperator.Role == Role.Operator)
+            {
+                return BaseServiceResponse<string>.Failed(
+                    "An administrator cannot promote themselves. This action is usually performed by another admin or during initial setup.");
+            }
+
+            if (targetOperator.Role == newRole)
+            {
+                return BaseServiceResponse<string>.Success(
+                    $"Operator '{targetOperator.UserName}' (ID: {targetOperatorId}) already has the role '{newRole}'. No change needed.");
+            }
+
+            var oldRole = targetOperator.Role;
+            targetOperator.Role = newRole;
+
+            await _unitOfWork.OperatorRepository.UpdateASync(targetOperator);
+            await _unitOfWork.SaveAsync();
+
+            _logger.LogInformation(
+                "Admin '{AdminUserName}' (ID: {AssignedById}) changed role of operator '{TargetOperatorUserName}' (ID: {TargetOperatorId}) from '{OldRole}' to '{NewRole}'.",
+                assigningAdmin.UserName, assignedById, targetOperator.UserName, targetOperatorId, oldRole, newRole);
+
+            return BaseServiceResponse<string>.Success(
+                $"Role of operator '{targetOperator.UserName}' (ID: {targetOperatorId}) successfully changed to '{newRole}'.");
+        }
+        catch (DbUpdateConcurrencyException ex)
+        {
+            _logger.LogWarning(ex, "Concurrency conflict during role assignment for operator ID {TargetOperatorId}.",
+                targetOperatorId);
+            return BaseServiceResponse<string>.Failed(
+                "Concurrency conflict occurred. The operator's data was modified by someone else. Please try again.");
+        }
+        catch (DbUpdateException ex)
+        {
+            _logger.LogError(ex, "Database error occurred during role assignment for operator ID {TargetOperatorId}.",
+                targetOperatorId);
+            return BaseServiceResponse<string>.Failed(
+                $"Database error during role assignment: {ex.InnerException?.Message ?? ex.Message}");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Unexpected error occurred during role assignment for operator ID {TargetOperatorId}.",
+                targetOperatorId);
+            return BaseServiceResponse<string>.Failed(
+                $"An unexpected error occurred during role assignment: {ex.Message}");
         }
     }
 

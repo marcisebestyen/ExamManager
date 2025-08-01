@@ -18,7 +18,4 @@ public class OperatorCreateDto
     
     [Required(ErrorMessage = "Last name is required")]
     public string LastName { get; set; }
-    
-    [Required(ErrorMessage = "Role is required")]
-    public Role Role { get; set; }
 }

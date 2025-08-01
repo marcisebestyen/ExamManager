@@ -246,7 +246,10 @@ public class ExamDbContext : DbContext
             
             oper.Property(o => o.LastName)
                 .HasMaxLength(256)
-                .IsRequired();  
+                .IsRequired();
+
+            oper.Property(o => o.Role)
+                .HasDefaultValue(Role.Operator);
         });
         
         // PasswordReset entity configuration 
