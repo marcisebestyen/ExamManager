@@ -88,6 +88,19 @@ builder.Services.AddSwaggerGen(c =>
     });
 });
 
+var MyAllowSpecificOrigins = "_myAllowSpecificOrigins";
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy(name: MyAllowSpecificOrigins,
+        policy =>
+        {
+            policy.WithOrigins("http://localhost:7195")
+                .AllowAnyHeader()
+                .AllowAnyMethod()
+                .AllowCredentials();
+        });
+});
+
 // Unit of Work registration
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 
@@ -98,6 +111,7 @@ builder.Services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
 builder.Services.AddAutoMapper(cfg => { }, typeof(Program).Assembly);
 builder.Services.AddControllers().AddNewtonsoftJson();
 builder.Services.AddScoped<IOperatorService, OperatorService>();
+builder.Services.AddScoped<IExaminerService, ExaminerService>();
 
 var app = builder.Build();
 
@@ -139,6 +153,8 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+app.UseRouting();
+app.UseCors(MyAllowSpecificOrigins);
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();

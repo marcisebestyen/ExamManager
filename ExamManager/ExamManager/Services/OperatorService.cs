@@ -88,7 +88,7 @@ public class OperatorService : IOperatorService
                     "All fields are required for registration.");
             }
 
-            if (await UserExistsAsync(createRequest.UserName))
+            if (await OperatorExistsAsync(createRequest.UserName))
             {
                 throw new InvalidOperationException($"Username '{createRequest.UserName}' is already taken");
             }
@@ -112,36 +112,17 @@ public class OperatorService : IOperatorService
                 "An unexpected error occurred during registration.");
         }
     }
-
-    public async Task<bool> UserExistsAsync(string userName)
+    
+    public async Task<BaseServiceResponse<OperatorResponseDto>> GetOperatorByIdAsync(int operatorId)
     {
         try
         {
-            if (string.IsNullOrWhiteSpace(userName))
-            {
-                return false;
-            }
-
-            var operators = await _unitOfWork.OperatorRepository.GetAsync(o => o.UserName == userName.Trim());
-
-            return operators.Any();
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error checking if user exists: {UserName}", userName);
-            throw;
-        }
-    }
-
-    public async Task<BaseServiceResponse<OperatorResponseDto>> GetOperatorByIdAsync(int id)
-    {
-        try
-        {
-            var operatorEntity = await _unitOfWork.OperatorRepository.GetByIdAsync(new object[] { id });
+            var operatorEntity = await _unitOfWork.OperatorRepository.GetByIdAsync(new object[] { operatorId });
 
             if (operatorEntity == null)
             {
-                return BaseServiceResponse<OperatorResponseDto>.Failed($"Operator with ID {id} cannot be found.");
+                return BaseServiceResponse<OperatorResponseDto>.Failed(
+                    $"Operator with ID {operatorId} cannot be found.");
             }
 
             var operatorResponseDto = _mapper.Map<OperatorResponseDto>(operatorEntity);
@@ -149,9 +130,9 @@ public class OperatorService : IOperatorService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error getting operator with id: {Id}", id);
+            _logger.LogError(ex, "Error getting operator with id: {Id}", operatorId);
             return BaseServiceResponse<OperatorResponseDto>.Failed(
-                $"An error occurred while retrieving operator with ID {id}.");
+                $"An error occurred while retrieving operator with ID {operatorId}.");
         }
     }
 
@@ -397,7 +378,27 @@ public class OperatorService : IOperatorService
                 $"An unexpected error occurred during role assignment: {ex.Message}");
         }
     }
+    
+    private async Task<bool> OperatorExistsAsync(string userName)
+    {
+        try
+        {
+            if (string.IsNullOrWhiteSpace(userName))
+            {
+                return false;
+            }
 
+            var operators = await _unitOfWork.OperatorRepository.GetAsync(o => o.UserName == userName.Trim());
+
+            return operators.Any();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error checking if user exists: {UserName}", userName);
+            throw;
+        }
+    }
+    
     private string GenerateJwtToken(Operator user)
     {
         var jwtSettings = _configuration.GetSection("JwtSettings");
