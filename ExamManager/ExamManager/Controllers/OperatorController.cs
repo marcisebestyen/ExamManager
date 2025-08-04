@@ -158,7 +158,7 @@ public class OperatorController : ControllerBase
             patchDoc.ApplyTo(operatorPatchDto, ModelState);
 
             if (!ModelState.IsValid)
-            {
+            {   
                 return BadRequest(ModelState);
             }
 
@@ -355,7 +355,7 @@ public class OperatorController : ControllerBase
 
         if (result.Succeeded)
         {
-            return Ok(new { message = result.Message }); 
+            return Ok(new { message = result.Message });
         }
         else
         {
@@ -374,13 +374,13 @@ public class OperatorController : ControllerBase
 
             if (firstError.Contains("already has the role") || firstError.Contains("concurrency conflict"))
             {
-                return Conflict(new { message = result.Message ?? result.Errors.FirstOrDefault() }); 
+                return Conflict(new { message = result.Message ?? result.Errors.FirstOrDefault() });
             }
 
             if (firstError.Contains("cannot demote themselves") || firstError.Contains("invalid target operator id"))
             {
                 return BadRequest(new
-                    { message = result.Message ?? result.Errors.FirstOrDefault() }); 
+                    { message = result.Message ?? result.Errors.FirstOrDefault() });
             }
 
             _logger.LogError(

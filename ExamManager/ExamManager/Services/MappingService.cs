@@ -10,6 +10,7 @@ using ExamManager.Dtos.PasswordResetDtos;
 using ExamManager.Dtos.ProfessionDtos;
 using ExamManager.Models;
 using ExamManager.Responses;
+using ExamManager.Responses.ExaminerResponses;
 
 namespace ExamManager.Services;
 
@@ -39,7 +40,6 @@ public class MappingService : Profile
         CreateMap<ProfessionCreateDto, Profession>();
         CreateMap<ProfessionUpdateDto, Profession>()
             .ForAllMembers(opt => opt.Condition((src, dest, srcMember) => srcMember != null));
-        ;
         CreateMap<Profession, ProfessionResponseDto>();
 
         CreateMap<InstitutionCreateDto, Institution>();
@@ -54,6 +54,8 @@ public class MappingService : Profile
             .ForMember(dest => dest.DeletedByOperatorName,
                 opt => opt.MapFrom(src =>
                     src.DeletedBy != null ? $"{src.DeletedBy.FirstName} {src.DeletedBy.LastName}" : null));
+        CreateMap<Examiner, ExaminerCreateResponseDto>();
+        CreateMap<ExaminerResponseDto, ExaminerUpdateDto>();
 
         CreateMap<ExamBoardCreateSubDto, ExamBoard>();
         CreateMap<ExamBoardUpdateSubDto, ExamBoard>()

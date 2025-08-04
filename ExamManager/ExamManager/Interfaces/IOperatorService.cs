@@ -8,8 +8,7 @@ public interface IOperatorService
 {
     Task<BaseServiceResponse<OperatorLoginResponseDto>> LoginAsync(OperatorLoginRequestDto loginRequest);
     Task<BaseServiceResponse<OperatorRegisterResponseDto>> RegisterAsync(OperatorCreateDto createRequest);
-    Task<bool> UserExistsAsync(string userName);
-    Task<BaseServiceResponse<OperatorResponseDto>> GetOperatorByIdAsync(int id);
+    Task<BaseServiceResponse<OperatorResponseDto>> GetOperatorByIdAsync(int operatorId);
     Task<BaseServiceResponse<bool>> UpdateOperatorAsync(int operatorId,  OperatorUpdateDto updateRequest);
     Task<BaseServiceResponse<string>> DeleteOperatorAsync(int operatorId, int? deletedById = null);
     Task<BaseServiceResponse<string>> RestoreOperatorAsync(int operatorId);
