@@ -3,6 +3,7 @@
 public class InstitutionUpdateDto
 {
     public string? Name { get; set; }
+    public string? EducationalId { get; set; }
     public int? ZipCode { get; set; }
     public string? Town  { get; set; }
     public string? Street { get; set; }
