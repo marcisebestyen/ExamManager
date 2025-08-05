@@ -1,12 +1,11 @@
-﻿namespace ExamManager.Dtos.InstitutionDtos;
+﻿namespace ExamManager.Responses.InstitutionResponses;
 
-public class InstitutionResponseDto
+public class InstitutionCreateResponseDto
 {
     public int Id { get; set; }
-    public string EducationalId { get; set; }
     public string Name { get; set; }
     public int ZipCode { get; set; }
-    public string Town  { get; set; }
+    public string Town { get; set; }
     public string Street { get; set; }
     public string Number { get; set; }
     public string? Floor { get; set; }

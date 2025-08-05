@@ -198,6 +198,12 @@ public class ExamDbContext : DbContext
         modelBuilder.Entity<Institution>(institution =>
         {
             institution.HasKey(i => i.Id); // PK
+
+            institution.HasIndex(i => i.EducationalId)
+                .IsUnique();
+            institution.Property(i => i.EducationalId)
+                .HasMaxLength(256)
+                .IsRequired();
             
             institution.Property(i => i.Name)
                 .HasMaxLength(256)

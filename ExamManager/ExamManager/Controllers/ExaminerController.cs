@@ -64,7 +64,7 @@ public class ExaminerController : ControllerBase
         }
     }
 
-    [HttpPost("update-examiner")]
+    [HttpPatch("update-examiner/{examinerId}")]
     public async Task<IActionResult> UpdateExaminer(int examinerId,
         [FromBody] JsonPatchDocument<ExaminerUpdateDto> patchDoc)
     {
@@ -178,14 +178,14 @@ public class ExaminerController : ControllerBase
         {
             _logger.LogWarning("Could not determine user ID for operator deletion tracking.");
         }
-        
-        var result =  await _examinerService.DeleteExaminerAsync(examinerId,  deletedById);
+
+        var result = await _examinerService.DeleteExaminerAsync(examinerId, deletedById);
 
         if (result.Succeeded)
         {
             return Ok(new { message = result.Message });
         }
-        
+
         if (result.Errors.Any())
         {
             string firstError = result.Errors.First().ToLowerInvariant();
@@ -208,12 +208,12 @@ public class ExaminerController : ControllerBase
 
             return BadRequest(new { message = result.Errors });
         }
-        
+
         _logger.LogError("DeleteExaminer failed for examiner ID {ExaminerId} without specific errors.", examinerId);
         return StatusCode(StatusCodes.Status500InternalServerError,
             new { message = "Unknown error happened during the deletion of operator." });
     }
-    
+
     [HttpPost("restore-examiner/{examinerId}")]
     public async Task<IActionResult> RestoreOperator(int examinerId)
     {
@@ -256,7 +256,7 @@ public class ExaminerController : ControllerBase
         return StatusCode(StatusCodes.Status500InternalServerError,
             new { message = "Unknown error happened during the restoration of operator." });
     }
-    
+
     private int GetCurrentUserIdFromToken()
     {
         var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);

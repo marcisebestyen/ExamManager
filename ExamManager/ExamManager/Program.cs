@@ -112,6 +112,7 @@ builder.Services.AddAutoMapper(cfg => { }, typeof(Program).Assembly);
 builder.Services.AddControllers().AddNewtonsoftJson();
 builder.Services.AddScoped<IOperatorService, OperatorService>();
 builder.Services.AddScoped<IExaminerService, ExaminerService>();
+builder.Services.AddScoped<IInstitutionService, InstitutionService>();
 
 var app = builder.Build();
 
