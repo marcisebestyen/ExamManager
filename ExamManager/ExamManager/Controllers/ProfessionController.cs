@@ -64,7 +64,7 @@ public class ProfessionController : ControllerBase
         }
     }
 
-    [HttpPost("update-profession/{professionId}")]
+    [HttpPatch("update-profession/{professionId}")]
     public async Task<IActionResult> UpdateProfession(int professionId,
         [FromBody] JsonPatchDocument<ProfessionUpdateDto> patchDoc)
     {
@@ -121,7 +121,7 @@ public class ProfessionController : ControllerBase
 
                 return BadRequest(new { Errors = result.Errors });
             }
-            
+
             _logger?.LogError("UpdateProfession (PATCH) failed for profession {ProfessionId} without specific errors.",
                 professionId);
             return StatusCode(500, new { message = "An unexpected error occurred during update." });
@@ -160,9 +160,9 @@ public class ProfessionController : ControllerBase
                 });
         }
     }
-    
+
     [HttpDelete("delete-profession/{professionId}")]
-    public async Task<IActionResult> DeleteInstitution(int professionId)
+    public async Task<IActionResult> DeleteProfession(int professionId)
     {
         if (professionId <= 0)
         {
@@ -184,7 +184,7 @@ public class ProfessionController : ControllerBase
             {
                 return NotFound(new { Errors = result.Errors });
             }
-        
+
             if (firstError.Contains("has since been") || firstError.Contains("modified") ||
                 firstError.Contains("concurrency"))
             {

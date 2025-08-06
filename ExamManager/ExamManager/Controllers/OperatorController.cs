@@ -158,7 +158,7 @@ public class OperatorController : ControllerBase
             patchDoc.ApplyTo(operatorPatchDto, ModelState);
 
             if (!ModelState.IsValid)
-            {   
+            {
                 return BadRequest(ModelState);
             }
 

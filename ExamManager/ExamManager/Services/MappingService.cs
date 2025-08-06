@@ -11,6 +11,7 @@ using ExamManager.Dtos.ProfessionDtos;
 using ExamManager.Models;
 using ExamManager.Responses;
 using ExamManager.Responses.ExaminerResponses;
+using ExamManager.Responses.ExamTypeResponses;
 using ExamManager.Responses.InstitutionResponses;
 using ExamManager.Responses.ProfessionResponses;
 
@@ -21,11 +22,11 @@ public class MappingService : Profile
     public MappingService()
     {
         CreateMap<OperatorCreateDto, Operator>()
-            .ForMember(dest => dest.Password, 
+            .ForMember(dest => dest.Password,
                 opt => opt.MapFrom(src => BCrypt.Net.BCrypt.HashPassword(src.Password)));
         CreateMap<OperatorUpdateDto, Operator>()
             .ForAllMembers(opt =>
-                opt.Condition((src, dest, srcMember) => srcMember != null)); 
+                opt.Condition((src, dest, srcMember) => srcMember != null));
         CreateMap<Operator, OperatorResponseDto>()
             .ForMember(dest => dest.DeletedByOperatorName,
                 opt => opt.MapFrom(src =>
@@ -38,6 +39,8 @@ public class MappingService : Profile
         CreateMap<ExamTypeUpdateDto, ExamType>()
             .ForAllMembers(opt => opt.Condition((src, dest, srcMember) => srcMember != null));
         CreateMap<ExamType, ExamTypeResponseDto>();
+        CreateMap<ExamType, ExamTypeCreateResponseDto>();
+        CreateMap<ExamTypeResponseDto, ExamTypeUpdateDto>();
 
         CreateMap<ProfessionCreateDto, Profession>();
         CreateMap<ProfessionUpdateDto, Profession>()
@@ -68,16 +71,16 @@ public class MappingService : Profile
             .ForAllMembers(opt => opt.Condition((src, dest, srcMember) => srcMember != null));
         CreateMap<ExamBoard, ExamBoardResponseDto>()
             .ForMember(dest => dest.ExamName,
-                opt => opt.MapFrom(src => 
+                opt => opt.MapFrom(src =>
                     src.Exam != null ? src.Exam.ExamName : string.Empty))
             .ForMember(dest => dest.ExamCode,
-                opt => opt.MapFrom(src => 
+                opt => opt.MapFrom(src =>
                     src.Exam != null ? src.Exam.ExamCode : string.Empty))
             .ForMember(dest => dest.ExaminerFirstName,
-                opt => opt.MapFrom(src => 
+                opt => opt.MapFrom(src =>
                     src.Examiner != null ? src.Examiner.FirstName : string.Empty))
             .ForMember(dest => dest.ExaminerLastName,
-                opt => opt.MapFrom(src => 
+                opt => opt.MapFrom(src =>
                     src.Examiner != null ? src.Examiner.LastName : string.Empty))
             .ForMember(dest => dest.DeletedByOperatorName,
                 opt => opt.MapFrom(src =>
@@ -88,19 +91,19 @@ public class MappingService : Profile
             .ForAllMembers(opt => opt.Condition((src, dest, srcMember) => srcMember != null));
         CreateMap<Exam, ExamResponseDto>()
             .ForMember(dest => dest.ProfessionKeorId,
-                opt => opt.MapFrom(src => 
+                opt => opt.MapFrom(src =>
                     src.Profession != null ? src.Profession.KeorId : string.Empty))
             .ForMember(dest => dest.ProfessionName,
-                opt => opt.MapFrom(src => 
+                opt => opt.MapFrom(src =>
                     src.Profession != null ? src.Profession.ProfessionName : string.Empty))
             .ForMember(dest => dest.InstitutionName,
-                opt => opt.MapFrom(src => 
+                opt => opt.MapFrom(src =>
                     src.Institution != null ? src.Institution.Name : string.Empty))
             .ForMember(dest => dest.ExamTypeName,
-                opt => opt.MapFrom(src => 
+                opt => opt.MapFrom(src =>
                     src.ExamType != null ? src.ExamType.TypeName : string.Empty))
             .ForMember(dest => dest.OperatorUserName,
-                opt => opt.MapFrom(src => 
+                opt => opt.MapFrom(src =>
                     src.Operator != null ? src.Operator.UserName : string.Empty))
             .ForMember(dest => dest.DeletedByOperatorName,
                 opt => opt.MapFrom(src =>

@@ -128,7 +128,7 @@ public class ProfessionService : IProfessionService
                 return BaseServiceResponse<bool>.Failed("Someone has changed the data. Try again please.");
             }
             catch (DbUpdateException ex)
-            {   
+            {
                 return BaseServiceResponse<bool>.Failed(
                     $"Database error during update: {ex.InnerException?.Message ?? ex.Message}");
             }

@@ -2,7 +2,7 @@
 
 public enum ActivityType
 {
-    Auto, 
+    Auto,
     Manual,
     Restore
 }
@@ -15,10 +15,10 @@ public class BackupHistory
     public ActivityType ActivityType { get; set; }
     public bool IsSuccessful { get; set; }
     public string? ErrorMessage { get; set; }
-    
+
     // foreign keys
     public int OperatorId { get; set; }
-    
+
     // navigation properties
     public Operator Operator { get; set; }
 }

@@ -1,5 +1,5 @@
 ﻿using AutoMapper;
-using ExamManager.Dtos.InstitutionDtos;
+using ExamManager.Dtos;
 using ExamManager.Interfaces;
 using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.AspNetCore.Mvc;
@@ -7,40 +7,39 @@ using Microsoft.AspNetCore.Mvc;
 namespace ExamManager.Controllers;
 
 [ApiController]
-[Route("institutions")]
-public class InstitutionController : ControllerBase
+[Route("examTypes")]
+public class ExamTypeController : ControllerBase
 {
-    private readonly IInstitutionService _institutionService;
-    private readonly ILogger<InstitutionController> _logger;
+    private readonly IExamTypeService _examTypeService;
     private readonly IMapper _mapper;
+    private readonly ILogger<ExamTypeController> _logger;
 
-    public InstitutionController(IInstitutionService institutionService, ILogger<InstitutionController> logger,
-        IMapper mapper)
+    public ExamTypeController(IExamTypeService examTypeService, IMapper mapper, ILogger<ExamTypeController> logger)
     {
-        _institutionService = institutionService ?? throw new ArgumentNullException(nameof(institutionService));
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _examTypeService = examTypeService ?? throw new ArgumentNullException(nameof(examTypeService));
         _mapper = mapper ?? throw new ArgumentNullException(nameof(mapper));
+        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
-    [HttpPost("create-new-institution")]
-    public async Task<IActionResult> CreateNewInstitution([FromBody] InstitutionCreateDto createRequest)
+    [HttpPost("create-new-exam-type")]
+    public async Task<IActionResult> CreateNewExamType([FromBody] ExamTypeCreateDto createRequest)
     {
         if (!ModelState.IsValid)
         {
             return BadRequest(ModelState);
         }
 
-        var result = await _institutionService.CreateInstitutionAsync(createRequest);
+        var result = await _examTypeService.CreateExamTypeAsync(createRequest);
 
         if (result.Succeeded)
         {
-            return CreatedAtAction(nameof(GetInstitutionById), new { institutionId = result.Data!.Id }, result.Data);
+            return CreatedAtAction(nameof(GetExamTypeById), new { examTypeId = result.Data!.Id }, result.Data);
         }
         else
         {
             string firstError = result.Errors.FirstOrDefault()?.ToLowerInvariant() ?? "";
 
-            if (firstError.Contains("educational id") && firstError.Contains("already taken"))
+            if (firstError.Contains("type name") && firstError.Contains("already taken"))
             {
                 return Conflict(new { message = result.Message ?? result.Errors.FirstOrDefault() });
             }
@@ -51,8 +50,8 @@ public class InstitutionController : ControllerBase
             }
 
             _logger.LogError(
-                "Creation failed for institution: {InstitutionID} with errors: {Errors}",
-                createRequest.EducationalId,
+                "Creation failed for exam type: {ExamTypeId} with errors: {Errors}",
+                createRequest.TypeName,
                 string.Join(", ", result.Errors)
             );
             return StatusCode(StatusCodes.Status500InternalServerError,
@@ -64,9 +63,9 @@ public class InstitutionController : ControllerBase
         }
     }
 
-    [HttpPatch("update-institution/{institutionId}")]
-    public async Task<IActionResult> UpdateInstitution(int institutionId,
-        [FromBody] JsonPatchDocument<InstitutionUpdateDto> patchDoc)
+    [HttpPatch("update-exam-type/{examTypeId}")]
+    public async Task<IActionResult> UpdateExamType(int examTypeId,
+        [FromBody] JsonPatchDocument<ExamTypeUpdateDto> patchDoc)
     {
         try
         {
@@ -75,30 +74,30 @@ public class InstitutionController : ControllerBase
                 return BadRequest(new { Message = "The PATCH document cannot be empty." });
             }
 
-            var institutionGetDtoResult = await _institutionService.GetInstitutionByIdAsync(institutionId);
+            var examTypeGetDtoResult = await _examTypeService.GetExamTypeByIdAsync(examTypeId);
 
-            if (!institutionGetDtoResult.Succeeded || institutionGetDtoResult.Data == null)
+            if (!examTypeGetDtoResult.Succeeded || examTypeGetDtoResult.Data == null)
             {
                 return NotFound(new
-                    { message = institutionGetDtoResult.Message ?? institutionGetDtoResult.Errors.FirstOrDefault() });
+                    { message = examTypeGetDtoResult.Message ?? examTypeGetDtoResult.Errors.FirstOrDefault() });
             }
 
-            var institutionPatchDto = _mapper.Map<InstitutionUpdateDto>(institutionGetDtoResult.Data);
+            var examTypePatchDto = _mapper.Map<ExamTypeUpdateDto>(examTypeGetDtoResult.Data);
 
-            patchDoc.ApplyTo(institutionPatchDto);
+            patchDoc.ApplyTo(examTypePatchDto);
 
             if (!ModelState.IsValid)
             {
                 return BadRequest(ModelState);
             }
 
-            TryValidateModel(institutionPatchDto);
+            TryValidateModel(examTypePatchDto);
             if (!ModelState.IsValid)
             {
                 return BadRequest(ModelState);
             }
 
-            var result = await _institutionService.UpdateInstitutionAsync(institutionId, institutionPatchDto);
+            var result = await _examTypeService.UpdateExamTypeAsync(examTypeId, examTypePatchDto);
 
             if (result.Succeeded)
             {
@@ -122,23 +121,22 @@ public class InstitutionController : ControllerBase
                 return BadRequest(new { Errors = result.Errors });
             }
 
-            _logger?.LogError(
-                "UpdateInstitution (PATCH) failed for institution {InstitutionId} without specific errors.",
-                institutionId);
+            _logger?.LogError("UpdateExamType (PATCH) failed for exam type {ExamTypeId} without specific errors.",
+                examTypeId);
             return StatusCode(500, new { message = "An unexpected error occurred during update." });
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error updating institution");
+            _logger.LogError(ex, "Error updating exam type");
             return StatusCode(StatusCodes.Status500InternalServerError,
                 new { message = "An unexpected error occurred during the update operation." });
         }
     }
 
-    [HttpGet("get-institution/{institutionId}")]
-    public async Task<IActionResult> GetInstitutionById(int institutionId)
+    [HttpGet("get-exam-type/{examTypeId}")]
+    public async Task<IActionResult> GetExamTypeById(int examTypeId)
     {
-        var result = await _institutionService.GetInstitutionByIdAsync(institutionId);
+        var result = await _examTypeService.GetExamTypeByIdAsync(examTypeId);
 
         if (result.Succeeded)
         {
@@ -152,25 +150,25 @@ public class InstitutionController : ControllerBase
                 return NotFound(new { message = result.Message ?? result.Errors.FirstOrDefault() });
             }
 
-            _logger.LogError("Error getting institution with id: {Id} with errors: {Errors}", institutionId,
+            _logger.LogError("Error getting exam type with id: {Id} with errors: {Errors}", examTypeId,
                 string.Join(", ", result.Errors));
             return StatusCode(StatusCodes.Status500InternalServerError,
                 new
                 {
-                    message = result.Message ?? "An error occured while retrieving institution.", errors = result.Errors
+                    message = result.Message ?? "An error occured while retrieving exam type.", errors = result.Errors
                 });
         }
     }
 
-    [HttpDelete("delete-institution/{institutionId}")]
-    public async Task<IActionResult> DeleteInstitution(int institutionId)
+    [HttpDelete("delete-exam-type/{examTypeId}")]
+    public async Task<IActionResult> DeleteExamType(int examTypeId)
     {
-        if (institutionId <= 0)
+        if (examTypeId <= 0)
         {
-            return BadRequest(new { Message = "Invalid institution ID." });
+            return BadRequest(new { Message = "Invalid exam type ID." });
         }
 
-        var result = await _institutionService.DeleteInstitutionAsync(institutionId);
+        var result = await _examTypeService.DeleteExamTypeAsync(examTypeId);
 
         if (result.Succeeded)
         {
@@ -195,8 +193,8 @@ public class InstitutionController : ControllerBase
             return BadRequest(new { message = result.Errors });
         }
 
-        _logger.LogError("DeleteInstitution failed for ID {InstitutionId} without specific errors.", institutionId);
+        _logger.LogError("DeleteExamType failed for ID {ExamTypeId} without specific errors.", examTypeId);
         return StatusCode(StatusCodes.Status500InternalServerError,
-            new { message = "An unknown error happened during the deletion of the institution." });
+            new { message = "An unknown error happened during the deletion of the exam type." });
     }
 }

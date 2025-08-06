@@ -214,13 +214,15 @@ public class InstitutionService : IInstitutionService
         }
         catch (DbUpdateException ex)
         {
-            _logger.LogError(ex, "Database error occurred while deleting institution with ID {InstitutionId}.", institutionId);
+            _logger.LogError(ex, "Database error occurred while deleting institution with ID {InstitutionId}.",
+                institutionId);
             return BaseServiceResponse<string>.Failed(
                 $"Database error during deleting: {ex.InnerException?.Message ?? ex.Message}");
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Unexpected error occurred while deleting institution with ID {InstitutionId}.", institutionId);
+            _logger.LogError(ex, "Unexpected error occurred while deleting institution with ID {InstitutionId}.",
+                institutionId);
             return BaseServiceResponse<string>.Failed($"Unexpected error: {ex.Message}");
         }
     }

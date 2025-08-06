@@ -112,7 +112,7 @@ public class OperatorService : IOperatorService
                 "An unexpected error occurred during registration.");
         }
     }
-    
+
     public async Task<BaseServiceResponse<OperatorResponseDto>> GetOperatorByIdAsync(int operatorId)
     {
         try
@@ -378,7 +378,7 @@ public class OperatorService : IOperatorService
                 $"An unexpected error occurred during role assignment: {ex.Message}");
         }
     }
-    
+
     private async Task<bool> OperatorExistsAsync(string userName)
     {
         try
@@ -398,7 +398,7 @@ public class OperatorService : IOperatorService
             throw;
         }
     }
-    
+
     private string GenerateJwtToken(Operator user)
     {
         var jwtSettings = _configuration.GetSection("JwtSettings");
