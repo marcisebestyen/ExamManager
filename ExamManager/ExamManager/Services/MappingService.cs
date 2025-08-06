@@ -12,6 +12,7 @@ using ExamManager.Models;
 using ExamManager.Responses;
 using ExamManager.Responses.ExaminerResponses;
 using ExamManager.Responses.InstitutionResponses;
+using ExamManager.Responses.ProfessionResponses;
 
 namespace ExamManager.Services;
 
@@ -42,6 +43,8 @@ public class MappingService : Profile
         CreateMap<ProfessionUpdateDto, Profession>()
             .ForAllMembers(opt => opt.Condition((src, dest, srcMember) => srcMember != null));
         CreateMap<Profession, ProfessionResponseDto>();
+        CreateMap<Profession, ProfessionCreateResponseDto>();
+        CreateMap<ProfessionResponseDto, ProfessionUpdateDto>();
 
         CreateMap<InstitutionCreateDto, Institution>();
         CreateMap<InstitutionUpdateDto, Institution>()

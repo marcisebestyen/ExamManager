@@ -113,6 +113,7 @@ builder.Services.AddControllers().AddNewtonsoftJson();
 builder.Services.AddScoped<IOperatorService, OperatorService>();
 builder.Services.AddScoped<IExaminerService, ExaminerService>();
 builder.Services.AddScoped<IInstitutionService, InstitutionService>();
+builder.Services.AddScoped<IProfessionService, ProfessionService>();
 
 var app = builder.Build();
 
