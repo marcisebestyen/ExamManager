@@ -55,7 +55,7 @@ builder.Services.AddAuthentication(options =>
 builder.Services.AddSwaggerGen(c =>
 {
     c.SwaggerDoc("v1", new OpenApiInfo { Title = "ExamManager API", Version = "v1" });
-    
+
     var servicesAssemblyXmlFile = $"{typeof(MappingService).Assembly.GetName().Name}.xml";
     var servicesAssemblyXmlPath = Path.Combine(AppContext.BaseDirectory, servicesAssemblyXmlFile);
     if (File.Exists(servicesAssemblyXmlPath))
@@ -114,6 +114,7 @@ builder.Services.AddScoped<IOperatorService, OperatorService>();
 builder.Services.AddScoped<IExaminerService, ExaminerService>();
 builder.Services.AddScoped<IInstitutionService, InstitutionService>();
 builder.Services.AddScoped<IProfessionService, ProfessionService>();
+builder.Services.AddScoped<IExamTypeService, ExamTypeService>();
 
 var app = builder.Build();
 

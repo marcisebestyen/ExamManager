@@ -8,10 +8,10 @@ public class PasswordReset
     public DateTime ExpiredAt { get; set; }
     public DateTime? UsedAt { get; set; }
     public bool IsRevoked { get; set; }
-    
+
     // foreign keys
     public int OperatorId { get; set; }
-    
+
     // navigation properties
     public Operator Operator { get; set; }
 }

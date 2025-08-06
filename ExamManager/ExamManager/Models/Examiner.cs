@@ -9,6 +9,6 @@ public class Examiner : SoftDeletableEntity
     public string Email { get; set; } = string.Empty;
     public string Phone { get; set; } = string.Empty;
     public string IdentityCardNumber { get; set; } = string.Empty;
-    
+
     public ICollection<ExamBoard> ExamBoard { get; set; } = new List<ExamBoard>();
 }
