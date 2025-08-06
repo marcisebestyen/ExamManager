@@ -1,5 +1,5 @@
 ﻿using AutoMapper;
-using ExamManager.Dtos.InstitutionDtos;
+using ExamManager.Dtos.ProfessionDtos;
 using ExamManager.Interfaces;
 using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.AspNetCore.Mvc;
@@ -7,52 +7,52 @@ using Microsoft.AspNetCore.Mvc;
 namespace ExamManager.Controllers;
 
 [ApiController]
-[Route("institutions")]
-public class InstitutionController : ControllerBase
+[Route("professions")]
+public class ProfessionController : ControllerBase
 {
-    private readonly IInstitutionService _institutionService;
-    private readonly ILogger<InstitutionController> _logger;
+    private readonly IProfessionService _professionService;
     private readonly IMapper _mapper;
+    private readonly ILogger<ProfessionController> _logger;
 
-    public InstitutionController(IInstitutionService institutionService, ILogger<InstitutionController> logger,
-        IMapper mapper)
+    public ProfessionController(IProfessionService professionService, IMapper mapper,
+        ILogger<ProfessionController> logger)
     {
-        _institutionService = institutionService ?? throw new ArgumentNullException(nameof(institutionService));
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _professionService = professionService ?? throw new ArgumentNullException(nameof(professionService));
         _mapper = mapper ?? throw new ArgumentNullException(nameof(mapper));
+        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
-    [HttpPost("create-new-institution")]
-    public async Task<IActionResult> CreateNewInstitution([FromBody] InstitutionCreateDto createRequest)
+    [HttpPost("create-new-profession")]
+    public async Task<IActionResult> CreateNewProfession([FromBody] ProfessionCreateDto createRequest)
     {
         if (!ModelState.IsValid)
         {
             return BadRequest(ModelState);
         }
 
-        var result = await _institutionService.CreateInstitutionAsync(createRequest);
+        var result = await _professionService.CreateProfessionAsync(createRequest);
 
         if (result.Succeeded)
         {
-            return CreatedAtAction(nameof(GetInstitutionById), new { institutionId = result.Data!.Id }, result.Data);
+            return CreatedAtAction(nameof(GetProfessionById), new { professionId = result.Data!.Id }, result.Data);
         }
         else
         {
             string firstError = result.Errors.FirstOrDefault()?.ToLowerInvariant() ?? "";
 
-            if (firstError.Contains("educational id") && firstError.Contains("already taken"))
+            if (firstError.Contains("keor id") && firstError.Contains("already taken"))
             {
                 return Conflict(new { message = result.Message ?? result.Errors.FirstOrDefault() });
             }
 
-            if (firstError.Contains("compulsory fields are required"))
+            if (firstError.Contains("all fields are required"))
             {
                 return BadRequest(new { message = result.Message ?? result.Errors.FirstOrDefault() });
             }
 
             _logger.LogError(
-                "Creation failed for institution: {InstitutionID} with errors: {Errors}",
-                createRequest.EducationalId,
+                "Creation failed for profession: {ProfessionId} with errors: {Errors}",
+                createRequest.KeorId,
                 string.Join(", ", result.Errors)
             );
             return StatusCode(StatusCodes.Status500InternalServerError,
@@ -64,9 +64,9 @@ public class InstitutionController : ControllerBase
         }
     }
 
-    [HttpPatch("update-institution/{institutionId}")]
-    public async Task<IActionResult> UpdateInstitution(int institutionId,
-        [FromBody] JsonPatchDocument<InstitutionUpdateDto> patchDoc)
+    [HttpPost("update-profession/{professionId}")]
+    public async Task<IActionResult> UpdateProfession(int professionId,
+        [FromBody] JsonPatchDocument<ProfessionUpdateDto> patchDoc)
     {
         try
         {
@@ -75,30 +75,30 @@ public class InstitutionController : ControllerBase
                 return BadRequest(new { Message = "The PATCH document cannot be empty." });
             }
 
-            var institutionGetDtoResult = await _institutionService.GetInstitutionByIdAsync(institutionId);
+            var professionGetDtoResult = await _professionService.GetProfessionByIdAsync(professionId);
 
-            if (!institutionGetDtoResult.Succeeded || institutionGetDtoResult.Data == null)
+            if (!professionGetDtoResult.Succeeded || professionGetDtoResult.Data == null)
             {
                 return NotFound(new
-                    { message = institutionGetDtoResult.Message ?? institutionGetDtoResult.Errors.FirstOrDefault() });
+                    { message = professionGetDtoResult.Message ?? professionGetDtoResult.Errors.FirstOrDefault() });
             }
 
-            var institutionPatchDto = _mapper.Map<InstitutionUpdateDto>(institutionGetDtoResult.Data);
+            var professionPatchDto = _mapper.Map<ProfessionUpdateDto>(professionGetDtoResult.Data);
 
-            patchDoc.ApplyTo(institutionPatchDto);
+            patchDoc.ApplyTo(professionPatchDto);
 
             if (!ModelState.IsValid)
             {
                 return BadRequest(ModelState);
             }
 
-            TryValidateModel(institutionPatchDto);
+            TryValidateModel(professionPatchDto);
             if (!ModelState.IsValid)
             {
                 return BadRequest(ModelState);
             }
 
-            var result = await _institutionService.UpdateInstitutionAsync(institutionId, institutionPatchDto);
+            var result = await _professionService.UpdateProfessionAsync(professionId, professionPatchDto);
 
             if (result.Succeeded)
             {
@@ -122,22 +122,22 @@ public class InstitutionController : ControllerBase
                 return BadRequest(new { Errors = result.Errors });
             }
             
-            _logger?.LogError("UpdateInstitution (PATCH) failed for institution {InstitutionId} without specific errors.",
-                institutionId);
+            _logger?.LogError("UpdateProfession (PATCH) failed for profession {ProfessionId} without specific errors.",
+                professionId);
             return StatusCode(500, new { message = "An unexpected error occurred during update." });
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error updating institution");
+            _logger.LogError(ex, "Error updating profession");
             return StatusCode(StatusCodes.Status500InternalServerError,
                 new { message = "An unexpected error occurred during the update operation." });
         }
     }
 
-    [HttpGet("get-institution/{institutionId}")]
-    public async Task<IActionResult> GetInstitutionById(int institutionId)
+    [HttpGet("get-profession/{professionId}")]
+    public async Task<IActionResult> GetProfessionById(int professionId)
     {
-        var result = await _institutionService.GetInstitutionByIdAsync(institutionId);
+        var result = await _professionService.GetProfessionByIdAsync(professionId);
 
         if (result.Succeeded)
         {
@@ -151,25 +151,25 @@ public class InstitutionController : ControllerBase
                 return NotFound(new { message = result.Message ?? result.Errors.FirstOrDefault() });
             }
 
-            _logger.LogError("Error getting institution with id: {Id} with errors: {Errors}", institutionId,
+            _logger.LogError("Error getting profession with id: {Id} with errors: {Errors}", professionId,
                 string.Join(", ", result.Errors));
             return StatusCode(StatusCodes.Status500InternalServerError,
                 new
                 {
-                    message = result.Message ?? "An error occured while retrieving institution.", errors = result.Errors
+                    message = result.Message ?? "An error occured while retrieving profession.", errors = result.Errors
                 });
         }
     }
     
-    [HttpDelete("delete-institution/{institutionId}")]
-    public async Task<IActionResult> DeleteInstitution(int institutionId)
+    [HttpDelete("delete-profession/{professionId}")]
+    public async Task<IActionResult> DeleteInstitution(int professionId)
     {
-        if (institutionId <= 0)
+        if (professionId <= 0)
         {
-            return BadRequest(new { Message = "Invalid institution ID." });
+            return BadRequest(new { Message = "Invalid profession ID." });
         }
 
-        var result = await _institutionService.DeleteInstitutionAsync(institutionId);
+        var result = await _professionService.DeleteProfessionAsync(professionId);
 
         if (result.Succeeded)
         {
@@ -194,8 +194,8 @@ public class InstitutionController : ControllerBase
             return BadRequest(new { message = result.Errors });
         }
 
-        _logger.LogError("DeleteInstitution failed for ID {InstitutionId} without specific errors.", institutionId);
+        _logger.LogError("DeleteProfession failed for ID {ProfessionId} without specific errors.", professionId);
         return StatusCode(StatusCodes.Status500InternalServerError,
-            new { message = "An unknown error happened during the deletion of the institution." });
+            new { message = "An unknown error happened during the deletion of the profession." });
     }
 }
