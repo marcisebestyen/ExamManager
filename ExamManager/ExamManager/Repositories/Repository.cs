@@ -34,6 +34,9 @@ public class Repository<T> : IRepository<T> where T : class
     public async Task<T?> GetByIdAsync(object[] keyValues, string[]? includeReferences = null,
         string[]? includeCollections = null)
     {
+        var sql = _dbSet.ToQueryString();
+        Console.WriteLine($"Generated SQL: {sql}");
+        
         T? entity = await _dbSet.FindAsync(keyValues);
         if (entity == null)
         {
@@ -104,6 +107,11 @@ public class Repository<T> : IRepository<T> where T : class
         await _dbSet.AddAsync(entity);
     }
 
+    public async Task InsertRangeAsync(IEnumerable<T> entities)
+    {
+        await _dbSet.AddRangeAsync(entities);
+    }
+
     public async Task DeleteAsync(params object[] keyValues)
     {
         T? entity = await _dbSet.FindAsync(keyValues);
@@ -119,7 +127,7 @@ public class Repository<T> : IRepository<T> where T : class
         }
     }
 
-    public Task UpdateASync(T entity)
+    public Task UpdateAsync(T entity)
     {
         _dbSet.Update(entity);
         return Task.CompletedTask;

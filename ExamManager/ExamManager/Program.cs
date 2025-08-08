@@ -115,6 +115,7 @@ builder.Services.AddScoped<IExaminerService, ExaminerService>();
 builder.Services.AddScoped<IInstitutionService, InstitutionService>();
 builder.Services.AddScoped<IProfessionService, ProfessionService>();
 builder.Services.AddScoped<IExamTypeService, ExamTypeService>();
+builder.Services.AddScoped<IExamService, ExamService>();
 
 var app = builder.Build();
 

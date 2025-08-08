@@ -38,29 +38,26 @@ public class ExaminerController : ControllerBase
         }
         else
         {
-            string firstError = result.Errors.FirstOrDefault()?.ToLowerInvariant() ?? "";
-
-            if (firstError.Contains("identity card number") && firstError.Contains("already taken"))
+            switch (result.ErrorCode)
             {
-                return Conflict(new { message = result.Message ?? result.Errors.FirstOrDefault() });
+                case "IDENTITY_CARD_DUPLICATE":
+                    return Conflict(new { message = result.Errors.FirstOrDefault() });
+                case "BAD_REQUEST_INVALID_FIELDS":
+                    return BadRequest(new { message = result.Errors.FirstOrDefault() });
+                case "DB_UPDATE_ERROR":
+                case "UNEXPECTED_ERROR":
+                default:
+                    _logger.LogError(
+                        "Creation failed for examiner: {IDCardNumber} with errors: {Errors}",
+                        createRequest.IdentityCardNumber,
+                        string.Join(", ", result.Errors)
+                    );
+                    return StatusCode(StatusCodes.Status500InternalServerError,
+                        new
+                        {
+                            message = result.Errors.FirstOrDefault() ?? "An unexpected error occurred during creation."
+                        });
             }
-
-            if (firstError.Contains("all fields are required"))
-            {
-                return BadRequest(new { message = result.Message ?? result.Errors.FirstOrDefault() });
-            }
-
-            _logger.LogError(
-                "Creation failed for examiner: {IDCardNumber} with errors: {Errors}",
-                createRequest.IdentityCardNumber,
-                string.Join(", ", result.Errors)
-            );
-            return StatusCode(StatusCodes.Status500InternalServerError,
-                new
-                {
-                    message = result.Message ?? "An unexpected error occured during creation",
-                    errors = result.Errors
-                });
         }
     }
 
@@ -68,69 +65,54 @@ public class ExaminerController : ControllerBase
     public async Task<IActionResult> UpdateExaminer(int examinerId,
         [FromBody] JsonPatchDocument<ExaminerUpdateDto> patchDoc)
     {
-        try
+        if (patchDoc == null)
         {
-            if (patchDoc == null)
-            {
-                return BadRequest(new { Message = "The PATCH document cannot be empty." });
-            }
-
-            var examinerGetDtoResult = await _examinerService.GetExaminerByIdAsync(examinerId);
-
-            if (!examinerGetDtoResult.Succeeded || examinerGetDtoResult.Data == null)
-            {
-                return NotFound(new
-                    { message = examinerGetDtoResult.Message ?? examinerGetDtoResult.Errors.FirstOrDefault() });
-            }
-
-            var examinerPatchDto = _mapper.Map<ExaminerUpdateDto>(examinerGetDtoResult.Data);
-
-            patchDoc.ApplyTo(examinerPatchDto, ModelState);
-
-            if (!ModelState.IsValid)
-            {
-                return BadRequest(ModelState);
-            }
-
-            TryValidateModel(examinerPatchDto);
-            if (!ModelState.IsValid)
-            {
-                return BadRequest(ModelState);
-            }
-
-            var result = await _examinerService.UpdateExaminerAsync(examinerId, examinerPatchDto);
-
-            if (result.Succeeded)
-            {
-                return NoContent();
-            }
-
-            if (result.Errors.Any())
-            {
-                string firstError = result.Errors.FirstOrDefault()?.ToLowerInvariant() ?? "";
-
-                if (firstError.Contains("cannot be found"))
-                {
-                    return NotFound(new { Errors = result.Errors });
-                }
-
-                if (firstError.Contains("changed the data") || firstError.Contains("concurrency"))
-                {
-                    return Conflict(new { Errors = result.Errors });
-                }
-
-                return BadRequest(new { Errors = result.Errors });
-            }
-
-            _logger?.LogError("UpdateExaminer (PATCH) failed for examiner {ExaminerId} without specific errors.",
-                examinerId);
-            return StatusCode(500, new { message = "An unexpected error occurred during update." });
+            return BadRequest(new { message = "The PATCH document cannot be empty." });
         }
-        catch (Exception ex)
+
+        var examinerGetDtoResult = await _examinerService.GetExaminerByIdAsync(examinerId);
+
+        if (!examinerGetDtoResult.Succeeded || examinerGetDtoResult.Data == null)
         {
-            _logger.LogError(ex, "Error updating examiner");
-            return StatusCode(StatusCodes.Status500InternalServerError,
-                new { message = "An unexpected error occurred during the update operation." });
+            return NotFound(new { message = examinerGetDtoResult.Errors.FirstOrDefault() });
+        }
+
+        var examinerPatchDto = _mapper.Map<ExaminerUpdateDto>(examinerGetDtoResult.Data);
+
+        patchDoc.ApplyTo(examinerPatchDto, ModelState);
+
+        if (!ModelState.IsValid)
+        {
+            return BadRequest(ModelState);
+        }
+
+        TryValidateModel(examinerPatchDto);
+        if (!ModelState.IsValid)
+        {
+            return BadRequest(ModelState);
+        }
+
+        var result = await _examinerService.UpdateExaminerAsync(examinerId, examinerPatchDto);
+
+        if (result.Succeeded)
+        {
+            return NoContent();
+        }
+
+        switch (result.ErrorCode)
+        {
+            case "EXAMINER_NOT_FOUND":
+                return NotFound(new { message = result.Errors.FirstOrDefault() });
+            case "IDENTITY_CARD_DUPLICATE":
+            case "CONCURRENCY_ERROR":
+                return Conflict(new { message = result.Errors.FirstOrDefault() });
+            case "DB_UPDATE_ERROR":
+            case "UNEXPECTED_ERROR":
+            default:
+                _logger?.LogError("UpdateExaminer (PATCH) failed for examiner {ExaminerId} with errors: {Errors}",
+                    examinerId, string.Join(", ", result.Errors));
+                return StatusCode(500,
+                    new { message = result.Errors.FirstOrDefault() ?? "An unexpected error occurred during update." });
         }
     }
 
@@ -145,19 +127,21 @@ public class ExaminerController : ControllerBase
         }
         else
         {
-            string firstError = result.Errors.FirstOrDefault()?.ToLowerInvariant() ?? "";
-            if (firstError.Contains("cannot be found"))
+            switch (result.ErrorCode)
             {
-                return NotFound(new { message = result.Message ?? result.Errors.FirstOrDefault() });
+                case "EXAMINER_NOT_FOUND":
+                    return NotFound(new { message = result.Errors.FirstOrDefault() });
+                case "UNEXPECTED_ERROR":
+                default:
+                    _logger.LogError("Error getting examiner with id: {Id} with errors: {Errors}", examinerId,
+                        string.Join(", ", result.Errors));
+                    return StatusCode(StatusCodes.Status500InternalServerError,
+                        new
+                        {
+                            message = result.Errors.FirstOrDefault() ??
+                                      "An unexpected error occurred while retrieving examiner."
+                        });
             }
-
-            _logger.LogError("Error getting examiner with id: {Id} with errors: {Errors}", examinerId,
-                string.Join(", ", result.Errors));
-            return StatusCode(StatusCodes.Status500InternalServerError,
-                new
-                {
-                    message = result.Message ?? "An error occurred while retrieving examiner.", errors = result.Errors
-                });
         }
     }
 
@@ -186,36 +170,29 @@ public class ExaminerController : ControllerBase
             return Ok(new { message = result.Message });
         }
 
-        if (result.Errors.Any())
+        switch (result.ErrorCode)
         {
-            string firstError = result.Errors.First().ToLowerInvariant();
-
-            if (firstError.Contains("cannot be found"))
-            {
-                return NotFound(new { Errors = result.Errors });
-            }
-
-            if (firstError.Contains("already deleted"))
-            {
-                return Conflict(new { Errors = result.Errors });
-            }
-
-            if (firstError.Contains("has since been") || firstError.Contains("modified") ||
-                firstError.Contains("concurrency"))
-            {
-                return Conflict(new { Errors = result.Errors });
-            }
-
-            return BadRequest(new { message = result.Errors });
+            case "EXAMINER_NOT_FOUND":
+                return NotFound(new { message = result.Errors.FirstOrDefault() });
+            case "EXAMINER_ALREADY_DELETED":
+            case "CONCURRENCY_ERROR":
+                return Conflict(new { message = result.Errors.FirstOrDefault() });
+            case "DB_UPDATE_ERROR":
+            case "UNEXPECTED_ERROR":
+            default:
+                _logger.LogError("DeleteExaminer failed for examiner ID {ExaminerId} with errors: {Errors}",
+                    examinerId, string.Join(", ", result.Errors));
+                return StatusCode(StatusCodes.Status500InternalServerError,
+                    new
+                    {
+                        message = result.Errors.FirstOrDefault() ??
+                                  "Unknown error happened during the deletion of the examiner."
+                    });
         }
-
-        _logger.LogError("DeleteExaminer failed for examiner ID {ExaminerId} without specific errors.", examinerId);
-        return StatusCode(StatusCodes.Status500InternalServerError,
-            new { message = "Unknown error happened during the deletion of operator." });
     }
 
     [HttpPost("restore-examiner/{examinerId}")]
-    public async Task<IActionResult> RestoreOperator(int examinerId)
+    public async Task<IActionResult> RestoreExaminer(int examinerId)
     {
         if (examinerId <= 0)
         {
@@ -229,32 +206,25 @@ public class ExaminerController : ControllerBase
             return Ok(new { message = result.Message });
         }
 
-        if (result.Errors.Any())
+        switch (result.ErrorCode)
         {
-            string firstError = result.Errors.First().ToLowerInvariant();
-
-            if (firstError.Contains("cannot be found"))
-            {
-                return NotFound(new { Errors = result.Errors });
-            }
-
-            if (firstError.Contains("not currently deleted"))
-            {
-                return Conflict(new { Errors = result.Errors });
-            }
-
-            if (firstError.Contains("has since been") || firstError.Contains("modified") ||
-                firstError.Contains("concurrency"))
-            {
-                return Conflict(new { Errors = result.Errors });
-            }
-
-            return BadRequest(new { message = result.Errors });
+            case "EXAMINER_NOT_FOUND":
+                return NotFound(new { message = result.Errors.FirstOrDefault() });
+            case "EXAMINER_ALREADY_RESTORED":
+            case "CONCURRENCY_ERROR":
+                return Conflict(new { message = result.Errors.FirstOrDefault() });
+            case "DB_UPDATE_ERROR":
+            case "UNEXPECTED_ERROR":
+            default:
+                _logger.LogError("RestoreExaminer failed for examiner ID {ExaminerId} with errors: {Errors}",
+                    examinerId, string.Join(", ", result.Errors));
+                return StatusCode(StatusCodes.Status500InternalServerError,
+                    new
+                    {
+                        message = result.Errors.FirstOrDefault() ??
+                                  "Unknown error happened during the restoration of the examiner."
+                    });
         }
-
-        _logger.LogError("RestoreExaminer failed for examiner ID {ExaminerId} without specific errors.", examinerId);
-        return StatusCode(StatusCodes.Status500InternalServerError,
-            new { message = "Unknown error happened during the restoration of operator." });
     }
 
     private int GetCurrentUserIdFromToken()
@@ -265,7 +235,7 @@ public class ExaminerController : ControllerBase
         {
             _logger.LogError("User ID claim (NameIdentifier) not found or invalid in token for an authorized request.");
             throw new UnauthorizedAccessException(
-                "User ID (ClaimTypes.NameIdentifier) cannot be found or not int the token, despite the request is authenticated.");
+                "User ID (ClaimTypes.NameIdentifier) cannot be found or not in the token, despite the request is authenticated.");
         }
 
         return userId;

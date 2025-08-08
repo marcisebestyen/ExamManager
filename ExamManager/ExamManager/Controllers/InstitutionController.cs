@@ -38,29 +38,26 @@ public class InstitutionController : ControllerBase
         }
         else
         {
-            string firstError = result.Errors.FirstOrDefault()?.ToLowerInvariant() ?? "";
-
-            if (firstError.Contains("educational id") && firstError.Contains("already taken"))
+            switch (result.ErrorCode)
             {
-                return Conflict(new { message = result.Message ?? result.Errors.FirstOrDefault() });
+                case "INSTITUTION_ID_DUPLICATE":
+                    return Conflict(new { message = result.Errors.FirstOrDefault() });
+                case "BAD_REQUEST_INVALID_FIELDS":
+                    return BadRequest(new { message = result.Errors.FirstOrDefault() });
+                case "DB_UPDATE_ERROR":
+                case "UNEXPECTED_ERROR":
+                default:
+                    _logger.LogError(
+                        "Creation failed for institution: {InstitutionID} with errors: {Errors}",
+                        createRequest.EducationalId,
+                        string.Join(", ", result.Errors)
+                    );
+                    return StatusCode(StatusCodes.Status500InternalServerError,
+                        new
+                        {
+                            message = result.Errors.FirstOrDefault() ?? "An unexpected error occurred during creation."
+                        });
             }
-
-            if (firstError.Contains("compulsory fields are required"))
-            {
-                return BadRequest(new { message = result.Message ?? result.Errors.FirstOrDefault() });
-            }
-
-            _logger.LogError(
-                "Creation failed for institution: {InstitutionID} with errors: {Errors}",
-                createRequest.EducationalId,
-                string.Join(", ", result.Errors)
-            );
-            return StatusCode(StatusCodes.Status500InternalServerError,
-                new
-                {
-                    message = result.Message ?? "An unexpected error occured during creation",
-                    errors = result.Errors
-                });
         }
     }
 
@@ -68,70 +65,55 @@ public class InstitutionController : ControllerBase
     public async Task<IActionResult> UpdateInstitution(int institutionId,
         [FromBody] JsonPatchDocument<InstitutionUpdateDto> patchDoc)
     {
-        try
+        if (patchDoc == null)
         {
-            if (patchDoc == null)
-            {
-                return BadRequest(new { Message = "The PATCH document cannot be empty." });
-            }
-
-            var institutionGetDtoResult = await _institutionService.GetInstitutionByIdAsync(institutionId);
-
-            if (!institutionGetDtoResult.Succeeded || institutionGetDtoResult.Data == null)
-            {
-                return NotFound(new
-                    { message = institutionGetDtoResult.Message ?? institutionGetDtoResult.Errors.FirstOrDefault() });
-            }
-
-            var institutionPatchDto = _mapper.Map<InstitutionUpdateDto>(institutionGetDtoResult.Data);
-
-            patchDoc.ApplyTo(institutionPatchDto);
-
-            if (!ModelState.IsValid)
-            {
-                return BadRequest(ModelState);
-            }
-
-            TryValidateModel(institutionPatchDto);
-            if (!ModelState.IsValid)
-            {
-                return BadRequest(ModelState);
-            }
-
-            var result = await _institutionService.UpdateInstitutionAsync(institutionId, institutionPatchDto);
-
-            if (result.Succeeded)
-            {
-                return NoContent();
-            }
-
-            if (result.Errors.Any())
-            {
-                string firstError = result.Errors.FirstOrDefault()?.ToLowerInvariant() ?? "";
-
-                if (firstError.Contains("cannot be found"))
-                {
-                    return NotFound(new { Errors = result.Errors });
-                }
-
-                if (firstError.Contains("changed the data") || firstError.Contains("concurrency"))
-                {
-                    return Conflict(new { Errors = result.Errors });
-                }
-
-                return BadRequest(new { Errors = result.Errors });
-            }
-
-            _logger?.LogError(
-                "UpdateInstitution (PATCH) failed for institution {InstitutionId} without specific errors.",
-                institutionId);
-            return StatusCode(500, new { message = "An unexpected error occurred during update." });
+            return BadRequest(new { message = "The PATCH document cannot be empty." });
         }
-        catch (Exception ex)
+
+        var institutionGetDtoResult = await _institutionService.GetInstitutionByIdAsync(institutionId);
+
+        if (!institutionGetDtoResult.Succeeded || institutionGetDtoResult.Data == null)
         {
-            _logger.LogError(ex, "Error updating institution");
-            return StatusCode(StatusCodes.Status500InternalServerError,
-                new { message = "An unexpected error occurred during the update operation." });
+            return NotFound(new { message = institutionGetDtoResult.Errors.FirstOrDefault() });
+        }
+
+        var institutionPatchDto = _mapper.Map<InstitutionUpdateDto>(institutionGetDtoResult.Data);
+
+        patchDoc.ApplyTo(institutionPatchDto);
+
+        if (!ModelState.IsValid)
+        {
+            return BadRequest(ModelState);
+        }
+
+        TryValidateModel(institutionPatchDto);
+        if (!ModelState.IsValid)
+        {
+            return BadRequest(ModelState);
+        }
+
+        var result = await _institutionService.UpdateInstitutionAsync(institutionId, institutionPatchDto);
+
+        if (result.Succeeded)
+        {
+            return NoContent();
+        }
+
+        switch (result.ErrorCode)
+        {
+            case "INSTITUTION_NOT_FOUND":
+                return NotFound(new { message = result.Errors.FirstOrDefault() });
+            case "INSTITUTION_ID_DUPLICATE":
+            case "CONCURRENCY_ERROR":
+                return Conflict(new { message = result.Errors.FirstOrDefault() });
+            case "DB_UPDATE_ERROR":
+            case "UNEXPECTED_ERROR":
+            default:
+                _logger.LogError(
+                    "UpdateInstitution (PATCH) failed for institution {InstitutionId} with errors: {Errors}",
+                    institutionId, string.Join(", ", result.Errors));
+                return StatusCode(500,
+                    new { message = result.Errors.FirstOrDefault() ?? "An unexpected error occurred during update." });
         }
     }
 
@@ -146,19 +128,21 @@ public class InstitutionController : ControllerBase
         }
         else
         {
-            string firstError = result.Errors.FirstOrDefault()?.ToLowerInvariant() ?? "";
-            if (firstError.Contains("cannot be found"))
+            switch (result.ErrorCode)
             {
-                return NotFound(new { message = result.Message ?? result.Errors.FirstOrDefault() });
+                case "INSTITUTION_NOT_FOUND":
+                    return NotFound(new { message = result.Errors.FirstOrDefault() });
+                case "UNEXPECTED_ERROR":
+                default:
+                    _logger.LogError("Error getting institution with id: {Id} with errors: {Errors}", institutionId,
+                        string.Join(", ", result.Errors));
+                    return StatusCode(StatusCodes.Status500InternalServerError,
+                        new
+                        {
+                            message = result.Errors.FirstOrDefault() ??
+                                      "An unexpected error occurred while retrieving institution."
+                        });
             }
-
-            _logger.LogError("Error getting institution with id: {Id} with errors: {Errors}", institutionId,
-                string.Join(", ", result.Errors));
-            return StatusCode(StatusCodes.Status500InternalServerError,
-                new
-                {
-                    message = result.Message ?? "An error occured while retrieving institution.", errors = result.Errors
-                });
         }
     }
 
@@ -177,26 +161,23 @@ public class InstitutionController : ControllerBase
             return Ok(new { message = result.Message });
         }
 
-        if (result.Errors.Any())
+        switch (result.ErrorCode)
         {
-            string firstError = result.Errors.First().ToLowerInvariant();
-
-            if (firstError.Contains("cannot be found") || firstError.Contains("not found"))
-            {
-                return NotFound(new { Errors = result.Errors });
-            }
-
-            if (firstError.Contains("has since been") || firstError.Contains("modified") ||
-                firstError.Contains("concurrency"))
-            {
-                return Conflict(new { Errors = result.Errors });
-            }
-
-            return BadRequest(new { message = result.Errors });
+            case "INSTITUTION_NOT_FOUND":
+                return NotFound(new { message = result.Errors.FirstOrDefault() });
+            case "CONCURRENCY_ERROR":
+                return Conflict(new { message = result.Errors.FirstOrDefault() });
+            case "DB_UPDATE_ERROR":
+            case "UNEXPECTED_ERROR":
+            default:
+                _logger.LogError("DeleteInstitution failed for ID {InstitutionId} with errors: {Errors}", institutionId,
+                    string.Join(", ", result.Errors));
+                return StatusCode(StatusCodes.Status500InternalServerError,
+                    new
+                    {
+                        message = result.Errors.FirstOrDefault() ??
+                                  "An unknown error happened during the deletion of the institution."
+                    });
         }
-
-        _logger.LogError("DeleteInstitution failed for ID {InstitutionId} without specific errors.", institutionId);
-        return StatusCode(StatusCodes.Status500InternalServerError,
-            new { message = "An unknown error happened during the deletion of the institution." });
     }
 }

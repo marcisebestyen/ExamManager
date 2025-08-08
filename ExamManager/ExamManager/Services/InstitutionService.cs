@@ -14,18 +14,15 @@ public class InstitutionService : IInstitutionService
     private readonly IUnitOfWork _unitOfWork;
     private readonly IMapper _mapper;
     private readonly ILogger<InstitutionService> _logger;
-    private readonly IConfiguration _configuration;
 
     public InstitutionService(
         IUnitOfWork unitOfWork,
         IMapper mapper,
-        ILogger<InstitutionService> logger,
-        IConfiguration configuration)
+        ILogger<InstitutionService> logger)
     {
         _unitOfWork = unitOfWork ?? throw new ArgumentNullException(nameof(unitOfWork));
         _mapper = mapper ?? throw new ArgumentNullException(nameof(mapper));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-        _configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
     }
 
     public async Task<BaseServiceResponse<InstitutionCreateResponseDto>> CreateInstitutionAsync(
@@ -41,13 +38,13 @@ public class InstitutionService : IInstitutionService
                 string.IsNullOrWhiteSpace(createRequest.Number))
             {
                 return BaseServiceResponse<InstitutionCreateResponseDto>.Failed(
-                    "Compulsory fields are required for creating.");
+                    "Compulsory fields are required for creating.", "BAD_REQUEST_INVALID_FIELDS");
             }
 
             if (await InstitutionExists(createRequest.EducationalId))
             {
-                throw new InvalidOperationException(
-                    $"Educational ID '{createRequest.EducationalId}' is already taken.");
+                return BaseServiceResponse<InstitutionCreateResponseDto>.Failed(
+                    $"Educational ID '{createRequest.EducationalId}' is already taken.", "INSTITUTION_ID_DUPLICATE");
             }
 
             var institutionEntity = _mapper.Map<Institution>(createRequest);
@@ -60,11 +57,17 @@ public class InstitutionService : IInstitutionService
             var createResponseDto = _mapper.Map<InstitutionCreateResponseDto>(institutionEntity);
             return BaseServiceResponse<InstitutionCreateResponseDto>.Success(createResponseDto, "Create successful.");
         }
+        catch (DbUpdateException ex)
+        {
+            _logger.LogError(ex, "Database error during creation for institution: {ID}", createRequest.EducationalId);
+            return BaseServiceResponse<InstitutionCreateResponseDto>.Failed(
+                $"Database error during creation: {ex.InnerException?.Message ?? ex.Message}", "DB_UPDATE_ERROR");
+        }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error during creation for institution: {ID}", createRequest.EducationalId);
             return BaseServiceResponse<InstitutionCreateResponseDto>.Failed(
-                "An unexpected error occurred during creation.");
+                "An unexpected error occurred during creation.", "UNEXPECTED_ERROR");
         }
     }
 
@@ -77,17 +80,20 @@ public class InstitutionService : IInstitutionService
 
             if (institutionEntity == null)
             {
-                return BaseServiceResponse<InstitutionResponseDto>.Failed();
+                return BaseServiceResponse<InstitutionResponseDto>.Failed("Institution not found.",
+                    "INSTITUTION_NOT_FOUND");
             }
 
             var institutionResponseDto = _mapper.Map<InstitutionResponseDto>(institutionEntity);
-            return BaseServiceResponse<InstitutionResponseDto>.Success(institutionResponseDto);
+            return BaseServiceResponse<InstitutionResponseDto>.Success(institutionResponseDto,
+                "Institution retrieved successfully.");
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error getting institution with {id}", institutionId);
+            _logger.LogError(ex, "Error getting institution with ID {id}", institutionId);
             return BaseServiceResponse<InstitutionResponseDto>.Failed(
-                $"An error occured while retrieving examiner with ID {institutionId}");
+                $"An unexpected error occurred while retrieving institution with ID {institutionId}",
+                "UNEXPECTED_ERROR");
         }
     }
 
@@ -101,7 +107,8 @@ public class InstitutionService : IInstitutionService
 
             if (institutionEntity == null)
             {
-                return BaseServiceResponse<bool>.Failed("Institution to be modified cannot be found.");
+                return BaseServiceResponse<bool>.Failed("Institution to be modified cannot be found.",
+                    "INSTITUTION_NOT_FOUND");
             }
 
             bool changed = false;
@@ -114,6 +121,16 @@ public class InstitutionService : IInstitutionService
 
             if (updateRequest.EducationalId != null && updateRequest.EducationalId != institutionEntity.EducationalId)
             {
+                var existingInstitution = await _unitOfWork.InstitutionRepository.GetAsync(i =>
+                    i.EducationalId == updateRequest.EducationalId && i.Id != institutionEntity.Id);
+
+                if (existingInstitution.Any())
+                {
+                    return BaseServiceResponse<bool>.Failed(
+                        $"The educational ID {updateRequest.EducationalId} is already in use.",
+                        "INSTITUTION_ID_DUPLICATE");
+                }
+
                 changed = true;
                 institutionEntity.EducationalId = updateRequest.EducationalId;
             }
@@ -161,30 +178,32 @@ public class InstitutionService : IInstitutionService
 
             try
             {
-                await _unitOfWork.InstitutionRepository.UpdateASync(institutionEntity);
+                await _unitOfWork.InstitutionRepository.UpdateAsync(institutionEntity);
                 await _unitOfWork.SaveAsync();
                 return BaseServiceResponse<bool>.Success(true, "Institution updated successfully.");
             }
             catch (DbUpdateConcurrencyException ex)
             {
-                return BaseServiceResponse<bool>.Failed("Someone has changed the data. Try again please.");
+                return BaseServiceResponse<bool>.Failed("Someone has changed the data. Try again please.",
+                    "CONCURRENCY_ERROR");
             }
             catch (DbUpdateException ex)
             {
                 return BaseServiceResponse<bool>.Failed(
-                    $"Database error during update: {ex.InnerException?.Message ?? ex.Message}");
+                    $"Database error during update: {ex.InnerException?.Message ?? ex.Message}", "DB_UPDATE_ERROR");
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Unexpected error during institution's data update.");
-                return BaseServiceResponse<bool>.Failed($"Unexpected error: {ex.Message}");
+                return BaseServiceResponse<bool>.Failed($"Unexpected error: {ex.Message}", "UNEXPECTED_ERROR");
             }
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error updating institution with id: {institutionId}", institutionId);
             return BaseServiceResponse<bool>.Failed(
-                $"An unexpected error occurred while updating institution with ID {institutionId}.");
+                $"An unexpected error occurred while updating institution with ID {institutionId}.",
+                "UNEXPECTED_ERROR");
         }
     }
 
@@ -196,13 +215,15 @@ public class InstitutionService : IInstitutionService
             await _unitOfWork.SaveAsync();
 
             _logger.LogInformation($"Deleted institution with ID {institutionId}");
-            return BaseServiceResponse<string>.Success($"Institution with ID: {institutionId} deleted successfully.");
+            return BaseServiceResponse<string>.Success($"Institution with ID: {institutionId} deleted successfully.",
+                "Institution deleted successfully.");
         }
         catch (KeyNotFoundException ex)
         {
             _logger.LogWarning(ex, "Attempted to delete non-existing institution with ID: {InstitutionId}",
                 institutionId);
-            return BaseServiceResponse<string>.Failed($"Institution with ID {institutionId} cannot be found.");
+            return BaseServiceResponse<string>.Failed($"Institution with ID {institutionId} cannot be found.",
+                "INSTITUTION_NOT_FOUND");
         }
         catch (DbUpdateConcurrencyException ex)
         {
@@ -210,20 +231,20 @@ public class InstitutionService : IInstitutionService
                 "Concurrency conflicts when deleting institution with ID {InstitutionId}. Try again please.",
                 institutionId);
             return BaseServiceResponse<string>.Failed(
-                $"The institution has since been modified by someone else. Try again please.");
+                $"The institution has since been modified by someone else. Try again please.", "CONCURRENCY_ERROR");
         }
         catch (DbUpdateException ex)
         {
             _logger.LogError(ex, "Database error occurred while deleting institution with ID {InstitutionId}.",
                 institutionId);
             return BaseServiceResponse<string>.Failed(
-                $"Database error during deleting: {ex.InnerException?.Message ?? ex.Message}");
+                $"Database error during deleting: {ex.InnerException?.Message ?? ex.Message}", "DB_UPDATE_ERROR");
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Unexpected error occurred while deleting institution with ID {InstitutionId}.",
                 institutionId);
-            return BaseServiceResponse<string>.Failed($"Unexpected error: {ex.Message}");
+            return BaseServiceResponse<string>.Failed($"Unexpected error: {ex.Message}", "UNEXPECTED_ERROR");
         }
     }
 
@@ -236,7 +257,8 @@ public class InstitutionService : IInstitutionService
                 return false;
             }
 
-            var institutions = await _unitOfWork.InstitutionRepository.GetAsync(i => i.EducationalId == educationalId);
+            var institutions =
+                await _unitOfWork.InstitutionRepository.GetAsync(i => i.EducationalId == educationalId.Trim());
 
             return institutions.Any();
         }
