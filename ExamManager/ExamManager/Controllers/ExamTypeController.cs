@@ -37,29 +37,26 @@ public class ExamTypeController : ControllerBase
         }
         else
         {
-            string firstError = result.Errors.FirstOrDefault()?.ToLowerInvariant() ?? "";
-
-            if (firstError.Contains("type name") && firstError.Contains("already taken"))
+            switch (result.ErrorCode)
             {
-                return Conflict(new { message = result.Message ?? result.Errors.FirstOrDefault() });
+                case "EXAM_TYPE_NAME_DUPLICATE":
+                    return Conflict(new { message = result.Errors.FirstOrDefault() });
+                case "BAD_REQUEST_INVALID_FIELDS":
+                    return BadRequest(new { message = result.Errors.FirstOrDefault() });
+                case "DB_UPDATE_ERROR":
+                case "UNEXPECTED_ERROR":
+                default:
+                    _logger.LogError(
+                        "Creation failed for exam type: {ExamTypeName} with errors: {Errors}",
+                        createRequest.TypeName,
+                        string.Join(", ", result.Errors)
+                    );
+                    return StatusCode(StatusCodes.Status500InternalServerError,
+                        new
+                        {
+                            message = result.Errors.FirstOrDefault() ?? "An unexpected error occurred during creation."
+                        });
             }
-
-            if (firstError.Contains("compulsory fields are required"))
-            {
-                return BadRequest(new { message = result.Message ?? result.Errors.FirstOrDefault() });
-            }
-
-            _logger.LogError(
-                "Creation failed for exam type: {ExamTypeId} with errors: {Errors}",
-                createRequest.TypeName,
-                string.Join(", ", result.Errors)
-            );
-            return StatusCode(StatusCodes.Status500InternalServerError,
-                new
-                {
-                    message = result.Message ?? "An unexpected error occured during creation",
-                    errors = result.Errors
-                });
         }
     }
 
@@ -67,69 +64,54 @@ public class ExamTypeController : ControllerBase
     public async Task<IActionResult> UpdateExamType(int examTypeId,
         [FromBody] JsonPatchDocument<ExamTypeUpdateDto> patchDoc)
     {
-        try
+        if (patchDoc == null)
         {
-            if (patchDoc == null)
-            {
-                return BadRequest(new { Message = "The PATCH document cannot be empty." });
-            }
-
-            var examTypeGetDtoResult = await _examTypeService.GetExamTypeByIdAsync(examTypeId);
-
-            if (!examTypeGetDtoResult.Succeeded || examTypeGetDtoResult.Data == null)
-            {
-                return NotFound(new
-                    { message = examTypeGetDtoResult.Message ?? examTypeGetDtoResult.Errors.FirstOrDefault() });
-            }
-
-            var examTypePatchDto = _mapper.Map<ExamTypeUpdateDto>(examTypeGetDtoResult.Data);
-
-            patchDoc.ApplyTo(examTypePatchDto);
-
-            if (!ModelState.IsValid)
-            {
-                return BadRequest(ModelState);
-            }
-
-            TryValidateModel(examTypePatchDto);
-            if (!ModelState.IsValid)
-            {
-                return BadRequest(ModelState);
-            }
-
-            var result = await _examTypeService.UpdateExamTypeAsync(examTypeId, examTypePatchDto);
-
-            if (result.Succeeded)
-            {
-                return NoContent();
-            }
-
-            if (result.Errors.Any())
-            {
-                string firstError = result.Errors.FirstOrDefault()?.ToLowerInvariant() ?? "";
-
-                if (firstError.Contains("cannot be found"))
-                {
-                    return NotFound(new { Errors = result.Errors });
-                }
-
-                if (firstError.Contains("changed the data") || firstError.Contains("concurrency"))
-                {
-                    return Conflict(new { Errors = result.Errors });
-                }
-
-                return BadRequest(new { Errors = result.Errors });
-            }
-
-            _logger?.LogError("UpdateExamType (PATCH) failed for exam type {ExamTypeId} without specific errors.",
-                examTypeId);
-            return StatusCode(500, new { message = "An unexpected error occurred during update." });
+            return BadRequest(new { message = "The PATCH document cannot be empty." });
         }
-        catch (Exception ex)
+
+        var examTypeGetDtoResult = await _examTypeService.GetExamTypeByIdAsync(examTypeId);
+
+        if (!examTypeGetDtoResult.Succeeded || examTypeGetDtoResult.Data == null)
         {
-            _logger.LogError(ex, "Error updating exam type");
-            return StatusCode(StatusCodes.Status500InternalServerError,
-                new { message = "An unexpected error occurred during the update operation." });
+            return NotFound(new { message = examTypeGetDtoResult.Errors.FirstOrDefault() });
+        }
+
+        var examTypePatchDto = _mapper.Map<ExamTypeUpdateDto>(examTypeGetDtoResult.Data);
+
+        patchDoc.ApplyTo(examTypePatchDto);
+
+        if (!ModelState.IsValid)
+        {
+            return BadRequest(ModelState);
+        }
+
+        TryValidateModel(examTypePatchDto);
+        if (!ModelState.IsValid)
+        {
+            return BadRequest(ModelState);
+        }
+
+        var result = await _examTypeService.UpdateExamTypeAsync(examTypeId, examTypePatchDto);
+
+        if (result.Succeeded)
+        {
+            return NoContent();
+        }
+
+        switch (result.ErrorCode)
+        {
+            case "EXAM_TYPE_NOT_FOUND":
+                return NotFound(new { message = result.Errors.FirstOrDefault() });
+            case "EXAM_TYPE_NAME_DUPLICATE":
+            case "CONCURRENCY_ERROR":
+                return Conflict(new { message = result.Errors.FirstOrDefault() });
+            case "DB_UPDATE_ERROR":
+            case "UNEXPECTED_ERROR":
+            default:
+                _logger.LogError("UpdateExamType (PATCH) failed for exam type {ExamTypeId} with errors: {Errors}",
+                    examTypeId, string.Join(", ", result.Errors));
+                return StatusCode(500,
+                    new { message = result.Errors.FirstOrDefault() ?? "An unexpected error occurred during update." });
         }
     }
 
@@ -144,19 +126,21 @@ public class ExamTypeController : ControllerBase
         }
         else
         {
-            string firstError = result.Errors.FirstOrDefault()?.ToLowerInvariant() ?? "";
-            if (firstError.Contains("cannot be found"))
+            switch (result.ErrorCode)
             {
-                return NotFound(new { message = result.Message ?? result.Errors.FirstOrDefault() });
+                case "EXAM_TYPE_NOT_FOUND":
+                    return NotFound(new { message = result.Errors.FirstOrDefault() });
+                case "UNEXPECTED_ERROR":
+                default:
+                    _logger.LogError("Error getting exam type with id: {Id} with errors: {Errors}", examTypeId,
+                        string.Join(", ", result.Errors));
+                    return StatusCode(StatusCodes.Status500InternalServerError,
+                        new
+                        {
+                            message = result.Errors.FirstOrDefault() ??
+                                      "An unexpected error occurred while retrieving exam type."
+                        });
             }
-
-            _logger.LogError("Error getting exam type with id: {Id} with errors: {Errors}", examTypeId,
-                string.Join(", ", result.Errors));
-            return StatusCode(StatusCodes.Status500InternalServerError,
-                new
-                {
-                    message = result.Message ?? "An error occured while retrieving exam type.", errors = result.Errors
-                });
         }
     }
 
@@ -175,26 +159,23 @@ public class ExamTypeController : ControllerBase
             return Ok(new { message = result.Message });
         }
 
-        if (result.Errors.Any())
+        switch (result.ErrorCode)
         {
-            string firstError = result.Errors.First().ToLowerInvariant();
-
-            if (firstError.Contains("cannot be found") || firstError.Contains("not found"))
-            {
-                return NotFound(new { Errors = result.Errors });
-            }
-
-            if (firstError.Contains("has since been") || firstError.Contains("modified") ||
-                firstError.Contains("concurrency"))
-            {
-                return Conflict(new { Errors = result.Errors });
-            }
-
-            return BadRequest(new { message = result.Errors });
+            case "EXAM_TYPE_NOT_FOUND":
+                return NotFound(new { message = result.Errors.FirstOrDefault() });
+            case "CONCURRENCY_ERROR":
+                return Conflict(new { message = result.Errors.FirstOrDefault() });
+            case "DB_UPDATE_ERROR":
+            case "UNEXPECTED_ERROR":
+            default:
+                _logger.LogError("DeleteExamType failed for ID {ExamTypeId} with errors: {Errors}", examTypeId,
+                    string.Join(", ", result.Errors));
+                return StatusCode(StatusCodes.Status500InternalServerError,
+                    new
+                    {
+                        message = result.Errors.FirstOrDefault() ??
+                                  "An unknown error happened during the deletion of the exam type."
+                    });
         }
-
-        _logger.LogError("DeleteExamType failed for ID {ExamTypeId} without specific errors.", examTypeId);
-        return StatusCode(StatusCodes.Status500InternalServerError,
-            new { message = "An unknown error happened during the deletion of the exam type." });
     }
 }

@@ -14,18 +14,15 @@ public class ExamTypeService : IExamTypeService
     private readonly IUnitOfWork _unitOfWork;
     private readonly IMapper _mapper;
     private readonly ILogger<ExamTypeService> _logger;
-    private readonly IConfiguration _configuration;
 
     public ExamTypeService(
         IUnitOfWork unitOfWork,
         IMapper mapper,
-        ILogger<ExamTypeService> logger,
-        IConfiguration configuration)
+        ILogger<ExamTypeService> logger)
     {
         _unitOfWork = unitOfWork ?? throw new ArgumentNullException(nameof(unitOfWork));
         _mapper = mapper ?? throw new ArgumentNullException(nameof(mapper));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-        _configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
     }
 
     public async Task<BaseServiceResponse<ExamTypeCreateResponseDto>> CreateExamTypeAsync(
@@ -36,13 +33,13 @@ public class ExamTypeService : IExamTypeService
             if (string.IsNullOrWhiteSpace(createRequest.TypeName))
             {
                 return BaseServiceResponse<ExamTypeCreateResponseDto>.Failed(
-                    "Compulsory fields are required for creating.");
+                    "Compulsory fields are required for creating.", "BAD_REQUEST_INVALID_FIELDS");
             }
 
             if (await ExamTypeExists(createRequest.TypeName))
             {
-                throw new InvalidOperationException(
-                    $"Type name {createRequest.TypeName} is already taken.");
+                return BaseServiceResponse<ExamTypeCreateResponseDto>.Failed(
+                    $"Type name {createRequest.TypeName} is already taken.", "EXAM_TYPE_NAME_DUPLICATE");
             }
 
             var examTypeEntity = _mapper.Map<ExamType>(createRequest);
@@ -55,11 +52,17 @@ public class ExamTypeService : IExamTypeService
             var createResponseDto = _mapper.Map<ExamTypeCreateResponseDto>(examTypeEntity);
             return BaseServiceResponse<ExamTypeCreateResponseDto>.Success(createResponseDto, "Create successful.");
         }
+        catch (DbUpdateException ex)
+        {
+            _logger.LogError(ex, "Database error during creation for exam type: {ID}", createRequest.TypeName);
+            return BaseServiceResponse<ExamTypeCreateResponseDto>.Failed(
+                $"Database error during creation: {ex.InnerException?.Message ?? ex.Message}", "DB_UPDATE_ERROR");
+        }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error during creation for exam type: {ID}", createRequest.TypeName);
             return BaseServiceResponse<ExamTypeCreateResponseDto>.Failed(
-                "An unexpected error occurred during creation.");
+                "An unexpected error occurred during creation.", "UNEXPECTED_ERROR");
         }
     }
 
@@ -71,17 +74,19 @@ public class ExamTypeService : IExamTypeService
 
             if (examTypeEntity == null)
             {
-                return BaseServiceResponse<ExamTypeResponseDto>.Failed();
+                return BaseServiceResponse<ExamTypeResponseDto>.Failed("Exam type to be retrieved cannot be found.",
+                    "EXAM_TYPE_NOT_FOUND");
             }
 
             var examTypeResponseDto = _mapper.Map<ExamTypeResponseDto>(examTypeEntity);
-            return BaseServiceResponse<ExamTypeResponseDto>.Success(examTypeResponseDto);
+            return BaseServiceResponse<ExamTypeResponseDto>.Success(examTypeResponseDto,
+                "Exam type retrieved successfully.");
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error getting exam type with {id}", examTypeId);
             return BaseServiceResponse<ExamTypeResponseDto>.Failed(
-                $"An error occured while retrieving exam type with ID {examTypeId}");
+                $"An error occured while retrieving exam type with ID {examTypeId}", "UNEXPECTED_ERROR");
         }
     }
 
@@ -94,13 +99,23 @@ public class ExamTypeService : IExamTypeService
 
             if (examTypeEntity == null)
             {
-                return BaseServiceResponse<bool>.Failed("Exam type to be modified cannot be found.");
+                return BaseServiceResponse<bool>.Failed("Exam type to be modified cannot be found.",
+                    "EXAM_TYPE_NOT_FOUND");
             }
 
             bool changed = false;
 
             if (updateRequest.TypeName != null && updateRequest.TypeName != examTypeEntity.TypeName)
             {
+                var existingExamType = await _unitOfWork.ExamTypeRepository.GetAsync(et =>
+                    et.TypeName == updateRequest.TypeName && et.Id != examTypeEntity.Id);
+
+                if (existingExamType.Any())
+                {
+                    return BaseServiceResponse<bool>.Failed(
+                        $"The type name {updateRequest.TypeName} is already in use.", "EXAM_TYPE_NAME_DUPLICATE");
+                }
+
                 changed = true;
                 examTypeEntity.TypeName = updateRequest.TypeName;
             }
@@ -118,30 +133,31 @@ public class ExamTypeService : IExamTypeService
 
             try
             {
-                await _unitOfWork.ExamTypeRepository.UpdateASync(examTypeEntity);
+                await _unitOfWork.ExamTypeRepository.UpdateAsync(examTypeEntity);
                 await _unitOfWork.SaveAsync();
                 return BaseServiceResponse<bool>.Success(true, "Exam type updated successfully.");
             }
             catch (DbUpdateConcurrencyException ex)
             {
-                return BaseServiceResponse<bool>.Failed("Someone has changed the data. Try again please.");
+                return BaseServiceResponse<bool>.Failed("Someone has changed the data. Try again please.",
+                    "CONCURRENCY_ERROR");
             }
             catch (DbUpdateException ex)
             {
                 return BaseServiceResponse<bool>.Failed(
-                    $"Database error during update: {ex.InnerException?.Message ?? ex.Message}");
+                    $"Database error during update: {ex.InnerException?.Message ?? ex.Message}", "DB_UPDATE_ERROR");
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Unexpected error during exam type's data update.");
-                return BaseServiceResponse<bool>.Failed($"Unexpected error: {ex.Message}");
+                return BaseServiceResponse<bool>.Failed($"Unexpected error: {ex.Message}", "UNEXPECTED_ERROR");
             }
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error updating exam type with id: {examTypeId}", examTypeId);
             return BaseServiceResponse<bool>.Failed(
-                $"An unexpected error occurred while updating exam type with ID {examTypeId}.");
+                $"An unexpected error occurred while updating exam type with ID {examTypeId}.", "UNEXPECTED_ERROR");
         }
     }
 
@@ -153,13 +169,15 @@ public class ExamTypeService : IExamTypeService
             await _unitOfWork.SaveAsync();
 
             _logger.LogInformation($"Exam type deleted successfully with ID {examTypeId}.");
-            return BaseServiceResponse<string>.Success($"Exam type with ID {examTypeId} deleted successfully.");
+            return BaseServiceResponse<string>.Success($"Exam type with ID {examTypeId} deleted successfully.",
+                "Exam type deleted successfully.");
         }
         catch (KeyNotFoundException ex)
         {
             _logger.LogWarning(ex, "Attempted to delete non-existing exam type with ID: {ExamTypeId}",
                 examTypeId);
-            return BaseServiceResponse<string>.Failed($"Exam type with ID {examTypeId} cannot be found.");
+            return BaseServiceResponse<string>.Failed($"Exam type with ID {examTypeId} cannot be found.",
+                "EXAM_TYPE_NOT_FOUND");
         }
         catch (DbUpdateConcurrencyException ex)
         {
@@ -167,20 +185,20 @@ public class ExamTypeService : IExamTypeService
                 "Concurrency conflicts when deleting exam type with ID {ExamTypeId}. Try again please.",
                 examTypeId);
             return BaseServiceResponse<string>.Failed(
-                $"The exam type has since been modified by someone else. Try again please.");
+                $"The exam type has since been modified by someone else. Try again please.", "CONCURRENCY_ERROR");
         }
         catch (DbUpdateException ex)
         {
             _logger.LogError(ex, "Database error occurred while deleting exam type with ID {ExamTypeId}.",
                 examTypeId);
             return BaseServiceResponse<string>.Failed(
-                $"Database error during deleting: {ex.InnerException?.Message ?? ex.Message}");
+                $"Database error during deleting: {ex.InnerException?.Message ?? ex.Message}", "DB_UPDATE_ERROR");
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Unexpected error occurred while deleting exam type with ID {ExamTypeId}.",
                 examTypeId);
-            return BaseServiceResponse<string>.Failed($"Unexpected error: {ex.Message}");
+            return BaseServiceResponse<string>.Failed($"Unexpected error: {ex.Message}", "UNEXPECTED_ERROR");
         }
     }
 
@@ -193,7 +211,7 @@ public class ExamTypeService : IExamTypeService
                 return false;
             }
 
-            var examTypes = await _unitOfWork.ExamTypeRepository.GetAsync(et => et.TypeName == typeName);
+            var examTypes = await _unitOfWork.ExamTypeRepository.GetAsync(et => et.TypeName == typeName.Trim());
 
             return examTypes.Any();
         }

@@ -36,31 +36,26 @@ public class ProfessionController : ControllerBase
         {
             return CreatedAtAction(nameof(GetProfessionById), new { professionId = result.Data!.Id }, result.Data);
         }
-        else
+
+        switch (result.ErrorCode)
         {
-            string firstError = result.Errors.FirstOrDefault()?.ToLowerInvariant() ?? "";
-
-            if (firstError.Contains("keor id") && firstError.Contains("already taken"))
-            {
-                return Conflict(new { message = result.Message ?? result.Errors.FirstOrDefault() });
-            }
-
-            if (firstError.Contains("all fields are required"))
-            {
-                return BadRequest(new { message = result.Message ?? result.Errors.FirstOrDefault() });
-            }
-
-            _logger.LogError(
-                "Creation failed for profession: {ProfessionId} with errors: {Errors}",
-                createRequest.KeorId,
-                string.Join(", ", result.Errors)
-            );
-            return StatusCode(StatusCodes.Status500InternalServerError,
-                new
-                {
-                    message = result.Message ?? "An unexpected error occured during creation",
-                    errors = result.Errors
-                });
+            case "KEOR_ID_DUPLICATE":
+                return Conflict(new { message = result.Errors.FirstOrDefault() });
+            case "BAD_REQUEST_INVALID_FIELDS":
+                return BadRequest(new { message = result.Errors.FirstOrDefault() });
+            case "DB_UPDATE_ERROR":
+            case "UNEXPECTED_ERROR":
+            default:
+                _logger.LogError(
+                    "Creation failed for profession: {ProfessionId} with errors: {Errors}",
+                    createRequest.KeorId,
+                    string.Join(", ", result.Errors)
+                );
+                return StatusCode(StatusCodes.Status500InternalServerError,
+                    new
+                    {
+                        message = result.Errors.FirstOrDefault() ?? "An unexpected error occurred during creation."
+                    });
         }
     }
 
@@ -68,69 +63,54 @@ public class ProfessionController : ControllerBase
     public async Task<IActionResult> UpdateProfession(int professionId,
         [FromBody] JsonPatchDocument<ProfessionUpdateDto> patchDoc)
     {
-        try
+        if (patchDoc == null)
         {
-            if (patchDoc == null)
-            {
-                return BadRequest(new { Message = "The PATCH document cannot be empty." });
-            }
-
-            var professionGetDtoResult = await _professionService.GetProfessionByIdAsync(professionId);
-
-            if (!professionGetDtoResult.Succeeded || professionGetDtoResult.Data == null)
-            {
-                return NotFound(new
-                    { message = professionGetDtoResult.Message ?? professionGetDtoResult.Errors.FirstOrDefault() });
-            }
-
-            var professionPatchDto = _mapper.Map<ProfessionUpdateDto>(professionGetDtoResult.Data);
-
-            patchDoc.ApplyTo(professionPatchDto);
-
-            if (!ModelState.IsValid)
-            {
-                return BadRequest(ModelState);
-            }
-
-            TryValidateModel(professionPatchDto);
-            if (!ModelState.IsValid)
-            {
-                return BadRequest(ModelState);
-            }
-
-            var result = await _professionService.UpdateProfessionAsync(professionId, professionPatchDto);
-
-            if (result.Succeeded)
-            {
-                return NoContent();
-            }
-
-            if (result.Errors.Any())
-            {
-                string firstError = result.Errors.FirstOrDefault()?.ToLowerInvariant() ?? "";
-
-                if (firstError.Contains("cannot be found"))
-                {
-                    return NotFound(new { Errors = result.Errors });
-                }
-
-                if (firstError.Contains("changed the data") || firstError.Contains("concurrency"))
-                {
-                    return Conflict(new { Errors = result.Errors });
-                }
-
-                return BadRequest(new { Errors = result.Errors });
-            }
-
-            _logger?.LogError("UpdateProfession (PATCH) failed for profession {ProfessionId} without specific errors.",
-                professionId);
-            return StatusCode(500, new { message = "An unexpected error occurred during update." });
+            return BadRequest(new { message = "The PATCH document cannot be empty." });
         }
-        catch (Exception ex)
+
+        var professionGetDtoResult = await _professionService.GetProfessionByIdAsync(professionId);
+
+        if (!professionGetDtoResult.Succeeded || professionGetDtoResult.Data == null)
         {
-            _logger.LogError(ex, "Error updating profession");
-            return StatusCode(StatusCodes.Status500InternalServerError,
-                new { message = "An unexpected error occurred during the update operation." });
+            return NotFound(new { message = professionGetDtoResult.Errors.FirstOrDefault() });
+        }
+
+        var professionPatchDto = _mapper.Map<ProfessionUpdateDto>(professionGetDtoResult.Data);
+        patchDoc.ApplyTo(professionPatchDto);
+
+        if (!ModelState.IsValid)
+        {
+            return BadRequest(ModelState);
+        }
+
+        var result = await _professionService.UpdateProfessionAsync(professionId, professionPatchDto);
+
+        if (result.Succeeded)
+        {
+            if (result.Message == "No changes detected to update.")
+            {
+                return Ok(new { message = result.Message });
+            }
+
+            return NoContent();
+        }
+
+        switch (result.ErrorCode)
+        {
+            case "PROFESSION_NOT_FOUND":
+                return NotFound(new { message = result.Errors.FirstOrDefault() });
+            case "KEOR_ID_DUPLICATE":
+            case "CONCURRENCY_ERROR":
+                return Conflict(new { message = result.Errors.FirstOrDefault() });
+            case "BAD_REQUEST_INVALID_FIELDS":
+                return BadRequest(new { message = result.Errors.FirstOrDefault() });
+            case "DB_UPDATE_ERROR":
+            case "UNEXPECTED_ERROR":
+            default:
+                _logger.LogError("UpdateProfession (PATCH) failed for ID {ProfessionId} with errors: {Errors}",
+                    professionId, string.Join(", ", result.Errors));
+                return StatusCode(500,
+                    new { message = result.Errors.FirstOrDefault() ?? "An unexpected error occurred during update." });
         }
     }
 
@@ -143,21 +123,21 @@ public class ProfessionController : ControllerBase
         {
             return Ok(result.Data);
         }
-        else
-        {
-            string firstError = result.Errors.FirstOrDefault()?.ToLowerInvariant() ?? "";
-            if (firstError.Contains("cannot be found"))
-            {
-                return NotFound(new { message = result.Message ?? result.Errors.FirstOrDefault() });
-            }
 
-            _logger.LogError("Error getting profession with id: {Id} with errors: {Errors}", professionId,
-                string.Join(", ", result.Errors));
-            return StatusCode(StatusCodes.Status500InternalServerError,
-                new
-                {
-                    message = result.Message ?? "An error occured while retrieving profession.", errors = result.Errors
-                });
+        switch (result.ErrorCode)
+        {
+            case "PROFESSION_NOT_FOUND":
+                return NotFound(new { message = result.Errors.FirstOrDefault() });
+            case "UNEXPECTED_ERROR":
+            default:
+                _logger.LogError("Error getting profession with id: {Id} with errors: {Errors}", professionId,
+                    string.Join(", ", result.Errors));
+                return StatusCode(StatusCodes.Status500InternalServerError,
+                    new
+                    {
+                        message = result.Errors.FirstOrDefault() ??
+                                  "An unexpected error occurred while retrieving profession."
+                    });
         }
     }
 
@@ -166,7 +146,7 @@ public class ProfessionController : ControllerBase
     {
         if (professionId <= 0)
         {
-            return BadRequest(new { Message = "Invalid profession ID." });
+            return BadRequest(new { message = "Invalid profession ID." });
         }
 
         var result = await _professionService.DeleteProfessionAsync(professionId);
@@ -176,26 +156,23 @@ public class ProfessionController : ControllerBase
             return Ok(new { message = result.Message });
         }
 
-        if (result.Errors.Any())
+        switch (result.ErrorCode)
         {
-            string firstError = result.Errors.First().ToLowerInvariant();
-
-            if (firstError.Contains("cannot be found") || firstError.Contains("not found"))
-            {
-                return NotFound(new { Errors = result.Errors });
-            }
-
-            if (firstError.Contains("has since been") || firstError.Contains("modified") ||
-                firstError.Contains("concurrency"))
-            {
-                return Conflict(new { Errors = result.Errors });
-            }
-
-            return BadRequest(new { message = result.Errors });
+            case "PROFESSION_NOT_FOUND":
+                return NotFound(new { message = result.Errors.FirstOrDefault() });
+            case "CONCURRENCY_ERROR":
+                return Conflict(new { message = result.Errors.FirstOrDefault() });
+            case "DB_UPDATE_ERROR":
+            case "UNEXPECTED_ERROR":
+            default:
+                _logger.LogError("DeleteProfession failed for ID {ProfessionId} with errors: {Errors}", professionId,
+                    string.Join(", ", result.Errors));
+                return StatusCode(StatusCodes.Status500InternalServerError,
+                    new
+                    {
+                        message = result.Errors.FirstOrDefault() ??
+                                  "An unknown error occurred during the deletion of the profession."
+                    });
         }
-
-        _logger.LogError("DeleteProfession failed for ID {ProfessionId} without specific errors.", professionId);
-        return StatusCode(StatusCodes.Status500InternalServerError,
-            new { message = "An unknown error happened during the deletion of the profession." });
     }
 }

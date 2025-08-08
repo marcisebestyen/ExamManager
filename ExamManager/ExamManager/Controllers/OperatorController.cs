@@ -38,25 +38,19 @@ public class OperatorController : ControllerBase
         {
             return Ok(result.Data);
         }
-        else
+
+        switch (result.ErrorCode)
         {
-            string firstError = result.Errors.FirstOrDefault()?.ToLowerInvariant() ?? "";
-
-            if (firstError.Contains("invalid username or password"))
-            {
-                return Unauthorized(new
-                {
-                    message = result.Message ?? result.Errors.FirstOrDefault()
-                });
-            }
-
-            _logger.LogError("Login failed for user: {UserName} with errors: {Errors}", loginRequest.UserName,
-                string.Join(", ", result.Errors));
-            return StatusCode(StatusCodes.Status500InternalServerError,
-                new
-                {
-                    message = result.Message ?? "An unexpected error occurred during login.", errors = result.Errors
-                });
+            case "LOGIN_INVALID_CREDENTIALS":
+                return Unauthorized(new { message = result.Errors.FirstOrDefault() });
+            case "BAD_REQUEST_INVALID_FIELDS":
+                return BadRequest(new { message = result.Errors.FirstOrDefault() });
+            case "UNEXPECTED_ERROR":
+            default:
+                _logger.LogError("Login failed for user: {UserName} with errors: {Errors}", loginRequest.UserName,
+                    string.Join(", ", result.Errors));
+                return StatusCode(StatusCodes.Status500InternalServerError,
+                    new { message = result.Errors.FirstOrDefault() ?? "An unexpected error occurred during login." });
         }
     }
 
@@ -72,34 +66,28 @@ public class OperatorController : ControllerBase
 
         if (result.Succeeded)
         {
-            return CreatedAtAction(nameof(GetOperatorById), new { operatorId = result.Data!.Id },
-                result.Data);
+            return CreatedAtAction(nameof(GetOperatorById), new { operatorId = result.Data!.Id }, result.Data);
         }
-        else
+
+        switch (result.ErrorCode)
         {
-            string firstError = result.Errors.FirstOrDefault()?.ToLowerInvariant() ?? "";
-
-            if (firstError.Contains("username") && firstError.Contains("already taken"))
-            {
-                return Conflict(new { message = result.Message ?? result.Errors.FirstOrDefault() });
-            }
-
-            if (firstError.Contains("all fields are required"))
-            {
-                return BadRequest(new { message = result.Message ?? result.Errors.FirstOrDefault() });
-            }
-
-            _logger.LogError(
-                "Registration failed for user: {UserName} with errors: {Errors}",
-                createRequest.UserName,
-                string.Join(", ", result.Errors)
-            );
-            return StatusCode(StatusCodes.Status500InternalServerError,
-                new
-                {
-                    message = result.Message ?? "An unexpected error occurred during registration",
-                    errors = result.Errors
-                });
+            case "USERNAME_DUPLICATE":
+                return Conflict(new { message = result.Errors.FirstOrDefault() });
+            case "BAD_REQUEST_INVALID_FIELDS":
+                return BadRequest(new { message = result.Errors.FirstOrDefault() });
+            case "DB_UPDATE_ERROR":
+            case "UNEXPECTED_ERROR":
+            default:
+                _logger.LogError(
+                    "Registration failed for user: {UserName} with errors: {Errors}",
+                    createRequest.UserName,
+                    string.Join(", ", result.Errors)
+                );
+                return StatusCode(StatusCodes.Status500InternalServerError,
+                    new
+                    {
+                        message = result.Errors.FirstOrDefault() ?? "An unexpected error occurred during registration."
+                    });
         }
     }
 
@@ -114,23 +102,21 @@ public class OperatorController : ControllerBase
         {
             return Ok(result.Data);
         }
-        else
-        {
-            string firstError = result.Errors.FirstOrDefault()?.ToLowerInvariant() ?? "";
-            if (firstError.Contains("cannot be found"))
-            {
-                _logger?.LogInformation("User profile not found for user ID: {RequestedUserId}", userId);
-                return NotFound(new { Message = result.Message ?? result.Errors.FirstOrDefault() });
-            }
 
-            _logger.LogError("Error getting user profile for ID: {UserId} with errors: {Errors}", userId,
-                string.Join(", ", result.Errors));
-            return StatusCode(StatusCodes.Status500InternalServerError,
-                new
-                {
-                    message = result.Message ?? "An error occurred while retrieving your profile.",
-                    errors = result.Errors
-                });
+        switch (result.ErrorCode)
+        {
+            case "OPERATOR_NOT_FOUND":
+                _logger?.LogInformation("User profile not found for user ID: {RequestedUserId}", userId);
+                return NotFound(new { message = result.Errors.FirstOrDefault() });
+            case "UNEXPECTED_ERROR":
+            default:
+                _logger.LogError("Error getting user profile for ID: {UserId} with errors: {Errors}", userId,
+                    string.Join(", ", result.Errors));
+                return StatusCode(StatusCodes.Status500InternalServerError,
+                    new
+                    {
+                        message = result.Errors.FirstOrDefault() ?? "An error occurred while retrieving your profile."
+                    });
         }
     }
 
@@ -138,69 +124,49 @@ public class OperatorController : ControllerBase
     public async Task<IActionResult> UpdateOperator(int operatorId,
         [FromBody] JsonPatchDocument<OperatorUpdateDto> patchDoc)
     {
-        try
+        if (patchDoc == null)
         {
-            if (patchDoc == null)
-            {
-                return BadRequest(new { Message = "The PATCH document cannot be empty." });
-            }
-
-            var operatorGetDtoResult = await _operatorService.GetOperatorByIdAsync(operatorId);
-
-            if (!operatorGetDtoResult.Succeeded || operatorGetDtoResult.Data == null)
-            {
-                return NotFound(new
-                    { Message = operatorGetDtoResult.Message ?? operatorGetDtoResult.Errors.FirstOrDefault() });
-            }
-
-            var operatorPatchDto = _mapper.Map<OperatorUpdateDto>(operatorGetDtoResult.Data);
-
-            patchDoc.ApplyTo(operatorPatchDto, ModelState);
-
-            if (!ModelState.IsValid)
-            {
-                return BadRequest(ModelState);
-            }
-
-            TryValidateModel(operatorPatchDto);
-            if (!ModelState.IsValid)
-            {
-                return BadRequest(ModelState);
-            }
-
-            var result = await _operatorService.UpdateOperatorAsync(operatorId, operatorPatchDto);
-
-            if (result.Succeeded)
-            {
-                return NoContent();
-            }
-
-            if (result.Errors.Any())
-            {
-                string firstError = result.Errors.First().ToLowerInvariant();
-
-                if (firstError.Contains("cannot be found"))
-                {
-                    return NotFound(new { Errors = result.Errors });
-                }
-
-                if (firstError.Contains("changed the data") || firstError.Contains("concurrency"))
-                {
-                    return Conflict(new { Errors = result.Errors });
-                }
-
-                return BadRequest(new { Error = result.Errors });
-            }
-
-            _logger?.LogError("UpdateOperator (PATCH) failed for operator ID {OperatorId} without specific errors.",
-                operatorId);
-            return StatusCode(500, new { message = "An unexpected error occurred during update." });
+            return BadRequest(new { message = "The PATCH document cannot be empty." });
         }
-        catch (Exception ex)
+
+        var operatorGetDtoResult = await _operatorService.GetOperatorByIdAsync(operatorId);
+        if (!operatorGetDtoResult.Succeeded || operatorGetDtoResult.Data == null)
         {
-            _logger.LogError(ex, "Error updating operator");
-            return StatusCode(StatusCodes.Status500InternalServerError,
-                new { message = "An unexpected error occurred during the update operation." });
+            return NotFound(new { message = operatorGetDtoResult.Errors.FirstOrDefault() });
+        }
+
+        var operatorPatchDto = _mapper.Map<OperatorUpdateDto>(operatorGetDtoResult.Data);
+        patchDoc.ApplyTo(operatorPatchDto, ModelState);
+
+        if (!ModelState.IsValid)
+        {
+            return BadRequest(ModelState);
+        }
+
+        var result = await _operatorService.UpdateOperatorAsync(operatorId, operatorPatchDto);
+        if (result.Succeeded)
+        {
+            if (result.Message == "No changes detected for update.")
+            {
+                return Ok(new { message = result.Message });
+            }
+
+            return NoContent();
+        }
+
+        switch (result.ErrorCode)
+        {
+            case "OPERATOR_NOT_FOUND":
+                return NotFound(new { message = result.Errors.FirstOrDefault() });
+            case "CONCURRENCY_ERROR":
+                return Conflict(new { message = result.Errors.FirstOrDefault() });
+            case "DB_UPDATE_ERROR":
+            case "UNEXPECTED_ERROR":
+            default:
+                _logger.LogError("UpdateOperator (PATCH) failed for ID {OperatorId} with errors: {Errors}",
+                    operatorId, string.Join(", ", result.Errors));
+                return StatusCode(500,
+                    new { message = result.Errors.FirstOrDefault() ?? "An unexpected error occurred during update." });
         }
     }
 
@@ -213,21 +179,21 @@ public class OperatorController : ControllerBase
         {
             return Ok(result.Data);
         }
-        else
-        {
-            string firstError = result.Errors.FirstOrDefault()?.ToLowerInvariant() ?? "";
-            if (firstError.Contains("cannot be found"))
-            {
-                return NotFound(new { message = result.Message ?? result.Errors.FirstOrDefault() });
-            }
 
-            _logger.LogError("Error getting operator with id: {Id} with errors: {Errors}", operatorId,
-                string.Join(", ", result.Errors));
-            return StatusCode(StatusCodes.Status500InternalServerError,
-                new
-                {
-                    message = result.Message ?? "An error occurred while retrieving operator.", errors = result.Errors
-                });
+        switch (result.ErrorCode)
+        {
+            case "OPERATOR_NOT_FOUND":
+                return NotFound(new { message = result.Errors.FirstOrDefault() });
+            case "UNEXPECTED_ERROR":
+            default:
+                _logger.LogError("Error getting operator with id: {Id} with errors: {Errors}", operatorId,
+                    string.Join(", ", result.Errors));
+                return StatusCode(StatusCodes.Status500InternalServerError,
+                    new
+                    {
+                        message = result.Errors.FirstOrDefault() ??
+                                  "An unexpected error occurred while retrieving operator."
+                    });
         }
     }
 
@@ -237,7 +203,7 @@ public class OperatorController : ControllerBase
     {
         if (operatorId <= 0)
         {
-            return BadRequest(new { Message = "Invalid operator ID." });
+            return BadRequest(new { message = "Invalid operator ID." });
         }
 
         int? deletedById = null;
@@ -257,32 +223,25 @@ public class OperatorController : ControllerBase
             return Ok(new { message = result.Message });
         }
 
-        if (result.Errors.Any())
+        switch (result.ErrorCode)
         {
-            string firstError = result.Errors.First().ToLowerInvariant();
-
-            if (firstError.Contains("cannot be found"))
-            {
-                return NotFound(new { Errors = result.Errors });
-            }
-
-            if (firstError.Contains("already deleted"))
-            {
-                return Conflict(new { Errors = result.Errors });
-            }
-
-            if (firstError.Contains("has since been") || firstError.Contains("modified") ||
-                firstError.Contains("concurrency"))
-            {
-                return Conflict(new { Errors = result.Errors });
-            }
-
-            return BadRequest(new { message = result.Errors });
+            case "OPERATOR_NOT_FOUND":
+                return NotFound(new { message = result.Errors.FirstOrDefault() });
+            case "OPERATOR_ALREADY_DELETED":
+            case "CONCURRENCY_ERROR":
+                return Conflict(new { message = result.Errors.FirstOrDefault() });
+            case "DB_UPDATE_ERROR":
+            case "UNEXPECTED_ERROR":
+            default:
+                _logger.LogError("DeleteOperator failed for ID {OperatorId} with errors: {Errors}", operatorId,
+                    string.Join(", ", result.Errors));
+                return StatusCode(StatusCodes.Status500InternalServerError,
+                    new
+                    {
+                        message = result.Errors.FirstOrDefault() ??
+                                  "Unknown error happened during the deletion of operator."
+                    });
         }
-
-        _logger.LogError("DeleteOperator failed for operator ID {OperatorId} without specific errors.", operatorId);
-        return StatusCode(StatusCodes.Status500InternalServerError,
-            new { message = "Unknown error happened during the deletion of operator." });
     }
 
     [Authorize(Roles = "Admin")]
@@ -291,7 +250,7 @@ public class OperatorController : ControllerBase
     {
         if (operatorId <= 0)
         {
-            return BadRequest(new { Message = "Invalid operator ID." });
+            return BadRequest(new { message = "Invalid operator ID." });
         }
 
         var result = await _operatorService.RestoreOperatorAsync(operatorId);
@@ -301,32 +260,25 @@ public class OperatorController : ControllerBase
             return Ok(new { message = result.Message });
         }
 
-        if (result.Errors.Any())
+        switch (result.ErrorCode)
         {
-            string firstError = result.Errors.First().ToLowerInvariant();
-
-            if (firstError.Contains("cannot be found"))
-            {
-                return NotFound(new { Errors = result.Errors });
-            }
-
-            if (firstError.Contains("not currently deleted"))
-            {
-                return Conflict(new { Errors = result.Errors });
-            }
-
-            if (firstError.Contains("has since been") || firstError.Contains("modified") ||
-                firstError.Contains("concurrency"))
-            {
-                return Conflict(new { Errors = result.Errors });
-            }
-
-            return BadRequest(new { message = result.Errors });
+            case "OPERATOR_NOT_FOUND":
+                return NotFound(new { message = result.Errors.FirstOrDefault() });
+            case "OPERATOR_NOT_DELETED":
+            case "CONCURRENCY_ERROR":
+                return Conflict(new { message = result.Errors.FirstOrDefault() });
+            case "DB_UPDATE_ERROR":
+            case "UNEXPECTED_ERROR":
+            default:
+                _logger.LogError("RestoreOperator failed for ID {OperatorId} with errors: {Errors}", operatorId,
+                    string.Join(", ", result.Errors));
+                return StatusCode(StatusCodes.Status500InternalServerError,
+                    new
+                    {
+                        message = result.Errors.FirstOrDefault() ??
+                                  "Unknown error happened during the restoration of operator."
+                    });
         }
-
-        _logger.LogError("RestoreOperator failed for operator ID {OperatorId} without specific errors.", operatorId);
-        return StatusCode(StatusCodes.Status500InternalServerError,
-            new { message = "Unknown error happened during the restoration of operator." });
     }
 
     [Authorize(Roles = "Admin")]
@@ -335,7 +287,7 @@ public class OperatorController : ControllerBase
     {
         if (targetOperatorId <= 0)
         {
-            return BadRequest(new { Message = "Invalid target operator ID." });
+            return BadRequest(new { message = "Invalid target operator ID." });
         }
 
         int assignedById;
@@ -348,7 +300,7 @@ public class OperatorController : ControllerBase
             _logger.LogError(ex,
                 "Attempt to assign role by unauthenticated user, despite [Authorize] attribute. This should not happen.");
             return Unauthorized(new
-                { Message = "Authentication error: Could not determine performing admin's identity." });
+                { message = "Authentication error: Could not determine performing admin's identity." });
         }
 
         var result = await _operatorService.AssignRoleAsync(targetOperatorId, newRole, assignedById);
@@ -357,41 +309,31 @@ public class OperatorController : ControllerBase
         {
             return Ok(new { message = result.Message });
         }
-        else
+
+        switch (result.ErrorCode)
         {
-            string firstError = result.Errors.FirstOrDefault()?.ToLowerInvariant() ?? "";
-
-            if (firstError.Contains("not found"))
-            {
-                return NotFound(new { message = result.Message ?? result.Errors.FirstOrDefault() });
-            }
-
-            if (firstError.Contains("only administrators"))
-            {
-                return StatusCode(StatusCodes.Status403Forbidden,
-                    new { message = result.Message ?? result.Errors.FirstOrDefault() });
-            }
-
-            if (firstError.Contains("already has the role") || firstError.Contains("concurrency conflict"))
-            {
-                return Conflict(new { message = result.Message ?? result.Errors.FirstOrDefault() });
-            }
-
-            if (firstError.Contains("cannot demote themselves") || firstError.Contains("invalid target operator id"))
-            {
-                return BadRequest(new
-                    { message = result.Message ?? result.Errors.FirstOrDefault() });
-            }
-
-            _logger.LogError(
-                "AssignRole failed for target operator ID {TargetOperatorId} by admin {AssignedById} to role {NewRole} with errors: {Errors}",
-                targetOperatorId, assignedById, newRole, string.Join(", ", result.Errors));
-            return StatusCode(StatusCodes.Status500InternalServerError,
-                new
-                {
-                    message = result.Message ?? "An unexpected error occurred during role assignment.",
-                    errors = result.Errors
-                });
+            case "OPERATOR_NOT_FOUND":
+                return NotFound(new { message = result.Errors.FirstOrDefault() });
+            case "BAD_REQUEST_INVALID_FIELDS":
+            case "SELF_DEMOTION_FORBIDDEN":
+            case "SELF_PROMOTION_FORBIDDEN":
+                return BadRequest(new { message = result.Errors.FirstOrDefault() });
+            case "UNAUTHORIZED_ROLE_ASSIGNMENT":
+                return Forbid();
+            case "CONCURRENCY_ERROR":
+                return Conflict(new { message = result.Errors.FirstOrDefault() });
+            case "DB_UPDATE_ERROR":
+            case "UNEXPECTED_ERROR":
+            default:
+                _logger.LogError(
+                    "AssignRole failed for target operator ID {TargetOperatorId} by admin {AssignedById} to role {NewRole} with errors: {Errors}",
+                    targetOperatorId, assignedById, newRole, string.Join(", ", result.Errors));
+                return StatusCode(StatusCodes.Status500InternalServerError,
+                    new
+                    {
+                        message = result.Errors.FirstOrDefault() ??
+                                  "An unexpected error occurred during role assignment."
+                    });
         }
     }
 

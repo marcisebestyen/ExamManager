@@ -49,7 +49,6 @@ ALTER SEQUENCE "Operators_Id_seq" RESTART WITH 1;
 -- Password 'Password123'
 INSERT INTO "Operators" ("UserName", "Password", "FirstName", "LastName", "Role", "IsDeleted")
 VALUES
-('admin_user', '$2a$10$wB5W6l.iH0Jt9.z9J2g6L.p.C.t.X.S8T.m9.U5E4o/D.i.g2zO', 'Admin', 'User', 1, false),
 ('operator1', '$2a$10$wB5W6l.iH0Jt9.z9J2g6L.p.C.t.X.S8T.m9.U5E4o/D.i.g2zO', 'John', 'Doe', 0, false),
 ('operator2', '$2a$10$wB5W6l.iH0Jt9.z9J2g6L.p.C.t.X.S8T.m9.U5E4o/D.i.g2zO', 'Jane', 'Smith', 0, false);
 

@@ -11,6 +11,7 @@ using ExamManager.Dtos.ProfessionDtos;
 using ExamManager.Models;
 using ExamManager.Responses;
 using ExamManager.Responses.ExaminerResponses;
+using ExamManager.Responses.ExamResponses;
 using ExamManager.Responses.ExamTypeResponses;
 using ExamManager.Responses.InstitutionResponses;
 using ExamManager.Responses.ProfessionResponses;
@@ -111,6 +112,8 @@ public class MappingService : Profile
             .ForMember(dest => dest.ExamBoards,
                 opt => opt.MapFrom(src =>
                     src.ExamBoard.Where(eb => !eb.IsDeleted)));
+        CreateMap<Exam, ExamCreateResponseDto>();
+        CreateMap<ExamResponseDto, ExamUpdateDto>();
 
         CreateMap<BackupHistoryCreateDto, BackupHistory>();
         CreateMap<BackupHistory, BackupHistoryResponseDto>()

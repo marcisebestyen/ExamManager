@@ -9,8 +9,9 @@ public interface IRepository<T> where T : class
     Task<IEnumerable<T>> GetWithDeletedAsync(Expression<Func<T, bool>> predicate, string[]? includeProperties = null);
     Task<IEnumerable<T>> GetAllAsync(string[]? includeProperties = null);
     Task InsertAsync(T entity);
+    Task InsertRangeAsync(IEnumerable<T> entities);
     Task DeleteAsync(params object[] keyValues);
-    Task UpdateASync(T entity);
+    Task UpdateAsync(T entity);
 
     Task<(IEnumerable<T> Items, int TotalCount)> GetPagedAsync(
         Expression<Func<T, bool>> predicate,
