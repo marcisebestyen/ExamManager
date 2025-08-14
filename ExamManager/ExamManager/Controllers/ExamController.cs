@@ -197,7 +197,7 @@ public class ExamController : ControllerBase
 
         if (result.Succeeded)
         {
-            return Ok(new { message = result.Message }); // 200 OK with a success message
+            return Ok(new { message = result.Message }); 
         }
         else
         {
