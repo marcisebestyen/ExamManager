@@ -11,7 +11,10 @@ public interface IRepository<T> where T : class
     Task InsertAsync(T entity);
     Task InsertRangeAsync(IEnumerable<T> entities);
     Task DeleteAsync(params object[] keyValues);
+    Task DeleteRangeAsync(IEnumerable<T> entities);
+    Task DeleteRangeAsync(Expression<Func<T, bool>> predicate);
     Task UpdateAsync(T entity);
+    Task UpdateRangeAsync(IEnumerable<T> entities);
 
     Task<(IEnumerable<T> Items, int TotalCount)> GetPagedAsync(
         Expression<Func<T, bool>> predicate,

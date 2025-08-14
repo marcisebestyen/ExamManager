@@ -42,17 +42,15 @@ public class Repository<T> : IRepository<T> where T : class
         {
             return null;
         }
-
-        List<Task> tasks = new List<Task>();
-
+        
         if (includeReferences != null)
         {
             foreach (var includeReference in includeReferences)
             {
-                tasks.Add(_dbContext
+                await _dbContext
                     .Entry(entity)
                     .Reference(includeReference)
-                    .LoadAsync());
+                    .LoadAsync();
             }
         }
 
@@ -60,14 +58,13 @@ public class Repository<T> : IRepository<T> where T : class
         {
             foreach (var includeCollection in includeCollections)
             {
-                tasks.Add(_dbContext
+                await _dbContext
                     .Entry(entity)
                     .Collection(includeCollection)
-                    .LoadAsync());
+                    .LoadAsync();
             }
         }
 
-        await Task.WhenAll(tasks);
         return entity;
     }
 
@@ -127,10 +124,40 @@ public class Repository<T> : IRepository<T> where T : class
         }
     }
 
-    public Task UpdateAsync(T entity)
+    public async Task DeleteRangeAsync(IEnumerable<T> entities)
+    {
+        var entityList =  entities.ToList();
+        if (entityList.Any())
+        {
+            _dbSet.RemoveRange(entityList);
+        }
+        await Task.CompletedTask;
+    }
+
+    public async Task DeleteRangeAsync(Expression<Func<T, bool>> predicate)
+    {
+        var entities = await _dbSet.Where(predicate).ToListAsync();
+        if (entities.Any())
+        {
+            _dbSet.RemoveRange(entities);
+        }
+        await Task.CompletedTask;
+    }
+
+    public async Task UpdateAsync(T entity)
     {
         _dbSet.Update(entity);
-        return Task.CompletedTask;
+        await Task.CompletedTask;
+    }
+
+    public async Task UpdateRangeAsync(IEnumerable<T> entities)
+    {
+        var entityList = entities.ToList();
+        if (entityList.Any())
+        {
+            _dbSet.UpdateRange(entityList);
+        }
+        await Task.CompletedTask;
     }
 
     public async Task<(IEnumerable<T> Items, int TotalCount)> GetPagedAsync(

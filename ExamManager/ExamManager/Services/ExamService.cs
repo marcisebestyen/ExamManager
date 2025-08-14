@@ -125,7 +125,10 @@ public class ExamService : IExamService
     {
         try
         {
-            var examEntity = await _unitOfWork.ExamRepository.GetByIdAsync(new object[] { examId });
+            string[] includeReferences = new[]
+                { "Profession", "Institution", "ExamType", "Operator", "ExamBoard.Examiner" };
+            var examEntity = (await _unitOfWork.ExamRepository.GetAsync(e => e.Id == examId, includeReferences))
+                .FirstOrDefault();
 
             if (examEntity == null)
             {
@@ -165,7 +168,6 @@ public class ExamService : IExamService
 
             if (updateRequest.ExamCode != null && updateRequest.ExamCode != examEntity.ExamCode)
             {
-                // Corrected the logic to check if any *other* exam has this code
                 var existingExam =
                     await _unitOfWork.ExamRepository.GetAsync(e =>
                         e.ExamCode == updateRequest.ExamCode && e.Id != examId);
@@ -258,6 +260,61 @@ public class ExamService : IExamService
                 examEntity.ExamTypeId = updateRequest.ExamTypeId.Value;
             }
 
+            if (updateRequest.ExamBoards != null && updateRequest.ExamBoards.Any())
+            {
+                var existingBoards =
+                    (await _unitOfWork.ExamBoardRepository.GetAsync(eb => eb.ExamId == examId)).ToList();
+                var existingExaminerIds = existingBoards.Select(eb => eb.ExaminerId).ToList();
+
+                var requestExaminerIds = updateRequest.ExamBoards
+                    .Where(eb => eb.ExaminerId.HasValue)
+                    .Select(eb => eb.ExaminerId.Value)
+                    .ToList();
+
+                var examinersToAdd = requestExaminerIds.Except(existingExaminerIds).ToList();
+                foreach (var examinerId in examinersToAdd)
+                {
+                    if (await _unitOfWork.ExaminerRepository.GetByIdAsync(new object[] { examinerId }) == null)
+                    {
+                        return BaseServiceResponse<bool>.Failed($"Examiner with ID '{examinerId}' does not exist.",
+                            "EXAMINER_NOT_FOUND");
+                    }
+
+                    var newBoardDto = updateRequest.ExamBoards.First(eb => eb.ExaminerId == examinerId);
+                    var newBoard = new ExamBoard
+                    {
+                        ExamId = examId,
+                        ExaminerId = examinerId,
+                        Role = newBoardDto.Role ?? string.Empty
+                    };
+
+                    await _unitOfWork.ExamBoardRepository.InsertAsync(newBoard);
+                    changed = true;
+                }
+
+                var examinersToRemove = existingExaminerIds.Except(requestExaminerIds).ToList();
+                if (examinersToRemove.Any())
+                {
+                    var boardsToRemove = existingBoards.Where(eb => examinersToRemove.Contains(eb.ExaminerId)).ToList();
+                    await _unitOfWork.ExamBoardRepository.DeleteRangeAsync(boardsToRemove);
+                    changed = true;
+                }
+
+                var examinersToUpdate = existingExaminerIds.Intersect(requestExaminerIds).ToList();
+                foreach (var examinerId in examinersToUpdate)
+                {
+                    var existingBoard = existingBoards.First(eb => eb.ExaminerId == examinerId);
+                    var updateBoardDto = updateRequest.ExamBoards.First(eb => eb.ExaminerId == examinerId);
+
+                    if (updateBoardDto.Role != null && existingBoard.Role != updateBoardDto.Role)
+                    {
+                        existingBoard.Role = updateBoardDto.Role;
+                        await _unitOfWork.ExamBoardRepository.UpdateAsync(existingBoard);
+                        changed = true;
+                    }
+                }
+            }
+
             if (!changed)
             {
                 return BaseServiceResponse<bool>.Success(true, "No changes detected to update.");
@@ -297,7 +354,11 @@ public class ExamService : IExamService
     {
         try
         {
-            var examEntity = await _unitOfWork.ExamRepository.GetByIdAsync(new object[] { examId });
+            string[] includeCollections = new[] { "ExamBoard" };
+            var examEntity = await _unitOfWork.ExamRepository.GetByIdAsync(
+                new object[] { examId },
+                null,
+                includeCollections);
 
             if (examEntity == null)
             {
@@ -313,11 +374,25 @@ public class ExamService : IExamService
             examEntity.DeletedAt = DateTime.UtcNow;
             examEntity.DeletedById = deletedById;
 
+            foreach (var examBoard in examEntity.ExamBoard.Where(eb => !eb.IsDeleted))
+            {
+                examBoard.IsDeleted = true;
+                examBoard.DeletedAt = DateTime.UtcNow;
+                examBoard.DeletedById = deletedById;
+            }
+
             await _unitOfWork.ExamRepository.UpdateAsync(examEntity);
+
+            if (examEntity.ExamBoard.Any(eb => eb.IsDeleted))
+            {
+                await _unitOfWork.ExamBoardRepository.UpdateRangeAsync(examEntity.ExamBoard);
+            }
+
             await _unitOfWork.SaveAsync();
 
             _logger.LogInformation("Deleted exam with id: {Id}", examId);
-            return BaseServiceResponse<string>.Success($"Exam with ID {examId} deleted successfully.", "Exam deleted successfully.");
+            return BaseServiceResponse<string>.Success($"Exam with ID {examId} deleted successfully.",
+                "Exam deleted successfully.");
         }
         catch (KeyNotFoundException ex)
         {
@@ -348,8 +423,10 @@ public class ExamService : IExamService
     {
         try
         {
+            string[] includeProperties = new[] { "ExamBoard" };
             var examEntity =
-                (await _unitOfWork.ExamRepository.GetWithDeletedAsync(e => e.Id == examId)).FirstOrDefault();
+                (await _unitOfWork.ExamRepository.GetWithDeletedAsync(e => e.Id == examId, includeProperties))
+                .FirstOrDefault();
 
             if (examEntity == null)
             {
@@ -363,9 +440,24 @@ public class ExamService : IExamService
 
             examEntity.IsDeleted = false;
             examEntity.DeletedAt = null;
-            examEntity.DeletedById = null; 
+            examEntity.DeletedById = null;
+            
+            var examBoardsToRestore = examEntity.ExamBoard.Where(eb => eb.IsDeleted).ToList();
+
+            foreach (var examBoard in examBoardsToRestore)
+            {
+                examBoard.IsDeleted = false;
+                examBoard.DeletedAt = null;
+                examBoard.DeletedById = null;
+            }
 
             await _unitOfWork.ExamRepository.UpdateAsync(examEntity);
+
+            if (examBoardsToRestore.Any())
+            {
+                await _unitOfWork.ExamBoardRepository.UpdateRangeAsync(examBoardsToRestore);
+            }
+            
             await _unitOfWork.SaveAsync();
 
             _logger.LogInformation("Restored exam with id: {Id}", examId);

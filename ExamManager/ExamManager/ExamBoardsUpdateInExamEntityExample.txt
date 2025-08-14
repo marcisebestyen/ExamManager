@@ -1,0 +1,94 @@
+﻿1) Replace the entire ExamBoards array:
+[
+  {
+    "operationType": 0,
+    "path": "/ExamBoards",
+    "op": "replace",
+    "value": [
+      {
+        "examinerId": 1,
+        "role": "Main Examiner"
+      },
+      {
+        "examinerId": 2,
+        "role": "Observer"
+      }
+    ]
+  }
+]
+
+2) Add new Examiner to the array:
+[
+  {
+    "operationType": 0,
+    "path": "/ExamBoards/-",
+    "op": "add",
+    "value": {
+      "examinerId": 3,
+      "role": "Assistant Examiner"
+    }
+  }
+]
+
+3) Add at specific index (e.g. position 0):
+[
+  {
+    "operationType": 0,
+    "path": "/ExamBoards/0",
+    "op": "add",
+    "value": {
+      "examinerId": 4,
+      "role": "Head Examiner"
+    }
+  }
+]
+
+4) Update specific ExamBoard properties (by index):
+[
+  {
+    "operationType": 0,
+    "path": "/ExamBoards/0/role",
+    "op": "replace",
+    "value": "Senior Examiner"
+  },
+  {
+    "operationType": 0,
+    "path": "/ExamBoards/1/examinerId",
+    "op": "replace",
+    "value": 5
+  }
+]
+
+5) Remove an ExamBoard (by index): 
+[
+  {
+    "operationType": 0,
+    "path": "/ExamBoards/0",
+    "op": "remove"
+  }
+]
+
+6) Combined operations (update Exam name + replace ExamBoards):
+[
+  {
+    "operationType": 0,
+    "path": "/ExamName",
+    "op": "replace",
+    "value": "Updated Final Programming Exam"
+  },
+  {
+    "operationType": 0,
+    "path": "/ExamBoards",
+    "op": "replace",
+    "value": [
+      {
+        "examinerId": 1,
+        "role": "Chief Examiner"
+      },
+      {
+        "examinerId": 3,
+        "role": "Co-Examiner"
+      }
+    ]
+  }
+]

@@ -68,8 +68,6 @@ public class MappingService : Profile
         CreateMap<ExaminerResponseDto, ExaminerUpdateDto>();
 
         CreateMap<ExamBoardCreateSubDto, ExamBoard>();
-        CreateMap<ExamBoardUpdateSubDto, ExamBoard>()
-            .ForAllMembers(opt => opt.Condition((src, dest, srcMember) => srcMember != null));
         CreateMap<ExamBoard, ExamBoardResponseDto>()
             .ForMember(dest => dest.ExamName,
                 opt => opt.MapFrom(src =>
@@ -86,6 +84,7 @@ public class MappingService : Profile
             .ForMember(dest => dest.DeletedByOperatorName,
                 opt => opt.MapFrom(src =>
                     src.DeletedBy != null ? $"{src.DeletedBy.FirstName} {src.DeletedBy.LastName}" : null));
+        CreateMap<ExamBoardResponseDto, ExamBoardUpdateSubDto>();
 
         CreateMap<ExamCreateDto, Exam>();
         CreateMap<ExamUpdateDto, Exam>()
