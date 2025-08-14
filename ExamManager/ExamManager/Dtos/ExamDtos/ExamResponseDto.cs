@@ -18,7 +18,7 @@ public class ExamResponseDto
     public int InstitutionId { get; set; }
     public string InstitutionName { get; set; }
     
-    public string ExamTypeId { get; set; }
+    public int ExamTypeId { get; set; }
     public string ExamTypeName { get; set; }
     
     public int OperatorId { get; set; }

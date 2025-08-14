@@ -1,7 +1,10 @@
-﻿namespace ExamManager.Dtos;
+﻿using System.ComponentModel.DataAnnotations;
+
+namespace ExamManager.Dtos;
 
 public class ExamTypeCreateDto
 {
-    public string Name { get; set; }
-    public string Description { get; set; }
+    [Required(ErrorMessage = "Name is required.")]
+    public string TypeName { get; set; }
+    public string? Description { get; set; }
 }

@@ -252,6 +252,11 @@ namespace ExamManager.Migrations
                         .HasMaxLength(5)
                         .HasColumnType("character varying(5)");
 
+                    b.Property<string>("EducationalId")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)");
+
                     b.Property<string>("Floor")
                         .HasMaxLength(5)
                         .HasColumnType("character varying(5)");
@@ -280,6 +285,9 @@ namespace ExamManager.Migrations
                         .HasColumnType("integer");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("EducationalId")
+                        .IsUnique();
 
                     b.ToTable("Institutions");
                 });
@@ -317,7 +325,9 @@ namespace ExamManager.Migrations
                         .HasColumnType("character varying(256)");
 
                     b.Property<int>("Role")
-                        .HasColumnType("integer");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0);
 
                     b.Property<string>("UserName")
                         .IsRequired()

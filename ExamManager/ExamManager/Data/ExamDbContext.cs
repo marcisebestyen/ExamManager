@@ -198,6 +198,12 @@ public class ExamDbContext : DbContext
         modelBuilder.Entity<Institution>(institution =>
         {
             institution.HasKey(i => i.Id); // PK
+
+            institution.HasIndex(i => i.EducationalId)
+                .IsUnique();
+            institution.Property(i => i.EducationalId)
+                .HasMaxLength(256)
+                .IsRequired();
             
             institution.Property(i => i.Name)
                 .HasMaxLength(256)
@@ -246,7 +252,10 @@ public class ExamDbContext : DbContext
             
             oper.Property(o => o.LastName)
                 .HasMaxLength(256)
-                .IsRequired();  
+                .IsRequired();
+
+            oper.Property(o => o.Role)
+                .HasDefaultValue(Role.Operator);
         });
         
         // PasswordReset entity configuration 
