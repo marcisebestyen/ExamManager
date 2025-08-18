@@ -1,0 +1,28 @@
+src/
+├── components/           # Reusable UI components
+│   ├── common/          # Generic components (Button, Modal, etc.)
+│   ├── exam/            # Exam-specific components
+│   └── user/            # User-specific components
+├── pages/               # Page components (routes)
+│   ├── ExamListPage.tsx
+│   ├── ExamDetailPage.tsx
+│   └── LoginPage.tsx
+├── services/            # API communication layer
+│   ├── api.ts          # Base API configuration
+│   ├── examService.ts  # Exam-related API calls
+│   └── userService.ts  # User-related API calls
+├── types/              # TypeScript interfaces & types
+│   ├── exam.ts
+│   ├── user.ts
+│   └── api.ts
+├── hooks/              # Custom React hooks
+│   ├── useExams.ts
+│   └── useAuth.ts
+├── utils/              # Utility functions
+│   ├── constants.ts
+│   ├── helpers.ts
+│   └── validators.ts
+├── store/              # State management (if using Zustand/Redux)
+├── router/             # Routing configuration
+│   └── AppRouter.tsx
+└── styles/             # Global styles (if any)
