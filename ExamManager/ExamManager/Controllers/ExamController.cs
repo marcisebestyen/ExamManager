@@ -8,7 +8,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace ExamManager.Controllers;
 
 [ApiController]
-[Route("exams")]
+[Route("api/exams")]
 public class ExamController : ControllerBase
 {
     private readonly IExamService _examService;

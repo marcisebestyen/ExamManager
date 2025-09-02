@@ -8,7 +8,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace ExamManager.Controllers;
 
 [ApiController]
-[Route("examiners")]
+[Route("api/examiners")]
 public class ExaminerController : ControllerBase
 {
     private readonly IExaminerService _examinerService;

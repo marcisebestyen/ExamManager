@@ -7,7 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace ExamManager.Controllers;
 
 [ApiController]
-[Route("examTypes")]
+[Route("api/exam_types")]
 public class ExamTypeController : ControllerBase
 {
     private readonly IExamTypeService _examTypeService;

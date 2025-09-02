@@ -7,7 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace ExamManager.Controllers;
 
 [ApiController]
-[Route("professions")]
+[Route("api/professions")]
 public class ProfessionController : ControllerBase
 {
     private readonly IProfessionService _professionService;
