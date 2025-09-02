@@ -7,7 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace ExamManager.Controllers;
 
 [ApiController]
-[Route("institutions")]
+[Route("api/institutions")]
 public class InstitutionController : ControllerBase
 {
     private readonly IInstitutionService _institutionService;

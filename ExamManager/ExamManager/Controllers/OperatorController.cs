@@ -10,7 +10,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace ExamManager.Controllers;
 
 [ApiController]
-[Route("operators")]
+[Route("api/operators")]
 public class OperatorController : ControllerBase
 {
     private readonly IOperatorService _operatorService;
