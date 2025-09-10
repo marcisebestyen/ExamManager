@@ -1,20 +1,21 @@
 import { useState } from 'react';
 import {
-  IconCalendarStats,
-  IconDeviceDesktopAnalytics,
-  IconFingerprint,
-  IconGauge,
-  IconHome2,
+  IconBriefcase2,
+  IconBuildings,
+  IconClipboardSearch,
+  IconDashboard,
+  IconHome,
   IconLogout,
+  IconPencilQuestion,
   IconSettings,
-  IconSwitchHorizontal,
-  IconUser,
+  IconUserCog,
+  IconUserQuestion,
 } from '@tabler/icons-react';
 import { Center, Stack, Tooltip, UnstyledButton } from '@mantine/core';
 import classes from './NavbarMinimal.module.css';
 
 interface NavbarLinkProps {
-  icon: typeof IconHome2;
+  icon: typeof IconHome;
   label: string;
   active?: boolean;
   onClick?: () => void;
@@ -31,12 +32,14 @@ function NavbarLink({ icon: Icon, label, active, onClick }: NavbarLinkProps) {
 }
 
 const mockdata = [
-  { icon: IconHome2, label: 'Home' },
-  { icon: IconGauge, label: 'Dashboard' },
-  { icon: IconDeviceDesktopAnalytics, label: 'Analytics' },
-  { icon: IconCalendarStats, label: 'Releases' },
-  { icon: IconUser, label: 'Account' },
-  { icon: IconFingerprint, label: 'Security' },
+  { icon: IconHome, label: 'Home' },
+  { icon: IconDashboard, label: 'Dashboard' },
+  { icon: IconPencilQuestion, label: 'Exams' },
+  { icon: IconUserQuestion, label: 'Examiners' },
+  { icon: IconClipboardSearch, label: 'Exam Types' },
+  { icon: IconBuildings, label: 'Institutions' },
+  { icon: IconBriefcase2, label: 'Professions' },
+  { icon: IconUserCog, label: 'Operators' },
   { icon: IconSettings, label: 'Settings' },
 ];
 
@@ -61,7 +64,6 @@ export function NavbarMinimal() {
       </div>
 
       <Stack justify="center" gap={0}>
-        <NavbarLink icon={IconSwitchHorizontal} label="Change account" />
         <NavbarLink icon={IconLogout} label="Logout" />
       </Stack>
     </nav>

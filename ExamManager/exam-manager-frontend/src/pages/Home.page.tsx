@@ -6,7 +6,7 @@ export function HomePage() {
   return (
     <Skeleton>
       <Welcome />
-      <ColorSchemeToggle />
+      {/*<ColorSchemeToggle />*/}
     </Skeleton>
   );
 }

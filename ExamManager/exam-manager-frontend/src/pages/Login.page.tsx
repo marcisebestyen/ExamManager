@@ -8,19 +8,24 @@ import {
   Center,
   Divider,
   Group,
+  Paper,
   PasswordInput,
   Stack,
   Text,
   TextInput,
+  Title,
+  useMantineTheme,
 } from '@mantine/core';
 import { useForm } from '@mantine/form';
 import useAuth from '../hooks/useAuth';
+import classes from './Login.page.module.css';
 
 const Login = () => {
   const { login } = useAuth();
   const navigate = useNavigate();
   const [loginError, setLoginError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const theme = useMantineTheme();
 
   const form = useForm({
     initialValues: {
@@ -58,34 +63,19 @@ const Login = () => {
   };
 
   return (
-    <Box
-      style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        minHeight: '100vh',
-        backgroundColor: '#2d3748',
-      }}
-    >
+    <Box className={classes.pageContainer}>
       <Center>
-        <Card
+        <Paper
           shadow="xl"
-          padding="xl"
+          p="xl"
           radius="lg"
+          withBorder
           style={{ width: '100%', height: '450px', backgroundColor: '#fff' }}
         >
-          <div>
-            <h2
-              style={{
-                fontSize: '2rem',
-                fontWeight: 'bold',
-                marginBottom: '2rem',
-                color: '#2d3748',
-                textAlign: 'center',
-              }}
-            >
+          <Stack>
+            <Title order={2} ta="center" mb="md" mt="xs" className={classes.title}>
               Exam Manager
-            </h2>
+            </Title>
             <form onSubmit={form.onSubmit(handleSubmit)}>
               <Stack gap="md">
                 <TextInput
@@ -97,8 +87,8 @@ const Login = () => {
                   disabled={isLoading}
                   error={form.errors.userName}
                   {...form.getInputProps('userName')}
+                  classNames={{ input: classes.input }}
                 />
-
                 <PasswordInput
                   required
                   label="Password"
@@ -108,6 +98,7 @@ const Login = () => {
                   disabled={isLoading}
                   error={form.errors.password}
                   {...form.getInputProps('password')}
+                  classNames={{ input: classes.input }}
                 />
               </Stack>
 
@@ -134,13 +125,13 @@ const Login = () => {
                   loading={isLoading}
                   disabled={!form.isValid()}
                 >
-                  {isLoading ? 'Login...' : 'Login'}
+                  Login
                 </Button>
               </Group>
               <Divider my="lg" />
             </form>
-          </div>
-        </Card>
+          </Stack>
+        </Paper>
       </Center>
     </Box>
   );
