@@ -197,6 +197,33 @@ public class OperatorController : ControllerBase
         }
     }
 
+    [HttpGet("get-all-operators")]
+    public async Task<IActionResult> GetAllOperators()
+    {
+        var result = await _operatorService.GetAllOperatorsAsync();
+
+        if (result.Succeeded)
+        {
+            return Ok(result.Data);
+        }
+        else
+        {
+            switch (result.ErrorCode)
+            {
+                case "UNEXPECTED_ERROR":
+                default:
+                    _logger.LogError("Error getting all operators with errors: {Errors}",
+                        string.Join(", ", result.Errors));
+                    return StatusCode(StatusCodes.Status500InternalServerError,
+                        new
+                        {
+                            message = result.Errors.FirstOrDefault() ??
+                                      "An unexpected error occurred while retrieving operators."
+                        });
+            }
+        }
+    }
+
     [Authorize(Roles = "Admin")]
     [HttpDelete("delete-operator/{operatorId}")]
     public async Task<IActionResult> DeleteOperator(int operatorId)

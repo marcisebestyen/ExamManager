@@ -145,6 +145,33 @@ public class InstitutionController : ControllerBase
             }
         }
     }
+    
+    [HttpGet("get-institutions")]
+    public async Task<IActionResult> GetAllInstitutions()
+    {
+        var result = await _institutionService.GetAllInstitutionsAsync();
+
+        if (result.Succeeded)
+        {
+            return Ok(result.Data);
+        }
+        else
+        {
+            switch (result.ErrorCode)
+            {
+                case "UNEXPECTED_ERROR":
+                default:
+                    _logger.LogError("Error getting all institutions with errors: {Errors}",
+                        string.Join(", ", result.Errors));
+                    return StatusCode(StatusCodes.Status500InternalServerError,
+                        new
+                        {
+                            message = result.Errors.FirstOrDefault() ??
+                                      "An unexpected error occurred while retrieving institutions."
+                        });
+            }
+        }
+    }
 
     [HttpDelete("delete-institution/{institutionId}")]
     public async Task<IActionResult> DeleteInstitution(int institutionId)

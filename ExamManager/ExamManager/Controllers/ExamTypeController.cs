@@ -143,6 +143,33 @@ public class ExamTypeController : ControllerBase
             }
         }
     }
+    
+    [HttpGet("get-all-exam-types")]
+    public async Task<IActionResult> GetAllExamTypes()
+    {
+        var result = await _examTypeService.GetAllExamTypesAsync();
+
+        if (result.Succeeded)
+        {
+            return Ok(result.Data);
+        }
+        else
+        {
+            switch (result.ErrorCode)
+            {
+                case "UNEXPECTED_ERROR":
+                default:
+                    _logger.LogError("Error getting all exam types with errors: {Errors}", 
+                        string.Join(", ", result.Errors));
+                    return StatusCode(StatusCodes.Status500InternalServerError,
+                        new
+                        {
+                            message = result.Errors.FirstOrDefault() ??
+                                      "An unexpected error occurred while retrieving exam types."
+                        });
+            }
+        }
+    }
 
     [HttpDelete("delete-exam-type/{examTypeId}")]
     public async Task<IActionResult> DeleteExamType(int examTypeId)

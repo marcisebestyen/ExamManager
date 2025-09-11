@@ -141,6 +141,33 @@ public class ProfessionController : ControllerBase
         }
     }
 
+    [HttpGet("get-all-professions")]
+    public async Task<IActionResult> GetAllProfessions()
+    {
+        var result = await _professionService.GetAllProfessionsAsync();
+
+        if (result.Succeeded)
+        {
+            return Ok(result.Data);
+        }
+        else
+        {
+            switch (result.ErrorCode)
+            {
+                case "UNEXPECTED_ERROR":
+                default:
+                    _logger.LogError("Error getting all professions with errors: {Errors}",
+                        string.Join(", ", result.Errors));
+                    return StatusCode(StatusCodes.Status500InternalServerError,
+                        new
+                        {
+                            message = result.Errors.FirstOrDefault() ??
+                                      "An unexpected error occurred while retrieving professions."
+                        });
+            }
+        }
+    }
+
     [HttpDelete("delete-profession/{professionId}")]
     public async Task<IActionResult> DeleteProfession(int professionId)
     {

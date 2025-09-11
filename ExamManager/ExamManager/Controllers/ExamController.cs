@@ -98,6 +98,33 @@ public class ExamController : ControllerBase
         }
     }
 
+    [HttpGet("get-all-exams")]
+    public async Task<IActionResult> GetAllExams()
+    {
+        var result = await _examService.GetAllExamsAsync();
+
+        if (result.Succeeded)
+        {
+            return Ok(result.Data);
+        }
+        else
+        {
+            switch (result.ErrorCode)
+            {
+                case "UNEXPECTED_ERROR":
+                default:
+                    _logger.LogError("Error getting all exams with errors: {Errors}",
+                        string.Join(", ", result.Errors));
+                    return StatusCode(StatusCodes.Status500InternalServerError,
+                        new
+                        {
+                            message = result.Errors.FirstOrDefault() ??
+                                      "An unexpected error occurred while retrieving exams."
+                        });
+            }
+        }
+    }
+
     [HttpPatch("update-exam/{examId}")]
     public async Task<IActionResult> UpdateExam(int examId, [FromBody] JsonPatchDocument<ExamUpdateDto> patchDoc)
     {

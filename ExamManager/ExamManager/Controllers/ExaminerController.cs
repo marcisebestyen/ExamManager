@@ -145,6 +145,33 @@ public class ExaminerController : ControllerBase
         }
     }
 
+    [HttpGet("get-all-examiners")]
+    public async Task<IActionResult> GetAllExaminers()
+    {
+        var result = await _examinerService.GetAllExaminersAsync();
+
+        if (result.Succeeded)
+        {
+            return Ok(result.Data);
+        }
+        else
+        {
+            switch (result.ErrorCode)
+            {
+                case "UNEXPECTED_ERROR":
+                default:
+                    _logger.LogError("Error getting all examiners with errors: {Errors}",
+                        string.Join(", ", result.Errors));
+                    return StatusCode(StatusCodes.Status500InternalServerError,
+                        new
+                        {
+                            message = result.Errors.FirstOrDefault() ??
+                                      "An unexpected error occurred while retrieving examiners."
+                        });
+            }
+        }
+    }
+
     [HttpDelete("delete-examiner/{examinerId}")]
     public async Task<IActionResult> DeleteExaminerById(int examinerId)
     {

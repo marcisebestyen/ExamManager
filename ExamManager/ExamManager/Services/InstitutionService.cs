@@ -97,6 +97,27 @@ public class InstitutionService : IInstitutionService
         }
     }
 
+    public async Task<BaseServiceResponse<IEnumerable<InstitutionResponseDto>>> GetAllInstitutionsAsync()
+    {
+        try
+        {
+            var institutionEntities = await _unitOfWork.InstitutionRepository.GetAllAsync();
+
+            var institutionResponseDtos = _mapper.Map<IEnumerable<InstitutionResponseDto>>(institutionEntities);
+
+            return BaseServiceResponse<IEnumerable<InstitutionResponseDto>>.Success(
+                institutionResponseDtos,
+                "Institutions retrieved successfully.");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving all institutions");
+            return BaseServiceResponse<IEnumerable<InstitutionResponseDto>>.Failed(
+                "An error occured while retrieving institutions",
+                "UNEXPECTED_ERROR");
+        }
+    }
+
     public async Task<BaseServiceResponse<bool>> UpdateInstitutionAsync(int institutionId,
         InstitutionUpdateDto updateRequest)
     {

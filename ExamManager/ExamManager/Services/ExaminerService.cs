@@ -100,6 +100,27 @@ public class ExaminerService : IExaminerService
         }
     }
 
+    public async Task<BaseServiceResponse<IEnumerable<ExaminerResponseDto>>> GetAllExaminersAsync()
+    {
+        try
+        {
+            var examinerEntities = await _unitOfWork.ExaminerRepository.GetAllAsync();
+
+            var examinerResponseDtos = _mapper.Map<IEnumerable<ExaminerResponseDto>>(examinerEntities);
+
+            return BaseServiceResponse<IEnumerable<ExaminerResponseDto>>.Success(
+                examinerResponseDtos,
+                "Examiners retrieved successfully.");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving all examiners");
+            return BaseServiceResponse<IEnumerable<ExaminerResponseDto>>.Failed(
+                "An error occured while retrieving examiners",
+                "UNEXPECTED_ERROR");
+        }
+    }
+
     public async Task<BaseServiceResponse<bool>> UpdateExaminerAsync(int examinerId, ExaminerUpdateDto updateRequest)
     {
         try

@@ -147,6 +147,27 @@ public class OperatorService : IOperatorService
         }
     }
 
+    public async Task<BaseServiceResponse<IEnumerable<OperatorResponseDto>>> GetAllOperatorsAsync()
+    {
+        try
+        {
+            var operatorEntities = await _unitOfWork.OperatorRepository.GetAllAsync();
+
+            var operatorResponseDtos = _mapper.Map<IEnumerable<OperatorResponseDto>>(operatorEntities);
+
+            return BaseServiceResponse<IEnumerable<OperatorResponseDto>>.Success(
+                operatorResponseDtos,
+                "Operators retrieved successfully.");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving all operators");
+            return BaseServiceResponse<IEnumerable<OperatorResponseDto>>.Failed(
+                "An error occured while retrieving operators",
+                "UNEXPECTED_ERROR");
+        }
+    }
+
     public async Task<BaseServiceResponse<bool>> UpdateOperatorAsync(int operatorId, OperatorUpdateDto updateRequest)
     {
         try
