@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import path from 'node:path';
 import {
   IconBriefcase2,
   IconBuildings,
@@ -11,20 +12,33 @@ import {
   IconUserCog,
   IconUserQuestion,
 } from '@tabler/icons-react';
+import { useNavigate } from 'react-router-dom';
 import { Center, Stack, Tooltip, UnstyledButton } from '@mantine/core';
 import classes from './NavbarMinimal.module.css';
 
 interface NavbarLinkProps {
   icon: typeof IconHome;
   label: string;
+  path: string;
   active?: boolean;
   onClick?: () => void;
 }
 
-function NavbarLink({ icon: Icon, label, active, onClick }: NavbarLinkProps) {
+function NavbarLink({ icon: Icon, label, path, active, onClick }: NavbarLinkProps) {
+  const navigate = useNavigate();
+
   return (
     <Tooltip label={label} position="right" transitionProps={{ duration: 0 }}>
-      <UnstyledButton onClick={onClick} className={classes.link} data-active={active || undefined}>
+      <UnstyledButton
+        onClick={() => {
+          if (onClick) {
+            onClick();
+          }
+          navigate(path);
+        }}
+        className={classes.link}
+        data-active={active || undefined}
+      >
         <Icon size={20} stroke={1.5} />
       </UnstyledButton>
     </Tooltip>
@@ -32,15 +46,15 @@ function NavbarLink({ icon: Icon, label, active, onClick }: NavbarLinkProps) {
 }
 
 const mockdata = [
-  { icon: IconHome, label: 'Home' },
-  { icon: IconDashboard, label: 'Dashboard' },
-  { icon: IconPencilQuestion, label: 'Exams' },
-  { icon: IconUserQuestion, label: 'Examiners' },
-  { icon: IconClipboardSearch, label: 'Exam Types' },
-  { icon: IconBuildings, label: 'Institutions' },
-  { icon: IconBriefcase2, label: 'Professions' },
-  { icon: IconUserCog, label: 'Operators' },
-  { icon: IconSettings, label: 'Settings' },
+  { icon: IconHome, label: 'Home', path: '/' },
+  { icon: IconDashboard, label: 'Dashboard', path: '/dashboard' },
+  { icon: IconPencilQuestion, label: 'Exams', path: '/exams' },
+  { icon: IconUserQuestion, label: 'Examiners', path: '/examiners' },
+  { icon: IconClipboardSearch, label: 'Exam Types', path: '/exam-types' },
+  { icon: IconBuildings, label: 'Institutions', path: '/institutions' },
+  { icon: IconBriefcase2, label: 'Professions', path: '/professions' },
+  { icon: IconUserCog, label: 'Operators', path: '/operators' },
+  { icon: IconSettings, label: 'Settings', path: '/settings' },
 ];
 
 export function NavbarMinimal() {
@@ -50,7 +64,7 @@ export function NavbarMinimal() {
     <NavbarLink
       {...link}
       key={link.label}
-      active={index === active}
+      // active={index === active}
       onClick={() => setActive(index)}
     />
   ));
@@ -64,7 +78,7 @@ export function NavbarMinimal() {
       </div>
 
       <Stack justify="center" gap={0}>
-        <NavbarLink icon={IconLogout} label="Logout" />
+        <NavbarLink icon={IconLogout} label="Logout" path="/"/>
       </Stack>
     </nav>
   );
