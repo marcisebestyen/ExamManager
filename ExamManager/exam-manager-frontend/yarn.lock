@@ -1320,6 +1320,18 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@mantine/modals@npm:^8.3.1":
+  version: 8.3.1
+  resolution: "@mantine/modals@npm:8.3.1"
+  peerDependencies:
+    "@mantine/core": 8.3.1
+    "@mantine/hooks": 8.3.1
+    react: ^18.x || ^19.x
+    react-dom: ^18.x || ^19.x
+  checksum: 10c0/1756b10cad32ac084a0e0a5e9ccd71d653b78d4ffa73ac055f72fd01a8c584bcc62cb8ad98372635f70967fc3f08af484d3c4470fe558608d85aa31a3beeb46b
+  languageName: node
+  linkType: hard
+
 "@nodelib/fs.scandir@npm:2.1.5":
   version: 2.1.5
   resolution: "@nodelib/fs.scandir@npm:2.1.5"
@@ -1910,6 +1922,24 @@ __metadata:
   dependencies:
     remove-accents: "npm:0.5.0"
   checksum: 10c0/935022e3d639f19472131d289f3e1202253ff34301717c337e9bac0eeae6a0bd56450ed8ae2f7eb7ac9dfefa7ceaa7d126d8c5441021968b4a9eabc3ac4f8ba1
+  languageName: node
+  linkType: hard
+
+"@tanstack/query-core@npm:5.87.4":
+  version: 5.87.4
+  resolution: "@tanstack/query-core@npm:5.87.4"
+  checksum: 10c0/00898c96d199ba8f0cd2004b76da8e5e3355b97473a6c16dd13de65f5063c4f2abfae64e9f32fc395557c2f446af09e1646a82f62992256fdda6062c9399c2a3
+  languageName: node
+  linkType: hard
+
+"@tanstack/react-query@npm:^5.87.4":
+  version: 5.87.4
+  resolution: "@tanstack/react-query@npm:5.87.4"
+  dependencies:
+    "@tanstack/query-core": "npm:5.87.4"
+  peerDependencies:
+    react: ^18 || ^19
+  checksum: 10c0/2dbfba2eabc21d9c7a6683ff8858fa2cc896d2e4319a2e4e1cb4b794fc4b7eb5b16da2b72ba98468c7bebdb035c73ad75f5d7abcc5cae64a9bcbcc728131193d
   languageName: node
   linkType: hard
 
@@ -6115,9 +6145,11 @@ __metadata:
     "@mantine/dates": "npm:^8.3.1"
     "@mantine/form": "npm:^8.3.1"
     "@mantine/hooks": "npm:^8.3.1"
+    "@mantine/modals": "npm:^8.3.1"
     "@storybook/react": "npm:^8.6.12"
     "@storybook/react-vite": "npm:^8.6.12"
     "@tabler/icons-react": "npm:^3.34.1"
+    "@tanstack/react-query": "npm:^5.87.4"
     "@testing-library/dom": "npm:^10.4.1"
     "@testing-library/jest-dom": "npm:^6.8.0"
     "@testing-library/react": "npm:^16.3.0"

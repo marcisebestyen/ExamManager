@@ -1,48 +1,36 @@
-import axiosInstance from "./axios.config";
-import {ExamTypeFormData, IExamType} from "../interfaces/IExamType";
+import { ExamTypeFormData, IExamType } from '../interfaces/IExamType';
+import axiosInstance from './axios.config';
 
 interface JsonPatchOperation {
-  op: "replace" | "add" | "remove" | "copy" | "move" | "test";
+  op: 'replace' | 'add' | 'remove' | 'copy' | 'move' | 'test';
   path: string;
   value?: any;
   from?: string;
 }
 
 const ExamTypes = {
-  getExamTypes: (startDate: Date, endDate: Date) => {
-    const formattedStartDate = startDate.toISOString();
-    const formattedEndDate = endDate.toISOString();
-    return axiosInstance.get<IExamType[]>(
-      `/cars/available?startDate=${formattedStartDate}&endDate=${formattedEndDate}`
-    );
-  },
   updateExamType: (id: number, patchDocument: JsonPatchOperation[]) => {
-    return axiosInstance.patch<void>(
-      `/cars/update/${id}`,
-      patchDocument,
-      {
-        headers: {
-          'Content-Type': 'application/json-patch+json'
-        }
-      }
-    );
+    return axiosInstance.patch<void>(`/exam_types/update-exam-type/${id}`, patchDocument, {
+      headers: {
+        'Content-Type': 'application/json-patch+json',
+      },
+    });
   },
   getAllExamTypes: () => {
-    return axiosInstance.get<IExamType[]>(
-      `/exam_types/get-all-exam-types`
-    );
+    return axiosInstance.get<IExamType[]>(`/exam_types/get-all-exam-types`);
   },
   createExamType: async (examTypeData: ExamTypeFormData): Promise<IExamType> => {
     const payload = {
       ...examTypeData,
-      pricePerDay: Number(examTypeData.PricePerDay),
-      ActualKilometers: Number(examTypeData.ActualKilometers),
     };
-    delete (payload as any).PricePerDay;
+    // delete (payload as any).PricePerDay;
 
-    const response = await axiosInstance.post<IExamType>('/cars/create-car', payload);
+    const response = await axiosInstance.post<IExamType>('/exam_types/create-new-exam-type', payload);
     return response.data;
   },
+  deleteExamType: async (id: number) => {
+    return axiosInstance.delete(`/exam_types/delete-exam-type/${id}`);
+  }
 };
 
 const api = { ExamTypes };
