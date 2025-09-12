@@ -25,6 +25,7 @@
     "@mantine/form": "^8.3.1",
     "@mantine/hooks": "^8.3.1",
     "@mantine/modals": "^8.3.1",
+    "@mantine/notifications": "^8.3.1",
     "@tabler/icons-react": "^3.34.1",
     "@tanstack/react-query": "^5.87.4",
     "axios": "^1.11.0",

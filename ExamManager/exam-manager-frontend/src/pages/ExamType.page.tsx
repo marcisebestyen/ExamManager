@@ -2,24 +2,6 @@ import '@mantine/core/styles.css';
 import '@mantine/dates/styles.css';
 import 'mantine-react-table/styles.css';
 import { useMemo, useState } from 'react';
-import {
-  MRT_EditActionButtons,
-  MantineReactTable,
-  type MRT_ColumnDef,
-  type MRT_Row,
-  type MRT_TableOptions,
-  useMantineReactTable,
-} from 'mantine-react-table';
-import {
-  ActionIcon,
-  Button,
-  Flex,
-  Stack,
-  Text,
-  Title,
-  Tooltip,
-} from '@mantine/core';
-import { ModalsProvider, modals } from '@mantine/modals';
 import { IconEdit, IconTrash } from '@tabler/icons-react';
 import {
   QueryClient,
@@ -28,12 +10,22 @@ import {
   useQuery,
   useQueryClient,
 } from '@tanstack/react-query';
-import { IExamType, ExamTypeFormData } from '../interfaces/IExamType';
+import {
+  MantineReactTable,
+  MRT_EditActionButtons,
+  useMantineReactTable,
+  type MRT_ColumnDef,
+  type MRT_Row,
+  type MRT_TableOptions,
+} from 'mantine-react-table';
+import { ActionIcon, Button, Flex, Stack, Text, Title, Tooltip } from '@mantine/core';
+import { modals, ModalsProvider } from '@mantine/modals';
+import { Notifications, notifications } from '@mantine/notifications';
 import api from '../api/api';
 import { Skeleton } from '../components/Skeleton';
+import { ExamTypeFormData, IExamType } from '../interfaces/IExamType';
+import '@mantine/notifications/styles.css';
 
-// This interface defines the structure for a JSON Patch document, which is used
-// to send partial updates to the server.
 interface JsonPatchOperation {
   op: 'replace' | 'add' | 'remove' | 'copy' | 'move' | 'test';
   path: string;
@@ -41,12 +33,10 @@ interface JsonPatchOperation {
   from?: string;
 }
 
-// This helper function compares the old and new data to create a JSON Patch
-// document containing only the changed fields.
 const generatePatchDocument = (oldData: IExamType, newData: IExamType): JsonPatchOperation[] => {
   const patch: JsonPatchOperation[] = [];
   for (const key in newData) {
-    if (Object.prototype.hasOwnProperty.call(newData, key) && (newData as any)[key] !== (oldData as any)[key]) {
+    if (Object.hasOwn(newData, key) && (newData as any)[key] !== (oldData as any)[key]) {
       patch.push({
         op: 'replace',
         path: `/${key}`,
@@ -66,6 +56,7 @@ const ExamTypeTable = () => {
         accessorKey: 'id',
         header: 'ID',
         enableEditing: false,
+        enableCreating: false,
         size: 80,
       },
       {
@@ -81,13 +72,12 @@ const ExamTypeTable = () => {
         accessorKey: 'description',
         header: 'Description',
         mantineEditTextInputProps: {
-          required: true,
           error: validationErrors?.description,
           onFocus: () => setValidationErrors({ ...validationErrors, description: undefined }),
         },
       },
     ],
-    [validationErrors],
+    [validationErrors]
   );
 
   const { mutateAsync: createExamType, isPending: isCreatingExamType } = useCreateExamType();
@@ -100,18 +90,45 @@ const ExamTypeTable = () => {
   const { mutateAsync: updateExamType, isPending: isUpdatingExamType } = useUpdateExamType();
   const { mutateAsync: deleteExamType, isPending: isDeletingExamType } = useDeleteExamType();
 
-  const handleCreateExamType: MRT_TableOptions<IExamType>['onCreatingRowSave'] = async ({ values, exitCreatingMode }) => {
+  const handleCreateExamType: MRT_TableOptions<IExamType>['onCreatingRowSave'] = async ({
+    values,
+    exitCreatingMode,
+  }) => {
     const newValidationErrors = validateExamType(values);
+
+    // Check for duplicate exam type names
+    const isDuplicate = fetchedExamTypes.some(
+      (examType) => examType.typeName.toLowerCase() === values.typeName.toLowerCase()
+    );
+
+    if (isDuplicate) {
+      notifications.show({
+        title: 'Creation Failed',
+        message: 'An exam type with this name already exists. Please use a different name.',
+        color: 'red',
+      });
+      setValidationErrors({
+        ...newValidationErrors,
+        typeName: 'An exam type with this name already exists.',
+      });
+      return;
+    }
+
     if (Object.values(newValidationErrors).some((error) => error)) {
       setValidationErrors(newValidationErrors);
       return;
     }
+
     setValidationErrors({});
-    await createExamType(values);
+    await createExamType(values as ExamTypeFormData);
     exitCreatingMode();
   };
 
-  const handleSaveExamType: MRT_TableOptions<IExamType>['onEditingRowSave'] = async ({ values, row, table }) => {
+  const handleSaveExamType: MRT_TableOptions<IExamType>['onEditingRowSave'] = async ({
+    values,
+    row,
+    table,
+  }) => {
     const newValidationErrors = validateExamType(values);
     if (Object.values(newValidationErrors).some((error) => error)) {
       setValidationErrors(newValidationErrors);
@@ -146,9 +163,9 @@ const ExamTypeTable = () => {
     getRowId: (row) => String(row.id),
     mantineToolbarAlertBannerProps: isLoadingExamTypesError
       ? {
-        color: 'red',
-        children: 'Error loading data',
-      }
+          color: 'red',
+          children: 'Error loading data',
+        }
       : undefined,
     mantineTableContainerProps: {
       style: {
@@ -219,10 +236,14 @@ function useCreateExamType() {
       return createdExamType;
     },
     onSuccess: (createdExamType) => {
+      notifications.show({
+        title: 'Success!',
+        message: `${createdExamType.typeName} created successfully.`,
+        color: 'teal',
+      });
       queryClient.setQueryData(
         ['examTypes'],
-        (prevExamTypes: any) =>
-          [...prevExamTypes, createdExamType] as IExamType[],
+        (prevExamTypes: any) => [...prevExamTypes, createdExamType] as IExamType[]
       );
     },
   });
@@ -242,7 +263,13 @@ function useGetExamTypes() {
 function useUpdateExamType() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async ({ newValues, oldValues }: { newValues: IExamType, oldValues: IExamType }) => {
+    mutationFn: async ({
+      newValues,
+      oldValues,
+    }: {
+      newValues: IExamType;
+      oldValues: IExamType;
+    }) => {
       const patchDocument = generatePatchDocument(oldValues, newValues);
       if (patchDocument.length > 0) {
         await api.ExamTypes.updateExamType(newValues.id, patchDocument);
@@ -254,16 +281,30 @@ function useUpdateExamType() {
       const previousExamTypes = queryClient.getQueryData(['examTypes']);
       queryClient.setQueryData(['examTypes'], (prevExamTypes: any) =>
         prevExamTypes?.map((prevExamType: IExamType) =>
-          prevExamType.id === updatedExamTypeInfo.newValues.id ? updatedExamTypeInfo.newValues : prevExamType,
-        ),
+          prevExamType.id === updatedExamTypeInfo.newValues.id
+            ? updatedExamTypeInfo.newValues
+            : prevExamType
+        )
       );
       return { previousExamTypes };
     },
     onError: (err, updatedExamTypeInfo, context) => {
+      notifications.show({
+        title: 'Update Failed',
+        message: 'Could not update exam type. Please try again.',
+        color: 'red',
+      });
       queryClient.setQueryData(['examTypes'], context?.previousExamTypes);
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['examTypes'] });
+    },
+    onSuccess: (updatedExamType) => {
+      notifications.show({
+        title: 'Success!',
+        message: `${updatedExamType.typeName} updated successfully.`,
+        color: 'teal',
+      });
     },
   });
 }
@@ -277,8 +318,15 @@ function useDeleteExamType() {
     },
     onMutate: (examTypeId: number) => {
       queryClient.setQueryData(['examTypes'], (prevExamTypes: any) =>
-        prevExamTypes?.filter((examType: IExamType) => examType.id !== examTypeId),
+        prevExamTypes?.filter((examType: IExamType) => examType.id !== examTypeId)
       );
+    },
+    onSuccess: (deletedExamTypeId) => {
+      notifications.show({
+        title: 'Success!',
+        message: `Exam type with ID ${deletedExamTypeId} deleted successfully.`,
+        color: 'teal',
+      });
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['examTypes'] });
@@ -292,6 +340,7 @@ const ExamTypePage = () => {
   return (
     <QueryClientProvider client={queryClient}>
       <ModalsProvider>
+        <Notifications />
         <Skeleton>
           <Title order={2}>Exam Types</Title>
           <ExamTypeTable />
@@ -308,6 +357,6 @@ const validateRequired = (value: string) => !!value.length;
 function validateExamType(examType: IExamType) {
   return {
     typeName: !validateRequired(examType.typeName) ? 'Exam Type Name is Required' : '',
-    description: !validateRequired(examType.description) ? 'Description is Required' : '',
+    description: '',
   };
 }
