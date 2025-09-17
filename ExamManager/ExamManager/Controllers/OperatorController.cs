@@ -11,6 +11,7 @@ namespace ExamManager.Controllers;
 
 [ApiController]
 [Route("api/operators")]
+[Authorize]
 public class OperatorController : ControllerBase
 {
     private readonly IOperatorService _operatorService;
@@ -25,6 +26,7 @@ public class OperatorController : ControllerBase
     }
 
     [HttpPost("login")]
+    [AllowAnonymous]
     public async Task<IActionResult> Login([FromBody] OperatorLoginRequestDto loginRequest)
     {
         if (!ModelState.IsValid)
@@ -55,6 +57,7 @@ public class OperatorController : ControllerBase
     }
 
     [HttpPost("register")]
+    [AllowAnonymous]
     public async Task<IActionResult> Register([FromBody] OperatorCreateDto createRequest)
     {
         if (!ModelState.IsValid)
@@ -171,6 +174,7 @@ public class OperatorController : ControllerBase
     }
 
     [HttpGet("get-operator/{operatorId}")]
+    [AllowAnonymous]
     public async Task<IActionResult> GetOperatorById(int operatorId)
     {
         var result = await _operatorService.GetOperatorByIdAsync(operatorId);
@@ -198,6 +202,7 @@ public class OperatorController : ControllerBase
     }
 
     [HttpGet("get-all-operators")]
+    [AllowAnonymous]
     public async Task<IActionResult> GetAllOperators()
     {
         var result = await _operatorService.GetAllOperatorsAsync();

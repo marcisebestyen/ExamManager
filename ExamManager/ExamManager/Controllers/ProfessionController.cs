@@ -1,6 +1,7 @@
 ﻿using AutoMapper;
 using ExamManager.Dtos.ProfessionDtos;
 using ExamManager.Interfaces;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.AspNetCore.Mvc;
 
@@ -8,6 +9,7 @@ namespace ExamManager.Controllers;
 
 [ApiController]
 [Route("api/professions")]
+[Authorize]
 public class ProfessionController : ControllerBase
 {
     private readonly IProfessionService _professionService;
@@ -115,6 +117,7 @@ public class ProfessionController : ControllerBase
     }
 
     [HttpGet("get-profession/{professionId}")]
+    [AllowAnonymous]
     public async Task<IActionResult> GetProfessionById(int professionId)
     {
         var result = await _professionService.GetProfessionByIdAsync(professionId);
@@ -142,6 +145,7 @@ public class ProfessionController : ControllerBase
     }
 
     [HttpGet("get-all-professions")]
+    [AllowAnonymous]
     public async Task<IActionResult> GetAllProfessions()
     {
         var result = await _professionService.GetAllProfessionsAsync();

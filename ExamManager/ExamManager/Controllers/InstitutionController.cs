@@ -1,6 +1,7 @@
 ﻿using AutoMapper;
 using ExamManager.Dtos.InstitutionDtos;
 using ExamManager.Interfaces;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.AspNetCore.Mvc;
 
@@ -8,6 +9,7 @@ namespace ExamManager.Controllers;
 
 [ApiController]
 [Route("api/institutions")]
+[Authorize]
 public class InstitutionController : ControllerBase
 {
     private readonly IInstitutionService _institutionService;
@@ -118,6 +120,7 @@ public class InstitutionController : ControllerBase
     }
 
     [HttpGet("get-institution/{institutionId}")]
+    [AllowAnonymous]
     public async Task<IActionResult> GetInstitutionById(int institutionId)
     {
         var result = await _institutionService.GetInstitutionByIdAsync(institutionId);
@@ -146,7 +149,8 @@ public class InstitutionController : ControllerBase
         }
     }
     
-    [HttpGet("get-institutions")]
+    [HttpGet("get-all-institutions")]
+    [AllowAnonymous]
     public async Task<IActionResult> GetAllInstitutions()
     {
         var result = await _institutionService.GetAllInstitutionsAsync();

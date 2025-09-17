@@ -35,6 +35,7 @@ public class InstitutionService : IInstitutionService
                 createRequest.ZipCode < 0 ||
                 string.IsNullOrWhiteSpace(createRequest.ZipCode.ToString()) ||
                 string.IsNullOrWhiteSpace(createRequest.Town) ||
+                string.IsNullOrWhiteSpace(createRequest.Street) || 
                 string.IsNullOrWhiteSpace(createRequest.Number))
             {
                 return BaseServiceResponse<InstitutionCreateResponseDto>.Failed(

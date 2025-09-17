@@ -1,6 +1,7 @@
 import '@mantine/core/styles.css';
 import '@mantine/dates/styles.css';
 import 'mantine-react-table/styles.css';
+
 import { useMemo, useState } from 'react';
 import { IconEdit, IconTrash } from '@tabler/icons-react';
 import {
@@ -24,6 +25,7 @@ import { Notifications, notifications } from '@mantine/notifications';
 import api from '../api/api';
 import { Skeleton } from '../components/Skeleton';
 import { ExamTypeFormData, IExamType } from '../interfaces/IExamType';
+
 import '@mantine/notifications/styles.css';
 
 interface JsonPatchOperation {
@@ -96,7 +98,6 @@ const ExamTypeTable = () => {
   }) => {
     const newValidationErrors = validateExamType(values);
 
-    // Check for duplicate exam type names
     const isDuplicate = fetchedExamTypes.some(
       (examType) => examType.typeName.toLowerCase() === values.typeName.toLowerCase()
     );
@@ -197,12 +198,17 @@ const ExamTypeTable = () => {
     renderRowActions: ({ row, table }) => (
       <Flex gap="md">
         <Tooltip label="Edit">
-          <ActionIcon onClick={() => table.setEditingRow(row)}>
+          <ActionIcon variant="outline" radius="md" onClick={() => table.setEditingRow(row)}>
             <IconEdit />
           </ActionIcon>
         </Tooltip>
         <Tooltip label="Delete">
-          <ActionIcon color="red" onClick={() => openDeleteConfirmModal(row)}>
+          <ActionIcon
+            color="red"
+            variant="outline"
+            radius="md"
+            onClick={() => openDeleteConfirmModal(row)}
+          >
             <IconTrash />
           </ActionIcon>
         </Tooltip>
@@ -210,11 +216,13 @@ const ExamTypeTable = () => {
     ),
     renderTopToolbarCustomActions: ({ table }) => (
       <Button
+        variant="outline"
+        radius="md"
         onClick={() => {
           table.setCreatingRow(true);
         }}
       >
-        Create New Exam Type
+        Create New Entry
       </Button>
     ),
     state: {
@@ -232,8 +240,8 @@ function useCreateExamType() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (examTypeData: ExamTypeFormData) => {
-      const createdExamType = await api.ExamTypes.createExamType(examTypeData);
-      return createdExamType;
+      return await api.ExamTypes.createExamType(examTypeData);
+      // return createdExamType;
     },
     onSuccess: (createdExamType) => {
       notifications.show({

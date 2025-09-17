@@ -1,6 +1,7 @@
 ﻿using AutoMapper;
 using ExamManager.Dtos;
 using ExamManager.Interfaces;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.AspNetCore.Mvc;
 
@@ -8,6 +9,7 @@ namespace ExamManager.Controllers;
 
 [ApiController]
 [Route("api/exam_types")]
+[Authorize]
 public class ExamTypeController : ControllerBase
 {
     private readonly IExamTypeService _examTypeService;
@@ -116,6 +118,7 @@ public class ExamTypeController : ControllerBase
     }
 
     [HttpGet("get-exam-type/{examTypeId}")]
+    [AllowAnonymous]
     public async Task<IActionResult> GetExamTypeById(int examTypeId)
     {
         var result = await _examTypeService.GetExamTypeByIdAsync(examTypeId);
@@ -145,6 +148,7 @@ public class ExamTypeController : ControllerBase
     }
     
     [HttpGet("get-all-exam-types")]
+    [AllowAnonymous]
     public async Task<IActionResult> GetAllExamTypes()
     {
         var result = await _examTypeService.GetAllExamTypesAsync();
