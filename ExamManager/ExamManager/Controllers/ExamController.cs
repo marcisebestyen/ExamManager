@@ -2,6 +2,7 @@
 using AutoMapper;
 using ExamManager.Dtos.ExamDtos;
 using ExamManager.Interfaces;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.AspNetCore.Mvc;
 
@@ -9,6 +10,7 @@ namespace ExamManager.Controllers;
 
 [ApiController]
 [Route("api/exams")]
+[Authorize]
 public class ExamController : ControllerBase
 {
     private readonly IExamService _examService;
@@ -70,6 +72,7 @@ public class ExamController : ControllerBase
     }
 
     [HttpGet("get-exam/{examId}")]
+    [AllowAnonymous]
     public async Task<IActionResult> GetExamById(int examId)
     {
         var result = await _examService.GetExamByIdAsync(examId);
@@ -93,6 +96,34 @@ public class ExamController : ControllerBase
                         {
                             message = result.Errors.FirstOrDefault() ??
                                       "An unexpected error occurred while retrieving exam."
+                        });
+            }
+        }
+    }
+
+    [HttpGet("get-all-exams")]
+    [AllowAnonymous]
+    public async Task<IActionResult> GetAllExams()
+    {
+        var result = await _examService.GetAllExamsAsync();
+
+        if (result.Succeeded)
+        {
+            return Ok(result.Data);
+        }
+        else
+        {
+            switch (result.ErrorCode)
+            {
+                case "UNEXPECTED_ERROR":
+                default:
+                    _logger.LogError("Error getting all exams with errors: {Errors}",
+                        string.Join(", ", result.Errors));
+                    return StatusCode(StatusCodes.Status500InternalServerError,
+                        new
+                        {
+                            message = result.Errors.FirstOrDefault() ??
+                                      "An unexpected error occurred while retrieving exams."
                         });
             }
         }

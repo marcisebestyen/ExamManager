@@ -8,6 +8,7 @@ public interface IExamTypeService
 {
     Task<BaseServiceResponse<ExamTypeCreateResponseDto>> CreateExamTypeAsync(ExamTypeCreateDto createRequest);
     Task<BaseServiceResponse<ExamTypeResponseDto>> GetExamTypeByIdAsync(int professionId);
+    Task<BaseServiceResponse<IEnumerable<ExamTypeResponseDto>>> GetAllExamTypesAsync();
     Task<BaseServiceResponse<bool>> UpdateExamTypeAsync(int professionId, ExamTypeUpdateDto updateRequest);
     Task<BaseServiceResponse<string>> DeleteExamTypeAsync(int examTypeId);
 }

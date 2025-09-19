@@ -95,6 +95,27 @@ public class ProfessionService : IProfessionService
         }
     }
 
+    public async Task<BaseServiceResponse<IEnumerable<ProfessionResponseDto>>> GetAllProfessionsAsync()
+    {
+        try
+        {
+            var professionEntities = await _unitOfWork.ProfessionRepository.GetAllAsync();
+
+            var professionResponseDtos = _mapper.Map<IEnumerable<ProfessionResponseDto>>(professionEntities);
+
+            return BaseServiceResponse<IEnumerable<ProfessionResponseDto>>.Success(
+                professionResponseDtos,
+                "Professions retrieved successfully.");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving all professions.");
+            return BaseServiceResponse<IEnumerable<ProfessionResponseDto>>.Failed(
+                "An error occured while retrieving professions",
+                "UNEXPECTED_ERROR");
+        }
+    }
+
     public async Task<BaseServiceResponse<bool>> UpdateProfessionAsync(int professionId,
         ProfessionUpdateDto updateRequest)
     {

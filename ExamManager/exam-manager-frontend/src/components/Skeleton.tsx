@@ -8,6 +8,7 @@ export function Skeleton({ children }: { children: React.ReactNode }) {
   return (
     <AppShell
       header={{ height: 60 }}
+      navbar={{ width: 80, breakpoint: "" }}
       padding="md"
     >
       <AppShell.Header>

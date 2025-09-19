@@ -4,7 +4,6 @@ import {
   Anchor,
   Box,
   Button,
-  Card,
   Center,
   Divider,
   Group,
@@ -74,7 +73,9 @@ const Login = () => {
         >
           <Stack>
             <Title order={2} ta="center" mb="md" mt="xs" className={classes.title}>
-              Exam Manager
+              <Text inherit variant="gradient" component="span" gradient={{from: 'blue', to: 'yellow'}}>
+                Exam Manager
+              </Text>
             </Title>
             <form onSubmit={form.onSubmit(handleSubmit)}>
               <Stack gap="md">

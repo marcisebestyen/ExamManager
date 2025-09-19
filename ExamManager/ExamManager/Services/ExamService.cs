@@ -147,6 +147,27 @@ public class ExamService : IExamService
         }
     }
 
+    public async Task<BaseServiceResponse<IEnumerable<ExamResponseDto>>> GetAllExamsAsync()
+    {
+        try
+        {
+            var examEntities = await _unitOfWork.ExamRepository.GetAllAsync();
+
+            var examResponseDtos = _mapper.Map<IEnumerable<ExamResponseDto>>(examEntities);
+
+            return BaseServiceResponse<IEnumerable<ExamResponseDto>>.Success(
+                examResponseDtos,
+                "Examiners retrieved successfully.");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving all exams");
+            return BaseServiceResponse<IEnumerable<ExamResponseDto>>.Failed(
+                "An error occured while retrieving exams",
+                "UNEXPECTED_ERROR");
+        }
+    }
+
     public async Task<BaseServiceResponse<bool>> UpdateExamAsync(int examId, ExamUpdateDto updateRequest)
     {
         try
