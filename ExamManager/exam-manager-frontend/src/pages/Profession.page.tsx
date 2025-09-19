@@ -22,9 +22,9 @@ import {
 import { ActionIcon, Button, Flex, Stack, Text, Title, Tooltip } from '@mantine/core';
 import { modals, ModalsProvider } from '@mantine/modals';
 import { Notifications, notifications } from '@mantine/notifications';
+import { IProfession, ProfessionFormData } from '@/interfaces/IProfession';
 import api from '../api/api';
 import { Skeleton } from '../components/Skeleton';
-import { ExamTypeFormData, IExamType } from '../interfaces/IExamType';
 
 import '@mantine/notifications/styles.css';
 
@@ -35,7 +35,10 @@ interface JsonPatchOperation {
   from?: string;
 }
 
-const generatePatchDocument = (oldData: IExamType, newData: IExamType): JsonPatchOperation[] => {
+const generatePatchDocument = (
+  oldData: IProfession,
+  newData: IProfession
+): JsonPatchOperation[] => {
   const patch: JsonPatchOperation[] = [];
   for (const key in newData) {
     if (Object.hasOwn(newData, key) && (newData as any)[key] !== (oldData as any)[key]) {
@@ -49,10 +52,10 @@ const generatePatchDocument = (oldData: IExamType, newData: IExamType): JsonPatc
   return patch;
 };
 
-const ExamTypeTable = () => {
+const ProfessionTable = () => {
   const [validationErrors, setValidationErrors] = useState<Record<string, string | undefined>>({});
 
-  const columns = useMemo<MRT_ColumnDef<IExamType>[]>(
+  const columns = useMemo<MRT_ColumnDef<IProfession>[]>(
     () => [
       {
         accessorKey: 'id',
@@ -62,55 +65,56 @@ const ExamTypeTable = () => {
         size: 80,
       },
       {
-        accessorKey: 'typeName',
-        header: 'Exam Type Name',
+        accessorKey: 'keorId',
+        header: 'Keor ID',
         mantineEditTextInputProps: {
           required: true,
-          error: validationErrors?.typeName,
-          onFocus: () => setValidationErrors({ ...validationErrors, typeName: undefined }),
+          errors: validationErrors?.keorId,
+          onFocus: () => setValidationErrors({ ...validationErrors, keorId: undefined }),
         },
       },
       {
-        accessorKey: 'description',
-        header: 'Description',
+        accessorKey: 'professionName',
+        header: 'Profession Name',
         mantineEditTextInputProps: {
-          error: validationErrors?.description,
-          onFocus: () => setValidationErrors({ ...validationErrors, description: undefined }),
+          required: true,
+          errors: validationErrors?.professionName,
+          onFocus: () => setValidationErrors({ ...validationErrors, professionName: undefined }),
         },
       },
     ],
     [validationErrors]
   );
 
-  const { mutateAsync: createExamType, isPending: isCreatingExamType } = useCreateExamType();
+  const { mutateAsync: createProfession, isPending: isCreatingProfession } = useCreateProfession();
   const {
-    data: fetchedExamTypes = [],
-    isError: isLoadingExamTypesError,
-    isFetching: isFetchingExamTypes,
-    isLoading: isLoadingExamTypes,
-  } = useGetExamTypes();
-  const { mutateAsync: updateExamType, isPending: isUpdatingExamType } = useUpdateExamType();
-  const { mutateAsync: deleteExamType, isPending: isDeletingExamType } = useDeleteExamType();
+    data: fetchedProfessions = [],
+    isError: isLoadingProfessionsError,
+    isFetching: isFetchingProfessions,
+    isLoading: isLoadingProfessions,
+  } = useGetProfessions();
+  const { mutateAsync: updateProfession, isPending: isUpdatingProfession } = useUpdateProfession();
+  const { mutateAsync: deleteProfession, isPending: isDeletingProfession } = useDeleteProfession();
 
-  const handleCreateExamType: MRT_TableOptions<IExamType>['onCreatingRowSave'] = async ({
+  const handleCreateProfession: MRT_TableOptions<IProfession>['onCreatingRowSave'] = async ({
     values,
     exitCreatingMode,
   }) => {
-    const newValidationErrors = validateExamType(values);
+    const newValidationErrors = validateProfession(values);
 
-    const isDuplicate = fetchedExamTypes.some(
-      (examType) => examType.typeName.toLowerCase() === values.typeName.toLowerCase()
+    const isDuplicate = fetchedProfessions.some(
+      (profession) => profession.keorId.toLowerCase() === values.keorId.toLowerCase()
     );
 
     if (isDuplicate) {
       notifications.show({
         title: 'Creation Failed',
-        message: 'An exam type with this name already exists. Please use a different name.',
+        message: 'A profession with this Keor ID already exists. Please use a different Keor ID.',
         color: 'red',
       });
       setValidationErrors({
-        ...newValidationErrors,
-        typeName: 'An exam type with this name already exists.',
+        ...validationErrors,
+        keorId: 'A profession with this Keor ID already exists.',
       });
       return;
     }
@@ -121,48 +125,48 @@ const ExamTypeTable = () => {
     }
 
     setValidationErrors({});
-    await createExamType(values as ExamTypeFormData);
+    await createProfession(values as ProfessionFormData);
     exitCreatingMode();
   };
 
-  const handleSaveExamType: MRT_TableOptions<IExamType>['onEditingRowSave'] = async ({
+  const handleSaveProfession: MRT_TableOptions<IProfession>['onEditingRowSave'] = async ({
     values,
     row,
     table,
   }) => {
-    const newValidationErrors = validateExamType(values);
-    if (Object.values(newValidationErrors).some((error) => error)) {
-      setValidationErrors(newValidationErrors);
+    const newValidationError = validateProfession(values);
+    if (Object.values(newValidationError).some((error) => error)) {
+      setValidationErrors(newValidationError);
       return;
     }
     setValidationErrors({});
 
-    const oldValues = row.original as IExamType;
-    await updateExamType({ newValues: values, oldValues });
+    const oldValues = row.original as IProfession;
+    await updateProfession({ newValues: values, oldValues });
     table.setEditingRow(null);
   };
 
-  const openDeleteConfirmModal = (row: MRT_Row<IExamType>) =>
+  const openDeleteConfirmModal = (row: MRT_Row<IProfession>) =>
     modals.openConfirmModal({
-      title: 'Are you sure you want to delete this exam type?',
+      title: 'Are you sure you want to delete this profession?',
       children: (
         <Text>
-          Are you sure you want to delete {row.original.typeName}? This action cannot be undone.
+          Are you sure you want to delete {row.original.keorId}? This action cannot be undone.
         </Text>
       ),
       labels: { confirm: 'Delete', cancel: 'Cancel' },
       confirmProps: { color: 'red' },
-      onConfirm: () => deleteExamType(row.original.id),
+      onConfirm: () => deleteProfession(row.original.id),
     });
 
   const table = useMantineReactTable({
     columns,
-    data: fetchedExamTypes,
+    data: fetchedProfessions,
     createDisplayMode: 'modal',
     editDisplayMode: 'modal',
     enableEditing: true,
     getRowId: (row) => String(row.id),
-    mantineToolbarAlertBannerProps: isLoadingExamTypesError
+    mantineToolbarAlertBannerProps: isLoadingProfessionsError
       ? {
           color: 'red',
           children: 'Error loading data',
@@ -174,12 +178,12 @@ const ExamTypeTable = () => {
       },
     },
     onCreatingRowCancel: () => setValidationErrors({}),
-    onCreatingRowSave: handleCreateExamType,
+    onCreatingRowSave: handleCreateProfession,
     onEditingRowCancel: () => setValidationErrors({}),
-    onEditingRowSave: handleSaveExamType,
+    onEditingRowSave: handleSaveProfession,
     renderCreateRowModalContent: ({ table, row, internalEditComponents }) => (
       <Stack>
-        <Title order={3}>Create New Exam Type</Title>
+        <Title order={3}>Create New Profession</Title>
         {internalEditComponents}
         <Flex justify="flex-end" mt="xl">
           <MRT_EditActionButtons variant="text" table={table} row={row} />
@@ -188,7 +192,7 @@ const ExamTypeTable = () => {
     ),
     renderEditRowModalContent: ({ table, row, internalEditComponents }) => (
       <Stack>
-        <Title order={3}>Edit Exam Type</Title>
+        <Title order={3}>Edit Profession</Title>
         {internalEditComponents}
         <Flex justify="flex-end" mt="xl">
           <MRT_EditActionButtons variant="text" table={table} row={row} />
@@ -221,144 +225,144 @@ const ExamTypeTable = () => {
       </Button>
     ),
     state: {
-      isLoading: isLoadingExamTypes,
-      isSaving: isCreatingExamType || isUpdatingExamType || isDeletingExamType,
-      showAlertBanner: isLoadingExamTypesError,
-      showProgressBars: isFetchingExamTypes,
+      isLoading: isLoadingProfessions,
+      isSaving: isCreatingProfession || isUpdatingProfession || isDeletingProfession,
+      showAlertBanner: isLoadingProfessionsError,
+      showProgressBars: isFetchingProfessions,
     },
   });
 
   return <MantineReactTable table={table} />;
 };
 
-function useCreateExamType() {
+function useCreateProfession() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (examTypeData: ExamTypeFormData) => {
-      return await api.ExamTypes.createExamType(examTypeData);
+    mutationFn: async (professionData: ProfessionFormData) => {
+      return await api.Professions.createProfession(professionData);
     },
-    onSuccess: (createdExamType) => {
+    onSuccess: (createdProfession) => {
       notifications.show({
         title: 'Success!',
-        message: `${createdExamType.typeName} created successfully.`,
+        message: `${createdProfession.keorId} created successfully.`,
         color: 'teal',
       });
       queryClient.setQueryData(
-        ['examTypes'],
-        (prevExamTypes: any) => [...prevExamTypes, createdExamType] as IExamType[]
+        ['professions'],
+        (prevProfessions: any) => [...prevProfessions, createdProfession] as IProfession[]
       );
     },
   });
 }
 
-function useGetExamTypes() {
-  return useQuery<IExamType[]>({
-    queryKey: ['examTypes'],
+function useGetProfessions() {
+  return useQuery<IProfession[]>({
+    queryKey: ['professions'],
     queryFn: async () => {
-      const response = await api.ExamTypes.getAllExamTypes();
+      const response = await api.Professions.getAllProfessions();
       return response.data;
     },
     refetchOnWindowFocus: false,
   });
 }
 
-function useUpdateExamType() {
+function useUpdateProfession() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async ({
       newValues,
       oldValues,
     }: {
-      newValues: IExamType;
-      oldValues: IExamType;
+      newValues: IProfession;
+      oldValues: IProfession;
     }) => {
       const patchDocument = generatePatchDocument(oldValues, newValues);
       if (patchDocument.length > 0) {
-        await api.ExamTypes.updateExamType(newValues.id, patchDocument);
+        await api.Professions.updateProfession(newValues.id, patchDocument);
       }
       return newValues;
     },
-    onMutate: async (updatedExamTypeInfo) => {
-      await queryClient.cancelQueries({ queryKey: ['examTypes'] });
-      const previousExamTypes = queryClient.getQueryData(['examTypes']);
-      queryClient.setQueryData(['examTypes'], (prevExamTypes: any) =>
-        prevExamTypes?.map((prevExamType: IExamType) =>
-          prevExamType.id === updatedExamTypeInfo.newValues.id
-            ? updatedExamTypeInfo.newValues
-            : prevExamType
+    onMutate: async (updatedProfessionInfo) => {
+      await queryClient.cancelQueries({ queryKey: ['professions'] });
+      const previousProfessions = queryClient.getQueryData(['professions']);
+      queryClient.setQueryData(['professions'], (prevProfessions: any) =>
+        prevProfessions?.map((prevProfession: IProfession) =>
+          prevProfession.id === updatedProfessionInfo.newValues.id
+            ? updatedProfessionInfo.newValues
+            : prevProfession
         )
       );
-      return { previousExamTypes };
+      return { previousProfessions };
     },
-    onError: (err, updatedExamTypeInfo, context) => {
+    onError: (err, updatedProfessionInfo, context) => {
       notifications.show({
         title: 'Update Failed',
-        message: 'Could not update exam type. Please try again.',
+        message: 'Could not update profession. Please try again.',
         color: 'red',
       });
-      queryClient.setQueryData(['examTypes'], context?.previousExamTypes);
+      queryClient.setQueryData(['professions'], context?.previousProfessions);
     },
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ['examTypes'] });
+      queryClient.invalidateQueries({ queryKey: ['professions'] });
     },
-    onSuccess: (updatedExamType) => {
+    onSuccess: (updatedProfession) => {
       notifications.show({
         title: 'Success!',
-        message: `${updatedExamType.typeName} updated successfully.`,
+        message: `${updatedProfession.keorId} updated successfully.`,
         color: 'teal',
       });
     },
   });
 }
 
-function useDeleteExamType() {
+function useDeleteProfession() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (examTypeId: number) => {
-      await api.ExamTypes.deleteExamType(examTypeId);
-      return examTypeId;
+    mutationFn: async (professionId: number) => {
+      await api.Professions.deleteProfession(professionId);
+      return professionId;
     },
-    onMutate: (examTypeId: number) => {
-      queryClient.setQueryData(['examTypes'], (prevExamTypes: any) =>
-        prevExamTypes?.filter((examType: IExamType) => examType.id !== examTypeId)
+    onMutate: (professionId: number) => {
+      queryClient.setQueryData(['professions'], (prevProfessions: any) =>
+        prevProfessions?.filter((profession: IProfession) => profession.id !== professionId)
       );
     },
-    onSuccess: (deletedExamTypeId) => {
+    onSuccess: (deletedProfessionId) => {
       notifications.show({
         title: 'Success!',
-        message: `Exam type with ID ${deletedExamTypeId} deleted successfully.`,
+        message: `Profession with ID ${deletedProfessionId} deleted successfully.`,
         color: 'teal',
       });
     },
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ['examTypes'] });
+      queryClient.invalidateQueries({ queryKey: ['professions'] });
     },
   });
 }
 
 const queryClient = new QueryClient();
 
-const ExamTypePage = () => {
+const ProfessionPage = () => {
   return (
     <QueryClientProvider client={queryClient}>
       <ModalsProvider>
         <Notifications />
         <Skeleton>
-          <Title order={2}>Exam Types</Title>
-          <ExamTypeTable />
+          <Title order={2}>Professions</Title>
+          <ProfessionTable />
         </Skeleton>
       </ModalsProvider>
     </QueryClientProvider>
   );
 };
 
-export default ExamTypePage;
+export default ProfessionPage;
 
 const validateRequired = (value: string) => !!value.length;
 
-function validateExamType(examType: IExamType) {
+function validateProfession(profession: IProfession) {
   return {
-    typeName: !validateRequired(examType.typeName) ? 'Exam Type Name is required' : '',
-    description: '',
-  };
+    keorId: !validateRequired(profession.keorId) ? 'Keor ID is required!' : '',
+    professionName: !validateRequired(profession.professionName) ? 'Profession Name is required!' : '',
+  }
 }

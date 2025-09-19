@@ -72,7 +72,7 @@ const ExamTypes = {
         }
       })
     },
-    getAllExamTypes: () => {
+    getAllExaminers: () => {
       return axiosInstance.get<IExamType[]>(`/examiners/get-all-exam-types`);
     },
     createExaminer: async (examinerData: ExaminerFormData) => {
@@ -115,7 +115,7 @@ const Institutions = {
 };
 
 const Professions = {
-  updateExamType: (id: number, patchDocument: JsonPatchOperation[]) => {
+  updateProfession: (id: number, patchDocument: JsonPatchOperation[]) => {
     return axiosInstance.patch<void>(`/professions/update-profession/${id}`, patchDocument, {
       headers: {
         'Content-Type': 'application/json-patch+json',
@@ -123,7 +123,7 @@ const Professions = {
     })
   },
   getAllProfessions: () => {
-    return axiosInstance.get<IProfession>(`/professions/get-all-professions`);
+    return axiosInstance.get<IProfession[]>(`/professions/get-all-professions`);
   },
   createProfession: async (professionData: ProfessionFormData): Promise<IProfession> => {
     const payload = {

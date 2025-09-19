@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import path from 'node:path';
 import {
   IconBriefcase2,
   IconBuildings,
@@ -13,7 +12,7 @@ import {
   IconUserQuestion,
 } from '@tabler/icons-react';
 import { useNavigate } from 'react-router-dom';
-import { Center, Stack, Tooltip, UnstyledButton } from '@mantine/core';
+import { Stack, Tooltip, UnstyledButton } from '@mantine/core';
 import classes from './NavbarMinimal.module.css';
 
 interface NavbarLinkProps {

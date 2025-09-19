@@ -2,6 +2,7 @@ import { createBrowserRouter, RouterProvider } from 'react-router-dom';
 import { HomePage } from './pages/Home.page';
 import LoginPage from './pages/Login.page';
 import ExamTypePage from './pages/ExamType.page';
+import ProfessionPage from './pages/Profession.page';
 
 const router = createBrowserRouter([
   {
@@ -16,6 +17,10 @@ const router = createBrowserRouter([
     path: '/exam-types',
     element: <ExamTypePage />
   },
+  {
+    path: '/professions',
+    element: <ProfessionPage />
+  }
 ]);
 
 export function Router() {
