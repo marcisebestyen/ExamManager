@@ -3,6 +3,7 @@ import { HomePage } from './pages/Home.page';
 import LoginPage from './pages/Login.page';
 import ExamTypePage from './pages/ExamType.page';
 import ProfessionPage from './pages/Profession.page';
+import InstitutionPage from './pages/Institution.page';
 
 const router = createBrowserRouter([
   {
@@ -16,6 +17,10 @@ const router = createBrowserRouter([
   {
     path: '/exam-types',
     element: <ExamTypePage />
+  },
+  {
+    path:'/institutions',
+    element: <InstitutionPage />
   },
   {
     path: '/professions',
