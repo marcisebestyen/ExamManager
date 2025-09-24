@@ -3,6 +3,8 @@ import { HomePage } from './pages/Home.page';
 import LoginPage from './pages/Login.page';
 import ExamTypePage from './pages/ExamType.page';
 import ProfessionPage from './pages/Profession.page';
+import InstitutionPage from './pages/Institution.page';
+import ExaminerPage from './pages/Examiner.page';
 
 const router = createBrowserRouter([
   {
@@ -14,8 +16,16 @@ const router = createBrowserRouter([
     element: <LoginPage />
   },
   {
+    path: '/examiners',
+    element: <ExaminerPage />
+  },
+  {
     path: '/exam-types',
     element: <ExamTypePage />
+  },
+  {
+    path:'/institutions',
+    element: <InstitutionPage />
   },
   {
     path: '/professions',
