@@ -5,7 +5,7 @@ export interface IExaminer {
   dateOfBirth: string;
   email: string;
   phone: string;
-  idCardNumber: string;
+  identityCardNumber: string;
 }
 
 export interface ExaminerFormData {
@@ -14,5 +14,5 @@ export interface ExaminerFormData {
   dateOfBirth: string;
   email: string;
   phone: string;
-  idCardNumber: string;
+  identityCardNumber: string;
 }

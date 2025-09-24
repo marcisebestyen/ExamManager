@@ -73,7 +73,7 @@ const ExamTypes = {
       })
     },
     getAllExaminers: () => {
-      return axiosInstance.get<IExamType[]>(`/examiners/get-all-exam-types`);
+      return axiosInstance.get<IExaminer[]>(`/examiners/get-all-examiners`);
     },
     createExaminer: async (examinerData: ExaminerFormData) => {
       const payload = {

@@ -37,7 +37,7 @@ interface JsonPatchOperation {
 
 const generatePatchDocument = (
   oldData: IInstitution,
-  newData: IInstitution,
+  newData: IInstitution
 ): JsonPatchOperation[] => {
   const patch: JsonPatchOperation[] = [];
   for (const key in newData) {
@@ -52,7 +52,7 @@ const generatePatchDocument = (
   return patch;
 };
 
-const  InstitutionTable = () => {
+const InstitutionTable = () => {
   const [validationErrors, setValidationErrors] = useState<Record<string, string | undefined>>({});
 
   const columns = useMemo<MRT_ColumnDef<IInstitution>[]>(
@@ -62,7 +62,7 @@ const  InstitutionTable = () => {
         header: 'ID',
         enableEditing: false,
         enableCreating: false,
-        size: 80
+        size: 80,
       },
       {
         accessorKey: 'name',
@@ -71,7 +71,7 @@ const  InstitutionTable = () => {
           required: true,
           errors: validationErrors?.name,
           onFocus: () => setValidationErrors({ ...validationErrors, name: undefined }),
-        }
+        },
       },
       {
         accessorKey: 'educationalId',
@@ -80,7 +80,7 @@ const  InstitutionTable = () => {
           required: true,
           errors: validationErrors?.educationalId,
           onFocus: () => setValidationErrors({ ...validationErrors, educationalId: undefined }),
-        }
+        },
       },
       {
         accessorKey: 'zipCode',
@@ -89,7 +89,7 @@ const  InstitutionTable = () => {
           required: true,
           errors: validationErrors?.zipCode,
           onFocus: () => setValidationErrors({ ...validationErrors, zipCode: undefined }),
-        }
+        },
       },
       {
         accessorKey: 'town',
@@ -98,7 +98,7 @@ const  InstitutionTable = () => {
           required: true,
           errors: validationErrors?.town,
           onFocus: () => setValidationErrors({ ...validationErrors, town: undefined }),
-        }
+        },
       },
       {
         accessorKey: 'street',
@@ -107,7 +107,7 @@ const  InstitutionTable = () => {
           required: true,
           errors: validationErrors?.street,
           onFocus: () => setValidationErrors({ ...validationErrors, street: undefined }),
-        }
+        },
       },
       {
         accessorKey: 'number',
@@ -116,7 +116,7 @@ const  InstitutionTable = () => {
           required: true,
           errors: validationErrors?.number,
           onFocus: () => setValidationErrors({ ...validationErrors, number: undefined }),
-        }
+        },
       },
       {
         accessorKey: 'floor',
@@ -124,7 +124,7 @@ const  InstitutionTable = () => {
         mantineEditTextInputProps: {
           errors: validationErrors?.floor,
           onFocus: () => setValidationErrors({ ...validationErrors, floor: undefined }),
-        }
+        },
       },
       {
         accessorKey: 'door',
@@ -132,37 +132,42 @@ const  InstitutionTable = () => {
         mantineEditTextInputProps: {
           errors: validationErrors?.door,
           onFocus: () => setValidationErrors({ ...validationErrors, door: undefined }),
-        }
-      }
+        },
+      },
     ],
     [validationErrors]
   );
 
-  const { mutateAsync: createInstitution, isPending: isCreatingInstitution } = useCreateInstitution();
+  const { mutateAsync: createInstitution, isPending: isCreatingInstitution } =
+    useCreateInstitution();
   const {
     data: fetchedInstitutions = [],
     isError: isLoadingInstitutionsError,
     isFetching: isFetchingInstitutions,
     isLoading: isLoadingInstitutions,
   } = useGetInstitutions();
-  const { mutateAsync: updateInstitution, isPending: isUpdatingInstitution } = useUpdateInstitution();
-  const { mutateAsync: deleteInstitution, isPending: isDeletingInstitution } = useDeleteInstitution();
+  const { mutateAsync: updateInstitution, isPending: isUpdatingInstitution } =
+    useUpdateInstitution();
+  const { mutateAsync: deleteInstitution, isPending: isDeletingInstitution } =
+    useDeleteInstitution();
 
   const handleCreateInstitution: MRT_TableOptions<IInstitution>['onCreatingRowSave'] = async ({
     values,
-    exitCreatingMode
+    exitCreatingMode,
   }) => {
     const newValidationErrors = validateInstitution(values);
 
     const isDuplicate = fetchedInstitutions.some(
-      (institution) => institution.educationalId.toLowerCase() === values.educationalId.toLowerCase()
+      (institution) =>
+        institution.educationalId.toLowerCase() === values.educationalId.toLowerCase()
     );
 
     if (isDuplicate) {
       notifications.show({
         title: 'Creation Failed',
-        message: 'An institution with this educational ID already exists. Please use a different educational ID.',
-        color: 'red'
+        message:
+          'An institution with this educational ID already exists. Please use a different educational ID.',
+        color: 'red',
       });
       setValidationErrors({
         ...validationErrors,
@@ -181,10 +186,10 @@ const  InstitutionTable = () => {
     exitCreatingMode();
   };
 
-  const handleSaveInstitution: MRT_TableOptions<IInstitution>['onEditingRowSave'] = async({
+  const handleSaveInstitution: MRT_TableOptions<IInstitution>['onEditingRowSave'] = async ({
     values,
     row,
-    table
+    table,
   }) => {
     const newValidationErrors = validateInstitution(values);
     if (Object.values(newValidationErrors).some((error) => error)) {
@@ -203,37 +208,38 @@ const  InstitutionTable = () => {
       title: 'Are you sure you want to delete this institution?',
       children: (
         <Text>
-          Are you sure you want to delete {row.original.educationalId}? This action cannot be undone.
+          Are you sure you want to delete {row.original.educationalId}? This action cannot be
+          undone.
         </Text>
       ),
       labels: { confirm: 'Delete', cancel: 'Cancel' },
       confirmProps: { color: 'red' },
-      onConfirm: () => deleteInstitution(row.original.id)
+      onConfirm: () => deleteInstitution(row.original.id),
     });
 
   const table = useMantineReactTable({
     columns,
     data: fetchedInstitutions,
-    createDisplayMode: "modal",
-    editDisplayMode: "modal",
+    createDisplayMode: 'modal',
+    editDisplayMode: 'modal',
     enableEditing: true,
     getRowId: (row) => String(row.id),
     mantineToolbarAlertBannerProps: isLoadingInstitutionsError
-    ? {
-        color: 'red',
-        children: 'Error loading data',
-      }
-    : undefined,
-    mantineTableContainerProps: {
-        style: {
-          minHeight: '500px'
+      ? {
+          color: 'red',
+          children: 'Error loading data',
         }
+      : undefined,
+    mantineTableContainerProps: {
+      style: {
+        minHeight: '500px',
+      },
     },
     onCreatingRowCancel: () => setValidationErrors({}),
     onCreatingRowSave: handleCreateInstitution,
     onEditingRowCancel: () => setValidationErrors({}),
     onEditingRowSave: handleSaveInstitution,
-    renderCreateRowModalContent: ({table, row, internalEditComponents}) => (
+    renderCreateRowModalContent: ({ table, row, internalEditComponents }) => (
       <Stack>
         <Title order={3}>Create New Institution</Title>
         {internalEditComponents}
@@ -280,11 +286,11 @@ const  InstitutionTable = () => {
       isLoading: isLoadingInstitutions,
       isSaving: isCreatingInstitution || isUpdatingInstitution || isDeletingInstitution,
       showAlertBanner: isLoadingInstitutionsError,
-      showProgressBars: isFetchingInstitutions
-    }
+      showProgressBars: isFetchingInstitutions,
+    },
   });
 
-  return <MantineReactTable table={table} />
+  return <MantineReactTable table={table} />;
 };
 
 function useCreateInstitution() {
@@ -297,13 +303,13 @@ function useCreateInstitution() {
       notifications.show({
         title: 'Success!',
         message: `${createdInstitution.educationalId} created successfully.`,
-        color: 'teal'
+        color: 'teal',
       });
       queryClient.setQueryData(
         ['institutions'],
         (prevInstitution: any) => [...prevInstitution, createdInstitution] as IInstitution[]
       );
-    }
+    },
   });
 }
 
@@ -323,7 +329,7 @@ function useUpdateInstitution() {
   return useMutation({
     mutationFn: async ({
       newValues,
-      oldValues
+      oldValues,
     }: {
       newValues: IInstitution;
       oldValues: IInstitution;
@@ -350,7 +356,7 @@ function useUpdateInstitution() {
       notifications.show({
         title: 'Update Failed',
         message: 'Could not update institution. Please try again.',
-        color: 'red'
+        color: 'red',
       });
       queryClient.setQueryData(['institutions'], context?.previousInstitutions);
     },
@@ -361,9 +367,9 @@ function useUpdateInstitution() {
       notifications.show({
         title: 'Success!',
         message: `${updatedInstitution.educationalId} updated successfully.`,
-        color: 'teal'
+        color: 'teal',
       });
-    }
+    },
   });
 }
 
@@ -383,18 +389,18 @@ function useDeleteInstitution() {
       notifications.show({
         title: 'Success!',
         message: `Institution with ID ${deletedInstitutionId} successfully deleted.`,
-        color: 'teal'
+        color: 'teal',
       });
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['institutions'] });
-    }
+    },
   });
 }
 
 const queryClient = new QueryClient();
 
-const InstitutionPage = () =>  {
+const InstitutionPage = () => {
   return (
     <QueryClientProvider client={queryClient}>
       <ModalsProvider>
