@@ -5,6 +5,7 @@ import {
   IconClipboardSearch,
   IconDashboard,
   IconHome,
+  IconLogin,
   IconLogout,
   IconPencilQuestion,
   IconSettings,
@@ -13,7 +14,9 @@ import {
 } from '@tabler/icons-react';
 import { useNavigate } from 'react-router-dom';
 import { Stack, Tooltip, UnstyledButton } from '@mantine/core';
+import useAuth from '../hooks/useAuth';
 import classes from './NavbarMinimal.module.css';
+import { LoginPage } from '../pages/Login.page';
 
 interface NavbarLinkProps {
   icon: typeof IconHome;
@@ -58,12 +61,19 @@ const mockdata = [
 
 export function NavbarMinimal() {
   const [active, setActive] = useState(2);
+  const { logout } = useAuth();
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    logout(() => {
+      navigate('/');
+    });
+  };
 
   const links = mockdata.map((link, index) => (
     <NavbarLink
       {...link}
       key={link.label}
-      // active={index === active}
       onClick={() => setActive(index)}
     />
   ));
@@ -77,7 +87,8 @@ export function NavbarMinimal() {
       </div>
 
       <Stack justify="center" gap={0}>
-        <NavbarLink icon={IconLogout} label="Logout" path="/"/>
+        <NavbarLink icon={IconLogin} label="Login" path='/login' onClick={LoginPage}/>
+        <NavbarLink icon={IconLogout} label="Logout" path="/" onClick={handleLogout} />
       </Stack>
     </nav>
   );

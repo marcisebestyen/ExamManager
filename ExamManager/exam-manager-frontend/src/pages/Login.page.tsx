@@ -18,8 +18,9 @@ import {
 import { useForm } from '@mantine/form';
 import useAuth from '../hooks/useAuth';
 import classes from './Login.page.module.css';
+import { Skeleton } from '../components/Skeleton';
 
-const Login = () => {
+function Login() {
   const { login } = useAuth();
   const navigate = useNavigate();
   const [loginError, setLoginError] = useState<string | null>(null);
@@ -138,4 +139,10 @@ const Login = () => {
   );
 };
 
-export default Login;
+export function LoginPage() {
+  return (
+    <Skeleton>
+      <Login />
+    </Skeleton>
+  )
+}

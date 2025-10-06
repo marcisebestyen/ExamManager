@@ -1,5 +1,4 @@
-import { Link } from 'react-router-dom';
-import { Box, Button, Text, Title } from '@mantine/core';
+import { Text, Title } from '@mantine/core';
 import classes from './Welcome.module.css';
 
 export function Welcome() {
@@ -11,26 +10,6 @@ export function Welcome() {
           Exam Manager
         </Text>
       </Title>
-      <Box
-        style={{
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-          marginTop: '20px',
-        }}
-      >
-        <Button
-          component={Link}
-          to="/login"
-          size="xl"
-          variant="outline"
-          radius="md"
-          // gradient={{ from: 'blue', to: 'yellow' }}
-        >
-          Login
-        </Button>
-      </Box>
     </>
   );
 }
