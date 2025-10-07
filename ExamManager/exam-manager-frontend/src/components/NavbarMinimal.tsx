@@ -16,7 +16,6 @@ import { useNavigate } from 'react-router-dom';
 import { Stack, Tooltip, UnstyledButton } from '@mantine/core';
 import useAuth from '../hooks/useAuth';
 import classes from './NavbarMinimal.module.css';
-import { LoginPage } from '../pages/Login.page';
 
 interface NavbarLinkProps {
   icon: typeof IconHome;
@@ -61,7 +60,7 @@ const mockdata = [
 
 export function NavbarMinimal() {
   const [active, setActive] = useState(2);
-  const { logout } = useAuth();
+  const { logout, isAuthenticated } = useAuth();
   const navigate = useNavigate();
 
   const handleLogout = () => {
@@ -71,11 +70,7 @@ export function NavbarMinimal() {
   };
 
   const links = mockdata.map((link, index) => (
-    <NavbarLink
-      {...link}
-      key={link.label}
-      onClick={() => setActive(index)}
-    />
+    <NavbarLink {...link} key={link.label} onClick={() => setActive(index)} />
   ));
 
   return (
@@ -87,8 +82,13 @@ export function NavbarMinimal() {
       </div>
 
       <Stack justify="center" gap={0}>
-        <NavbarLink icon={IconLogin} label="Login" path='/login' onClick={LoginPage}/>
-        <NavbarLink icon={IconLogout} label="Logout" path="/" onClick={handleLogout} />
+        {!isAuthenticated && (
+          <NavbarLink icon={IconLogin} label="Login" path="/login" />
+        )}
+
+        {isAuthenticated && (
+          <NavbarLink icon={IconLogout} label="Logout" path="/" onClick={handleLogout} />
+        )}
       </Stack>
     </nav>
   );
