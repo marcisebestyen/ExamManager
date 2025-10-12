@@ -7,6 +7,7 @@ import InstitutionPage from './pages/Institution.page';
 import ExaminerPage from './pages/Examiner.page';
 import ExamPage from './pages/Exam.page';
 import { SettingsPage } from './pages/Settings.page';
+import ForgotPassword from './pages/ForgotPassword.page';
 
 const router = createBrowserRouter([
   {
@@ -16,6 +17,10 @@ const router = createBrowserRouter([
   {
     path:'/login',
     element: <LoginPage />
+  },
+  {
+    path: '/forgot',
+    element: <ForgotPassword />
   },
   {
     path: '/exams',
