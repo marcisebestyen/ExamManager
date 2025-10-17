@@ -1,10 +1,13 @@
 import { createBrowserRouter, RouterProvider } from 'react-router-dom';
 import { HomePage } from './pages/Home.page';
-import LoginPage from './pages/Login.page';
+import { LoginPage } from './pages/Login.page';
 import ExamTypePage from './pages/ExamType.page';
 import ProfessionPage from './pages/Profession.page';
 import InstitutionPage from './pages/Institution.page';
 import ExaminerPage from './pages/Examiner.page';
+import ExamPage from './pages/Exam.page';
+import { SettingsPage } from './pages/Settings.page';
+import ForgotPassword from './pages/ForgotPassword.page';
 
 const router = createBrowserRouter([
   {
@@ -14,6 +17,14 @@ const router = createBrowserRouter([
   {
     path:'/login',
     element: <LoginPage />
+  },
+  {
+    path: '/forgot',
+    element: <ForgotPassword />
+  },
+  {
+    path: '/exams',
+    element: <ExamPage />
   },
   {
     path: '/examiners',
@@ -30,6 +41,10 @@ const router = createBrowserRouter([
   {
     path: '/professions',
     element: <ProfessionPage />
+  },
+  {
+    path: '/settings',
+    element: <SettingsPage />
   }
 ]);
 

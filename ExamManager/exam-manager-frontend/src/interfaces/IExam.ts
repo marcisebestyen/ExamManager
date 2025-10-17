@@ -1,6 +1,3 @@
-import { ExamBoardFormData, IExamBoard } from './IExamBoard';
-
-
 export enum Status {
   PLANNED = 0,
   ACTIVE = 1,
@@ -42,4 +39,20 @@ export interface IExam {
   operatorId: number;
   operatorUserName: string;
   examBoards: IExamBoard[];
+}
+
+export interface IExamBoard {
+  id: number;
+  examId: number;
+  examName: string;
+  examCode: string;
+  examinerId: number;
+  examinerFirstName: string;
+  examinerLastName: string;
+  role: string;
+}
+
+export interface ExamBoardFormData {
+  examinerId: number;
+  role: string;
 }

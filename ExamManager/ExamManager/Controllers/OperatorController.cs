@@ -94,7 +94,6 @@ public class OperatorController : ControllerBase
         }
     }
 
-    [Authorize]
     [HttpGet("get-profile")]
     public async Task<IActionResult> GetMyProfile()
     {
@@ -202,7 +201,7 @@ public class OperatorController : ControllerBase
     }
 
     [HttpGet("get-all-operators")]
-    [AllowAnonymous]
+    [Authorize(Roles = "Admin, Staff")]
     public async Task<IActionResult> GetAllOperators()
     {
         var result = await _operatorService.GetAllOperatorsAsync();

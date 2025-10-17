@@ -31,7 +31,7 @@ public class ExamService : IExamService
             if (string.IsNullOrWhiteSpace(createRequest.ExamName) ||
                 string.IsNullOrWhiteSpace(createRequest.ExamCode) ||
                 createRequest.ExamDate == default(DateTime) ||
-                createRequest.ExamDate > DateTime.Now ||
+                createRequest.ExamDate < DateTime.Now ||
                 !Enum.IsDefined(typeof(Status), createRequest.Status) ||
                 createRequest.ProfessionId <= 0 ||
                 createRequest.InstitutionId <= 0 ||
@@ -151,7 +151,12 @@ public class ExamService : IExamService
     {
         try
         {
-            var examEntities = await _unitOfWork.ExamRepository.GetAllAsync();
+            string[] includeProperties = new[]
+            {
+                "Profession", "Institution", "ExamType", "Operator", "ExamBoard.Examiner"
+            };
+            
+            var examEntities = await _unitOfWork.ExamRepository.GetAllAsync(includeProperties);
 
             var examResponseDtos = _mapper.Map<IEnumerable<ExamResponseDto>>(examEntities);
 

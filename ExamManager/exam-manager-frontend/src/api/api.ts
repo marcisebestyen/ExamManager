@@ -1,8 +1,8 @@
-import { ExamTypeFormData, IExamType } from '../interfaces/IExamType';
-import { ProfessionFormData, IProfession } from '../interfaces/IProfession';
-import { InstitutionFormData, IInstitution } from '../interfaces/IInstitution';
+import { ExamFormData, IExam } from '../interfaces/IExam';
 import { ExaminerFormData, IExaminer } from '../interfaces/IExaminer';
-import { IExam, ExamFormData } from '../interfaces/IExam';
+import { ExamTypeFormData, IExamType } from '../interfaces/IExamType';
+import { IInstitution, InstitutionFormData } from '../interfaces/IInstitution';
+import { IProfession, ProfessionFormData } from '../interfaces/IProfession';
 import axiosInstance from './axios.config';
 
 interface JsonPatchOperation {
@@ -17,7 +17,7 @@ const Exams = {
     return axiosInstance.patch<void>(`/exams/update-exam/${id}`, patchDocument, {
       headers: {
         'Content-Type': 'application/json-patch+json',
-      }
+      },
     });
   },
   getAllExams: () => {
@@ -25,11 +25,14 @@ const Exams = {
   },
   createExam: async (examData: ExamFormData): Promise<IExam> => {
     const payload = {
-      ...examData,
+      examName: examData.examName,
+      examCode: examData.examCode,
       examDate: new Date(examData.examDate).toISOString(),
+      status: examData.status,
       professionId: Number(examData.professionId),
       institutionId: Number(examData.institutionId),
       examTypeId: Number(examData.examTypeId),
+      examBoards: examData.examBoards,
     };
 
     const response = await axiosInstance.post<IExam>('/exams/create-new-exam', payload);
@@ -37,8 +40,8 @@ const Exams = {
   },
   deleteExam: async (id: number) => {
     return axiosInstance.delete(`/exams/delete-exam/${id}`);
-  }
-}
+  },
+};
 
 const ExamTypes = {
   updateExamType: (id: number, patchDocument: JsonPatchOperation[]) => {
@@ -56,46 +59,49 @@ const ExamTypes = {
       ...examTypeData,
     };
 
-    const response = await axiosInstance.post<IExamType>('/exam_types/create-new-exam-type', payload);
+    const response = await axiosInstance.post<IExamType>(
+      '/exam_types/create-new-exam-type',
+      payload
+    );
     return response.data;
   },
   deleteExamType: async (id: number) => {
     return axiosInstance.delete(`/exam_types/delete-exam-type/${id}`);
-  }
+  },
 };
 
-  const Examiners = {
-    updateExaminer: (id: number, patchDocument: JsonPatchOperation[]) => {
-      return axiosInstance.patch<void>(`/examiners/update-examiner/${id}`, patchDocument, {
-        headers: {
-          'Content-Type': 'application/json-patch+json',
-        }
-      })
-    },
-    getAllExaminers: () => {
-      return axiosInstance.get<IExaminer[]>(`/examiners/get-all-examiners`);
-    },
-    createExaminer: async (examinerData: ExaminerFormData) => {
-      const payload = {
-        ...examinerData,
-        dateOfBirth: new Date(examinerData.dateOfBirth).toISOString(),
-      }
-  
-      const response = await axiosInstance.post<IExaminer>('/examiners/create-new-examiner', payload);
-      return response.data;
-    },
-    deleteExaminer: async (id: number) => {
-      return axiosInstance.delete(`/examiners/delete-examiner/${id}`);
-    }
-  };
+const Examiners = {
+  updateExaminer: (id: number, patchDocument: JsonPatchOperation[]) => {
+    return axiosInstance.patch<void>(`/examiners/update-examiner/${id}`, patchDocument, {
+      headers: {
+        'Content-Type': 'application/json-patch+json',
+      },
+    });
+  },
+  getAllExaminers: () => {
+    return axiosInstance.get<IExaminer[]>(`/examiners/get-all-examiners`);
+  },
+  createExaminer: async (examinerData: ExaminerFormData) => {
+    const payload = {
+      ...examinerData,
+      dateOfBirth: new Date(examinerData.dateOfBirth).toISOString(),
+    };
+
+    const response = await axiosInstance.post<IExaminer>('/examiners/create-new-examiner', payload);
+    return response.data;
+  },
+  deleteExaminer: async (id: number) => {
+    return axiosInstance.delete(`/examiners/delete-examiner/${id}`);
+  },
+};
 
 const Institutions = {
   updateInstitution: (id: number, patchDocument: JsonPatchOperation[]) => {
     return axiosInstance.patch<void>(`/institutions/update-institution/${id}`, patchDocument, {
       headers: {
         'Content-Type': 'application/json-patch+json',
-      }
-    })
+      },
+    });
   },
   getAllInstitutions: () => {
     return axiosInstance.get<IInstitution[]>(`/institutions/get-all-institutions`);
@@ -106,12 +112,15 @@ const Institutions = {
       zipCode: Number(institutionData.zipCode),
     };
 
-    const response = await axiosInstance.post<IInstitution>('/institutions/create-new-institution', payload);
+    const response = await axiosInstance.post<IInstitution>(
+      '/institutions/create-new-institution',
+      payload
+    );
     return response.data;
   },
   deleteInstitution: async (id: number) => {
     return axiosInstance.delete(`/institutions/delete-institution/${id}`);
-  }
+  },
 };
 
 const Professions = {
@@ -119,8 +128,8 @@ const Professions = {
     return axiosInstance.patch<void>(`/professions/update-profession/${id}`, patchDocument, {
       headers: {
         'Content-Type': 'application/json-patch+json',
-      }
-    })
+      },
+    });
   },
   getAllProfessions: () => {
     return axiosInstance.get<IProfession[]>(`/professions/get-all-professions`);
@@ -130,14 +139,17 @@ const Professions = {
       ...professionData,
     };
 
-    const response = await axiosInstance.post<IProfession>('/professions/create-new-profession', payload);
+    const response = await axiosInstance.post<IProfession>(
+      '/professions/create-new-profession',
+      payload
+    );
     return response.data;
   },
   deleteProfession: async (id: number) => {
     return axiosInstance.delete(`/professions/delete-profession/${id}`);
-  }
+  },
 };
 
-const api = { Exams, ExamTypes, Examiners ,Institutions, Professions };
+const api = { Exams, ExamTypes, Examiners, Institutions, Professions };
 
 export default api;

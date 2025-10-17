@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using System.Text;
+using ExamManager.Configurations;
 using Microsoft.EntityFrameworkCore;
 using ExamManager.Data;
 using ExamManager.Interfaces;
@@ -101,6 +102,8 @@ builder.Services.AddCors(options =>
         });
 });
 
+builder.Services.Configure<MailSettings>(builder.Configuration.GetSection("MailtrapSettings"));
+
 // Unit of Work registration
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 
@@ -116,6 +119,8 @@ builder.Services.AddScoped<IInstitutionService, InstitutionService>();
 builder.Services.AddScoped<IProfessionService, ProfessionService>();
 builder.Services.AddScoped<IExamTypeService, ExamTypeService>();
 builder.Services.AddScoped<IExamService, ExamService>();
+builder.Services.AddScoped<IEmailService, EmailService>();
+builder.Services.AddScoped<IPasswordResetService, PasswordResetService>();
 
 var app = builder.Build();
 
@@ -141,6 +146,22 @@ using (var scope = app.Services.CreateScope())
             context.Operators.Add(adminUser);
             context.SaveChanges();
             Console.WriteLine("Default admin user initialized.");
+        }
+
+        if (!context.Operators.Any(o => o.Role == Role.Staff))
+        {
+            var staffPasswordHash = BCrypt.Net.BCrypt.HashPassword("StaffPassword123#");
+            var staffUser = new Operator
+            {
+                UserName = "Staff",
+                Password = staffPasswordHash,
+                FirstName = "Staff",
+                LastName = "System",
+                Role = Role.Staff
+            };
+            context.Operators.Add(staffUser);
+            context.SaveChanges();
+            Console.WriteLine("Default staff user initialized.");
         }
     }
     catch (Exception ex)
