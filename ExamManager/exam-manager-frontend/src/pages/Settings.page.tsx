@@ -1,24 +1,59 @@
-import { useState, useEffect } from "react";
+import { useEffect, useState } from 'react';
+import { IconCheck, IconMoon, IconSun, IconX } from '@tabler/icons-react';
 import {
-  Container,
-  Paper,
-  Title,
-  TextInput,
-  Button,
-  Group,
-  Stack,
   Alert,
-  Loader,
+  Badge,
+  Button,
   Center,
+  Container,
   Divider,
-  useMantineColorScheme,
+  Group,
+  Loader,
+  Paper,
   SegmentedControl,
+  Stack,
   Text,
+  TextInput,
+  Title,
+  useMantineColorScheme,
 } from '@mantine/core';
 import { useForm } from '@mantine/form';
-import { IconCheck, IconX, IconSun, IconMoon } from '@tabler/icons-react';
 import axiosInstance from '../api/axios.config';
 import { Skeleton } from '../components/Skeleton';
+
+
+enum Role {
+  OPERATOR = 0,
+  ADMIN = 1,
+  STAFF = 2,
+}
+
+const ROLE_LABELS = {
+  [Role.OPERATOR]: 'Operator',
+  [Role.ADMIN]: 'Admin',
+  [Role.STAFF]: 'Staff',
+};
+
+const ROLE_COLORS = {
+  [Role.OPERATOR]: 'cyan',
+  [Role.ADMIN]: 'red',
+  [Role.STAFF]: 'indigo',
+};
+
+interface RoleBadgeProps {
+  role: Role;
+}
+
+const RoleBadge: React.FC<RoleBadgeProps> = ({ role }) => {
+  const color = ROLE_COLORS[role];
+  const label = ROLE_LABELS[role];
+
+  return (
+    <Badge color={color} variant="light">
+      {label}
+    </Badge>
+  );
+};
 
 interface OperatorProfile {
   id: number;
@@ -26,7 +61,7 @@ interface OperatorProfile {
   firstName: string;
   lastName: string;
   email?: string;
-  role: string;
+  role: Role;
 }
 
 interface JsonPatchOperation {
@@ -58,7 +93,7 @@ function Settings() {
         }
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         return emailRegex.test(value) ? null : 'Invalid email address';
-      }
+      },
     },
   });
 
@@ -127,15 +162,11 @@ function Settings() {
         setSuccess('No changes detected');
         return;
       }
-      await axiosInstance.patch(
-        `/operators/update-profile/${profile.id}`,
-        patchOperation,
-        {
-          headers: {
-            'Content-Type': 'application/json-patch+json',
-          },
-        }
-      );
+      await axiosInstance.patch(`/operators/update-profile/${profile.id}`, patchOperation, {
+        headers: {
+          'Content-Type': 'application/json-patch+json',
+        },
+      });
 
       setSuccess('Profile updated successfully');
       await fetchProfile();
@@ -156,12 +187,12 @@ function Settings() {
 
   if (!profile) {
     return (
-      <Container size='sm' mt='xl'>
-        <Alert icon={<IconX size='16' />} title='Error' color='red'>
+      <Container size="sm" mt="xl">
+        <Alert icon={<IconX size="16" />} title="Error" color="red">
           Failed to load profile data
         </Alert>
       </Container>
-    )
+    );
   }
 
   return (
@@ -172,13 +203,27 @@ function Settings() {
         </Title>
 
         {error && (
-          <Alert icon={<IconX size={16} />} title="Error" color="red" mb="md" onClose={() => setError(null)} withCloseButton>
+          <Alert
+            icon={<IconX size={16} />}
+            title="Error"
+            color="red"
+            mb="md"
+            onClose={() => setError(null)}
+            withCloseButton
+          >
             {error}
           </Alert>
         )}
 
         {success && (
-          <Alert icon={<IconCheck size={16} />} title="Success" color="green" mb="md" onClose={() => setSuccess(null)} withCloseButton>
+          <Alert
+            icon={<IconCheck size={16} />}
+            title="Success"
+            color="green"
+            mb="md"
+            onClose={() => setSuccess(null)}
+            withCloseButton
+          >
             {success}
           </Alert>
         )}
@@ -202,7 +247,7 @@ function Settings() {
             <Text size="sm" fw={500} c="dimmed" mb={4}>
               Role
             </Text>
-            <Text size="md">{profile.role}</Text>
+            <RoleBadge role={profile.role as Role} />
           </div>
 
           <Divider my="sm" />
@@ -301,5 +346,5 @@ export function SettingsPage() {
     <Skeleton>
       <Settings />
     </Skeleton>
-  )
+  );
 }
