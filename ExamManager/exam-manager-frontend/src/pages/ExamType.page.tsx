@@ -1,8 +1,9 @@
 import '@mantine/core/styles.css';
 import '@mantine/dates/styles.css';
 import 'mantine-react-table/styles.css';
+import '@mantine/notifications/styles.css';
 
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { IconEdit, IconTrash } from '@tabler/icons-react';
 import {
   QueryClient,
@@ -13,20 +14,27 @@ import {
 } from '@tanstack/react-query';
 import {
   MantineReactTable,
-  MRT_EditActionButtons,
   useMantineReactTable,
   type MRT_ColumnDef,
   type MRT_Row,
-  type MRT_TableOptions,
 } from 'mantine-react-table';
-import { ActionIcon, Button, Flex, Stack, Text, Title, Tooltip } from '@mantine/core';
+import {
+  ActionIcon,
+  Button,
+  Flex,
+  Stack,
+  Text,
+  Textarea,
+  TextInput,
+  Title,
+  Tooltip,
+} from '@mantine/core';
+import { useForm } from '@mantine/form';
 import { modals, ModalsProvider } from '@mantine/modals';
 import { Notifications, notifications } from '@mantine/notifications';
 import api from '../api/api';
 import { Skeleton } from '../components/Skeleton';
 import { ExamTypeFormData, IExamType } from '../interfaces/IExamType';
-
-import '@mantine/notifications/styles.css';
 
 interface JsonPatchOperation {
   op: 'replace' | 'add' | 'remove' | 'copy' | 'move' | 'test';
@@ -49,105 +57,143 @@ const generatePatchDocument = (oldData: IExamType, newData: IExamType): JsonPatc
   return patch;
 };
 
-const ExamTypeTable = () => {
-  const [validationErrors, setValidationErrors] = useState<Record<string, string | undefined>>({});
+const CreateExamTypeForm = () => {
+  const { data: fetchedExamTypes = [] } = useGetExamTypes();
+  const { mutateAsync: createExamType } = useCreateExamType();
 
-  const columns = useMemo<MRT_ColumnDef<IExamType>[]>(
-    () => [
-      {
-        accessorKey: 'id',
-        header: 'ID',
-        enableEditing: false,
-        enableCreating: false,
-        size: 80,
-      },
-      {
-        accessorKey: 'typeName',
-        header: 'Exam Type Name',
-        mantineEditTextInputProps: {
-          required: true,
-          error: validationErrors?.typeName,
-          onFocus: () => setValidationErrors({ ...validationErrors, typeName: undefined }),
-        },
-      },
-      {
-        accessorKey: 'description',
-        header: 'Description',
-        mantineEditTextInputProps: {
-          error: validationErrors?.description,
-          onFocus: () => setValidationErrors({ ...validationErrors, description: undefined }),
-        },
-      },
-    ],
-    [validationErrors]
+  const form = useForm<ExamTypeFormData>({
+    initialValues: {
+      typeName: '',
+      description: '',
+    },
+    validate: validateExamType,
+    validateInputOnBlur: true,
+  });
+
+  const handleSubmit = form.onSubmit(async (values) => {
+    const isDuplicate = fetchedExamTypes.some(
+      (examType) => examType.typeName.toLowerCase() === values.typeName.toLowerCase()
+    );
+    if (isDuplicate) {
+      form.setFieldError('typeName', 'An exam type with this name already exists.');
+      return;
+    }
+    await createExamType(values);
+    modals.close('create-exam-type');
+  });
+
+  return (
+    <form onSubmit={handleSubmit}>
+      <Stack>
+        <TextInput label="Exam Type Name" {...form.getInputProps('typeName')} required />
+        <Textarea label="Description" {...form.getInputProps('description')} minRows={3} autosize />
+        <Flex justify="flex-end" mt="xl">
+          <Button type="submit" mr="xs">
+            Create
+          </Button>
+          <Button variant="outline" onClick={() => modals.close('create-exam-type')}>
+            Cancel
+          </Button>
+        </Flex>
+      </Stack>
+    </form>
   );
+};
 
-  const { mutateAsync: createExamType, isPending: isCreatingExamType } = useCreateExamType();
+const EditExamTypeForm = ({ initialExamType }: { initialExamType: IExamType }) => {
+  const { data: fetchedExamTypes = [] } = useGetExamTypes();
+  const { mutateAsync: updateExamType } = useUpdateExamType();
+
+  const form = useForm<ExamTypeFormData>({
+    initialValues: {
+      typeName: initialExamType.typeName,
+      description: initialExamType.description,
+    },
+    validate: validateExamType,
+    validateInputOnBlur: true,
+  });
+
+  const handleSubmit = form.onSubmit(async (values) => {
+    const isDuplicate = fetchedExamTypes.some(
+      (examType) =>
+        examType.id !== initialExamType.id &&
+        examType.typeName.toLowerCase() === values.typeName.toLowerCase()
+    );
+    if (isDuplicate) {
+      form.setFieldError('typeName', 'An exam type with this name already exists.');
+      return;
+    }
+    const newValues: IExamType = { ...initialExamType, ...values };
+    await updateExamType({ newValues, oldValues: initialExamType });
+    modals.close('edit-exam-type');
+  });
+
+  return (
+    <form onSubmit={handleSubmit}>
+      <Stack>
+        <TextInput label="Exam Type Name" {...form.getInputProps('typeName')} required />
+        <Textarea label="Description" {...form.getInputProps('description')} minRows={3} autosize />
+        <Flex justify="flex-end" mt="xl">
+          <Button type="submit" mr="xs">
+            Save
+          </Button>
+          <Button variant="outline" onClick={() => modals.close('edit-exam-type')}>
+            Cancel
+          </Button>
+        </Flex>
+      </Stack>
+    </form>
+  );
+};
+
+const ExamTypeTable = () => {
   const {
     data: fetchedExamTypes = [],
     isError: isLoadingExamTypesError,
     isFetching: isFetchingExamTypes,
     isLoading: isLoadingExamTypes,
   } = useGetExamTypes();
-  const { mutateAsync: updateExamType, isPending: isUpdatingExamType } = useUpdateExamType();
   const { mutateAsync: deleteExamType, isPending: isDeletingExamType } = useDeleteExamType();
 
-  const handleCreateExamType: MRT_TableOptions<IExamType>['onCreatingRowSave'] = async ({
-    values,
-    exitCreatingMode,
-  }) => {
-    const newValidationErrors = validateExamType(values);
+  const columns = useMemo<MRT_ColumnDef<IExamType>[]>(
+    () => [
+      {
+        accessorKey: 'id',
+        header: 'ID',
+        size: 80,
+      },
+      {
+        accessorKey: 'typeName',
+        header: 'Exam Type Name',
+      },
+      {
+        accessorKey: 'description',
+        header: 'Description',
+      },
+    ],
+    []
+  );
 
-    const isDuplicate = fetchedExamTypes.some(
-      (examType) => examType.typeName.toLowerCase() === values.typeName.toLowerCase()
-    );
+  const openCreateModal = () =>
+    modals.open({
+      id: 'create-exam-type',
+      title: <Title order={3}>Create New Exam Type</Title>,
+      children: <CreateExamTypeForm />,
+    });
 
-    if (isDuplicate) {
-      notifications.show({
-        title: 'Creation Failed',
-        message: 'An exam type with this name already exists. Please use a different name.',
-        color: 'red',
-      });
-      setValidationErrors({
-        ...newValidationErrors,
-        typeName: 'An exam type with this name already exists.',
-      });
-      return;
-    }
-
-    if (Object.values(newValidationErrors).some((error) => error)) {
-      setValidationErrors(newValidationErrors);
-      return;
-    }
-
-    setValidationErrors({});
-    await createExamType(values as ExamTypeFormData);
-    exitCreatingMode();
-  };
-
-  const handleSaveExamType: MRT_TableOptions<IExamType>['onEditingRowSave'] = async ({
-    values,
-    row,
-    table,
-  }) => {
-    const newValidationErrors = validateExamType(values);
-    if (Object.values(newValidationErrors).some((error) => error)) {
-      setValidationErrors(newValidationErrors);
-      return;
-    }
-    setValidationErrors({});
-
-    const oldValues = row.original as IExamType;
-    await updateExamType({ newValues: values, oldValues });
-    table.setEditingRow(null);
-  };
+  const openEditModal = (examType: IExamType) =>
+    modals.open({
+      id: 'edit-exam-type',
+      title: <Title order={3}>Edit Exam Type</Title>,
+      children: <EditExamTypeForm initialExamType={examType} />,
+    });
 
   const openDeleteConfirmModal = (row: MRT_Row<IExamType>) =>
     modals.openConfirmModal({
       title: 'Are you sure you want to delete this exam type?',
       children: (
         <Text>
-          Are you sure you want to delete {row.original.typeName}? This action cannot be undone.
+          Are you sure you want to delete "{row.original.typeName}"? This action cannot be undone.
         </Text>
       ),
       labels: { confirm: 'Delete', cancel: 'Cancel' },
@@ -158,9 +204,8 @@ const ExamTypeTable = () => {
   const table = useMantineReactTable({
     columns,
     data: fetchedExamTypes,
-    createDisplayMode: 'modal',
-    editDisplayMode: 'modal',
-    enableEditing: true,
+    enableEditing: false, // Custom modal handles editing
+    enableRowActions: true,
     getRowId: (row) => String(row.id),
     mantineToolbarAlertBannerProps: isLoadingExamTypesError
       ? {
@@ -173,56 +218,39 @@ const ExamTypeTable = () => {
         minHeight: '500px',
       },
     },
-    onCreatingRowCancel: () => setValidationErrors({}),
-    onCreatingRowSave: handleCreateExamType,
-    onEditingRowCancel: () => setValidationErrors({}),
-    onEditingRowSave: handleSaveExamType,
-    renderCreateRowModalContent: ({ table, row, internalEditComponents }) => (
-      <Stack>
-        <Title order={3}>Create New Exam Type</Title>
-        {internalEditComponents}
-        <Flex justify="flex-end" mt="xl">
-          <MRT_EditActionButtons variant="text" table={table} row={row} />
-        </Flex>
-      </Stack>
-    ),
-    renderEditRowModalContent: ({ table, row, internalEditComponents }) => (
-      <Stack>
-        <Title order={3}>Edit Exam Type</Title>
-        {internalEditComponents}
-        <Flex justify="flex-end" mt="xl">
-          <MRT_EditActionButtons variant="text" table={table} row={row} />
-        </Flex>
-      </Stack>
-    ),
-    renderRowActions: ({ row, table }) => (
+    positionActionsColumn: 'first',
+    renderRowActions: ({ row }) => (
       <Flex gap="md">
         <Tooltip label="Edit">
-          <ActionIcon radius="md" onClick={() => table.setEditingRow(row)}>
+          <ActionIcon
+            color="blue"
+            variant="filled"
+            radius="md"
+            onClick={() => openEditModal(row.original)}
+          >
             <IconEdit />
           </ActionIcon>
         </Tooltip>
         <Tooltip label="Delete">
-          <ActionIcon color="red" radius="md" onClick={() => openDeleteConfirmModal(row)}>
+          <ActionIcon
+            color="red"
+            variant="filled"
+            radius="md"
+            onClick={() => openDeleteConfirmModal(row)}
+          >
             <IconTrash />
           </ActionIcon>
         </Tooltip>
       </Flex>
     ),
-    renderTopToolbarCustomActions: ({ table }) => (
-      <Button
-        variant="outline"
-        radius="md"
-        onClick={() => {
-          table.setCreatingRow(true);
-        }}
-      >
+    renderTopToolbarCustomActions: () => (
+      <Button variant="outline" radius="md" onClick={openCreateModal}>
         Create New Entry
       </Button>
     ),
     state: {
       isLoading: isLoadingExamTypes,
-      isSaving: isCreatingExamType || isUpdatingExamType || isDeletingExamType,
+      isSaving: isDeletingExamType,
       showAlertBanner: isLoadingExamTypesError,
       showProgressBars: isFetchingExamTypes,
     },
@@ -234,19 +262,21 @@ const ExamTypeTable = () => {
 function useCreateExamType() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (examTypeData: ExamTypeFormData) => {
-      return await api.ExamTypes.createExamType(examTypeData);
-    },
+    mutationFn: (examTypeData: ExamTypeFormData) => api.ExamTypes.createExamType(examTypeData),
     onSuccess: (createdExamType) => {
       notifications.show({
         title: 'Success!',
-        message: `${createdExamType.typeName} created successfully.`,
+        message: `Exam Type "${createdExamType.typeName}" created successfully.`,
         color: 'teal',
       });
-      queryClient.setQueryData(
-        ['examTypes'],
-        (prevExamTypes: any) => [...prevExamTypes, createdExamType] as IExamType[]
-      );
+      queryClient.invalidateQueries({ queryKey: ['examTypes'] });
+    },
+    onError: (error: any) => {
+      notifications.show({
+        title: 'Creation Failed',
+        message: error.response?.data?.message || 'Failed to create exam type.',
+        color: 'red',
+      });
     },
   });
 }
@@ -278,34 +308,19 @@ function useUpdateExamType() {
       }
       return newValues;
     },
-    onMutate: async (updatedExamTypeInfo) => {
-      await queryClient.cancelQueries({ queryKey: ['examTypes'] });
-      const previousExamTypes = queryClient.getQueryData(['examTypes']);
-      queryClient.setQueryData(['examTypes'], (prevExamTypes: any) =>
-        prevExamTypes?.map((prevExamType: IExamType) =>
-          prevExamType.id === updatedExamTypeInfo.newValues.id
-            ? updatedExamTypeInfo.newValues
-            : prevExamType
-        )
-      );
-      return { previousExamTypes };
+    onSuccess: (updatedExamType) => {
+      notifications.show({
+        title: 'Success!',
+        message: `Exam Type "${updatedExamType.typeName}" updated successfully.`,
+        color: 'teal',
+      });
+      queryClient.invalidateQueries({ queryKey: ['examTypes'] });
     },
-    onError: (err, updatedExamTypeInfo, context) => {
+    onError: () => {
       notifications.show({
         title: 'Update Failed',
         message: 'Could not update exam type. Please try again.',
         color: 'red',
-      });
-      queryClient.setQueryData(['examTypes'], context?.previousExamTypes);
-    },
-    onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ['examTypes'] });
-    },
-    onSuccess: (updatedExamType) => {
-      notifications.show({
-        title: 'Success!',
-        message: `${updatedExamType.typeName} updated successfully.`,
-        color: 'teal',
       });
     },
   });
@@ -314,24 +329,22 @@ function useUpdateExamType() {
 function useDeleteExamType() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (examTypeId: number) => {
-      await api.ExamTypes.deleteExamType(examTypeId);
-      return examTypeId;
-    },
-    onMutate: (examTypeId: number) => {
-      queryClient.setQueryData(['examTypes'], (prevExamTypes: any) =>
-        prevExamTypes?.filter((examType: IExamType) => examType.id !== examTypeId)
-      );
-    },
-    onSuccess: (deletedExamTypeId) => {
+    mutationFn: (examTypeId: number) =>
+      api.ExamTypes.deleteExamType(examTypeId).then(() => examTypeId),
+    onSuccess: () => {
       notifications.show({
         title: 'Success!',
-        message: `Exam type with ID ${deletedExamTypeId} deleted successfully.`,
+        message: `Exam type successfully deleted.`,
         color: 'teal',
       });
-    },
-    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['examTypes'] });
+    },
+    onError: () => {
+      notifications.show({
+        title: 'Deletion Failed',
+        message: 'Could not delete exam type. Please try again.',
+        color: 'red',
+      });
     },
   });
 }
@@ -354,11 +367,12 @@ const ExamTypePage = () => {
 
 export default ExamTypePage;
 
-const validateRequired = (value: string) => !!value.length;
+const validateRequired = (value: string) => !!value.trim().length;
 
-function validateExamType(examType: IExamType) {
-  return {
-    typeName: !validateRequired(examType.typeName) ? 'Exam Type Name is required' : '',
-    description: '',
-  };
+function validateExamType(examType: ExamTypeFormData) {
+  const errors: { typeName?: string } = {};
+  if (!validateRequired(examType.typeName)) {
+    errors.typeName = 'Exam Type Name is required';
+  }
+  return errors;
 }

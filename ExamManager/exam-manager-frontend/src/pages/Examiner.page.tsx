@@ -1,8 +1,9 @@
 import '@mantine/core/styles.css';
 import '@mantine/dates/styles.css';
 import 'mantine-react-table/styles.css';
+import '@mantine/notifications/styles.css';
 
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { IconEdit, IconTrash } from '@tabler/icons-react';
 import {
   QueryClient,
@@ -13,20 +14,18 @@ import {
 } from '@tanstack/react-query';
 import {
   MantineReactTable,
-  MRT_EditActionButtons,
   useMantineReactTable,
   type MRT_ColumnDef,
   type MRT_Row,
-  type MRT_TableOptions,
 } from 'mantine-react-table';
-import { ActionIcon, Button, Flex, Stack, Text, Title, Tooltip } from '@mantine/core';
+import { ActionIcon, Button, Flex, Stack, Text, TextInput, Title, Tooltip } from '@mantine/core';
+import { DateInput } from '@mantine/dates';
+import { useForm } from '@mantine/form';
 import { modals, ModalsProvider } from '@mantine/modals';
 import { Notifications, notifications } from '@mantine/notifications';
 import api from '../api/api';
 import { Skeleton } from '../components/Skeleton';
 import { ExaminerFormData, IExaminer } from '../interfaces/IExaminer';
-
-import '@mantine/notifications/styles.css';
 
 interface JsonPatchOperation {
   op: 'replace' | 'add' | 'remove' | 'copy' | 'move' | 'test';
@@ -40,11 +39,10 @@ const generatePatchDocument = (oldData: IExaminer, newData: IExaminer): JsonPatc
   for (const key in newData) {
     if (Object.hasOwn(newData, key) && (newData as any)[key] !== (oldData as any)[key]) {
       let val = (newData as any)[key];
-
+      // Ensure date is in ISO format for the backend
       if (key === 'dateOfBirth' && val) {
         val = new Date(val).toISOString();
       }
-
       patch.push({
         op: 'replace',
         path: `/${key}`,
@@ -55,146 +53,196 @@ const generatePatchDocument = (oldData: IExaminer, newData: IExaminer): JsonPatc
   return patch;
 };
 
-const ExaminerTable = () => {
-  const [validationErrors, setValidationErrors] = useState<Record<string, string | undefined>>({});
+const CreateExaminerForm = () => {
+  const { data: fetchedExaminers = [] } = useGetExaminers();
+  const { mutateAsync: createExaminer } = useCreateExaminer();
 
-  const columns = useMemo<MRT_ColumnDef<IExaminer>[]>(
-    () => [
-      {
-        accessorKey: 'id',
-        header: 'ID',
-        enableEditing: false,
-        enableCreating: false,
-        size: 80,
-      },
-      {
-        accessorKey: 'firstName',
-        header: 'First Name',
-        mantineEditTextInputProps: {
-          required: true,
-          errors: validationErrors?.firstName,
-          onFocus: () => setValidationErrors({ ...validationErrors, firstName: undefined }),
-        },
-      },
-      {
-        accessorKey: 'lastName',
-        header: 'Last Name',
-        mantineEditTextInputProps: {
-          required: true,
-          errors: validationErrors?.lastName,
-          onFocus: () => setValidationErrors({ ...validationErrors, lastName: undefined }),
-        },
-      },
-      {
-        accessorKey: 'dateOfBirth',
-        header: 'Date of Birth',
-        Cell: ({ cell }) => new Date(cell.getValue<string>()).toLocaleDateString('en-CA'),
-        mantineEditTextInputProps: {
-          required: true,
-          errors: validationErrors?.dateOfBirth,
-          onFocus: () => setValidationErrors({ ...validationErrors, dateOfBirth: undefined }),
-        },
-      },
-      {
-        accessorKey: 'email',
-        header: 'Email',
-        mantineEditTextInputProps: {
-          type: 'email',
-          required: true,
-          errors: validationErrors?.email,
-          onFocus: () => setValidationErrors({ ...validationErrors, email: undefined }),
-        },
-      },
-      {
-        accessorKey: 'phone',
-        header: 'Phone',
-        mantineEditTextInputProps: {
-          type: 'tel',
-          required: true,
-          errors: validationErrors?.phone,
-          onFocus: () => setValidationErrors({ ...validationErrors, phone: undefined }),
-        },
-      },
-      {
-        accessorKey: 'identityCardNumber',
-        header: 'ID Card Number',
-        mantineEditTextInputProps: {
-          required: true,
-          errors: validationErrors?.idCardNumber,
-          onFocus: () => setValidationErrors({ ...validationErrors, idCardNumber: undefined }),
-        },
-      },
-    ],
-    [validationErrors]
+  const form = useForm<ExaminerFormData>({
+    initialValues: {
+      firstName: '',
+      lastName: '',
+      dateOfBirth: '',
+      email: '',
+      phone: '',
+      identityCardNumber: '',
+    },
+    validate: validateExaminer,
+    validateInputOnBlur: true,
+  });
+
+  const handleSubmit = form.onSubmit(async (values) => {
+    // Check for duplicate ID card number
+    const isDuplicate = fetchedExaminers.some(
+      (examiner) =>
+        examiner.identityCardNumber.toLowerCase() === values.identityCardNumber.toLowerCase()
+    );
+    if (isDuplicate) {
+      form.setFieldError(
+        'identityCardNumber',
+        'An examiner with this ID card number already exists.'
+      );
+      return;
+    }
+    await createExaminer(values);
+    modals.close('create-examiner');
+  });
+
+  return (
+    <form onSubmit={handleSubmit}>
+      <Stack>
+        <TextInput label="First Name" {...form.getInputProps('firstName')} required />
+        <TextInput label="Last Name" {...form.getInputProps('lastName')} required />
+        <DateInput
+          label="Date of Birth"
+          valueFormat="YYYY-MM-DD"
+          {...form.getInputProps('dateOfBirth')}
+          required
+        />
+        <TextInput label="Email" type="email" {...form.getInputProps('email')} required />
+        <TextInput label="Phone" type="tel" {...form.getInputProps('phone')} required />
+        <TextInput label="ID Card Number" {...form.getInputProps('identityCardNumber')} required />
+        <Flex justify="flex-end" mt="xl">
+          <Button type="submit" mr="xs">
+            Create
+          </Button>
+          <Button variant="outline" onClick={() => modals.close('create-examiner')}>
+            Cancel
+          </Button>
+        </Flex>
+      </Stack>
+    </form>
   );
+};
 
-  const { mutateAsync: createExaminer, isPending: isCreatingExaminer } = useCreateExaminer();
+const EditExaminerForm = ({ initialExaminer }: { initialExaminer: IExaminer }) => {
+  const { data: fetchedExaminers = [] } = useGetExaminers();
+  const { mutateAsync: updateExaminer } = useUpdateExaminer();
+
+  const form = useForm<ExaminerFormData>({
+    initialValues: {
+      firstName: initialExaminer.firstName,
+      lastName: initialExaminer.lastName,
+      dateOfBirth: initialExaminer.dateOfBirth,
+      email: initialExaminer.email,
+      phone: initialExaminer.phone,
+      identityCardNumber: initialExaminer.identityCardNumber,
+    },
+    validate: validateExaminer,
+    validateInputOnBlur: true,
+  });
+
+  const handleSubmit = form.onSubmit(async (values) => {
+    // Check for duplicate ID card number, excluding the current examiner
+    const isDuplicate = fetchedExaminers.some(
+      (examiner) =>
+        examiner.id !== initialExaminer.id &&
+        examiner.identityCardNumber.toLowerCase() === values.identityCardNumber.toLowerCase()
+    );
+    if (isDuplicate) {
+      form.setFieldError(
+        'identityCardNumber',
+        'An examiner with this ID card number already exists.'
+      );
+      return;
+    }
+    const newValues: IExaminer = { ...initialExaminer, ...values };
+    await updateExaminer({ newValues, oldValues: initialExaminer });
+    modals.close('edit-examiner');
+  });
+
+  return (
+    <form onSubmit={handleSubmit}>
+      <Stack>
+        <TextInput label="First Name" {...form.getInputProps('firstName')} required />
+        <TextInput label="Last Name" {...form.getInputProps('lastName')} required />
+        <DateInput
+          label="Date of Birth"
+          valueFormat="YYYY-MM-DD"
+          {...form.getInputProps('dateOfBirth')}
+          required
+        />
+        <TextInput label="Email" type="email" {...form.getInputProps('email')} required />
+        <TextInput label="Phone" type="tel" {...form.getInputProps('phone')} required />
+        <TextInput label="ID Card Number" {...form.getInputProps('identityCardNumber')} required />
+        <Flex justify="flex-end" mt="xl">
+          <Button type="submit" mr="xs">
+            Save
+          </Button>
+          <Button variant="outline" onClick={() => modals.close('edit-examiner')}>
+            Cancel
+          </Button>
+        </Flex>
+      </Stack>
+    </form>
+  );
+};
+
+const ExaminerTable = () => {
   const {
     data: fetchedExaminers = [],
     isError: isLoadingExaminersError,
     isFetching: isFetchingExaminers,
     isLoading: isLoadingExaminers,
   } = useGetExaminers();
-  const { mutateAsync: updateExaminer, isPending: isUpdatingExaminer } = useUpdateExaminer();
   const { mutateAsync: deleteExaminer, isPending: isDeletingExaminer } = useDeleteExaminer();
 
-  const handleCreateExaminer: MRT_TableOptions<IExaminer>['onCreatingRowSave'] = async ({
-    values,
-    exitCreatingMode,
-  }) => {
-    const newValidationErrors = validateExaminer(values);
+  const columns = useMemo<MRT_ColumnDef<IExaminer>[]>(
+    () => [
+      {
+        accessorKey: 'id',
+        header: 'ID',
+        size: 80,
+      },
+      {
+        accessorKey: 'firstName',
+        header: 'First Name',
+      },
+      {
+        accessorKey: 'lastName',
+        header: 'Last Name',
+      },
+      {
+        accessorKey: 'dateOfBirth',
+        header: 'Date of Birth',
+        Cell: ({ cell }) => new Date(cell.getValue<string>()).toLocaleDateString('en-CA'),
+      },
+      {
+        accessorKey: 'email',
+        header: 'Email',
+      },
+      {
+        accessorKey: 'phone',
+        header: 'Phone',
+      },
+      {
+        accessorKey: 'identityCardNumber',
+        header: 'ID Card Number',
+      },
+    ],
+    []
+  );
 
-    const isDuplicate = fetchedExaminers.some(
-      (examiner) => examiner.identityCardNumber.toLowerCase() === values.identityCardNumber.toLowerCase()
-    );
+  const openCreateModal = () =>
+    modals.open({
+      id: 'create-examiner',
+      title: <Title order={3}>Create New Examiner</Title>,
+      children: <CreateExaminerForm />,
+    });
 
-    if (isDuplicate) {
-      notifications.show({
-        title: 'Creation Failed',
-        message:
-          'An examiner with this ID card number already exists. Please use a different ID card number.',
-        color: 'red',
-      });
-      setValidationErrors({
-        ...validationErrors,
-        identityCardNumber: 'An examiner with this ID card number already exists.',
-      });
-      return;
-    }
-
-    if (Object.values(newValidationErrors).some((error) => error)) {
-      setValidationErrors(newValidationErrors);
-      return;
-    }
-
-    setValidationErrors({});
-    await createExaminer(values as ExaminerFormData);
-    exitCreatingMode();
-  };
-
-  const handleSaveExaminer: MRT_TableOptions<IExaminer>['onEditingRowSave'] = async ({
-    values,
-    row,
-    table,
-  }) => {
-    const newValidationErrors = validateExaminer(values);
-    if (Object.values(newValidationErrors).some((error) => error)) {
-      setValidationErrors(newValidationErrors);
-      return;
-    }
-    setValidationErrors({});
-
-    const oldValues = row.original as IExaminer;
-    await updateExaminer({ newValues: values, oldValues });
-    table.setEditingRow(null);
-  };
+  const openEditModal = (examiner: IExaminer) =>
+    modals.open({
+      id: 'edit-examiner',
+      title: <Title order={3}>Edit Examiner</Title>,
+      children: <EditExaminerForm initialExaminer={examiner} />,
+    });
 
   const openDeleteConfirmModal = (row: MRT_Row<IExaminer>) =>
     modals.openConfirmModal({
       title: 'Are you sure you want to delete this examiner?',
       children: (
         <Text>
-          Are you sure you want to delete {row.original.identityCardNumber}? This action cannot be undone.
+          Are you sure you want to delete {row.original.firstName} {row.original.lastName}? This
+          action cannot be undone.
         </Text>
       ),
       labels: { confirm: 'Delete', cancel: 'Cancel' },
@@ -205,9 +253,8 @@ const ExaminerTable = () => {
   const table = useMantineReactTable({
     columns,
     data: fetchedExaminers,
-    createDisplayMode: 'modal',
-    editDisplayMode: 'modal',
-    enableEditing: true,
+    enableEditing: false, // Editing is handled by our custom modal
+    enableRowActions: true,
     getRowId: (row) => String(row.id),
     mantineToolbarAlertBannerProps: isLoadingExaminersError
       ? {
@@ -220,56 +267,39 @@ const ExaminerTable = () => {
         minHeight: '500px',
       },
     },
-    onCreatingRowCancel: () => setValidationErrors({}),
-    onCreatingRowSave: handleCreateExaminer,
-    onEditingRowCancel: () => setValidationErrors({}),
-    onEditingRowSave: handleSaveExaminer,
-    renderCreateRowModalContent: ({ table, row, internalEditComponents }) => (
-      <Stack>
-        <Title order={3}>Create New Examiner</Title>
-        {internalEditComponents}
-        <Flex justify="flex-end" mt="xl">
-          <MRT_EditActionButtons variant="text" table={table} row={row} />
-        </Flex>
-      </Stack>
-    ),
-    renderEditRowModalContent: ({ table, row, internalEditComponents }) => (
-      <Stack>
-        <Title order={3}>Edit Examiner</Title>
-        {internalEditComponents}
-        <Flex justify="flex-end" mt="xl">
-          <MRT_EditActionButtons variant="text" table={table} row={row} />
-        </Flex>
-      </Stack>
-    ),
-    renderRowActions: ({ row, table }) => (
+    positionActionsColumn: 'first',
+    renderRowActions: ({ row }) => (
       <Flex gap="md">
         <Tooltip label="Edit">
-          <ActionIcon radius="md" onClick={() => table.setEditingRow(row)}>
+          <ActionIcon
+            color="blue"
+            variant="filled"
+            radius="md"
+            onClick={() => openEditModal(row.original)}
+          >
             <IconEdit />
           </ActionIcon>
         </Tooltip>
         <Tooltip label="Delete">
-          <ActionIcon color="red" radius="md" onClick={() => openDeleteConfirmModal(row)}>
+          <ActionIcon
+            color="red"
+            variant="filled"
+            radius="md"
+            onClick={() => openDeleteConfirmModal(row)}
+          >
             <IconTrash />
           </ActionIcon>
         </Tooltip>
       </Flex>
     ),
-    renderTopToolbarCustomActions: ({ table }) => (
-      <Button
-        variant="outline"
-        radius="md"
-        onClick={() => {
-          table.setCreatingRow(true);
-        }}
-      >
+    renderTopToolbarCustomActions: () => (
+      <Button variant="outline" radius="md" onClick={openCreateModal}>
         Create New Entry
       </Button>
     ),
     state: {
       isLoading: isLoadingExaminers,
-      isSaving: isCreatingExaminer || isUpdatingExaminer || isDeletingExaminer,
+      isSaving: isDeletingExaminer, // We only show saving state on delete now
       showAlertBanner: isLoadingExaminersError,
       showProgressBars: isFetchingExaminers,
     },
@@ -281,19 +311,25 @@ const ExaminerTable = () => {
 function useCreateExaminer() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (examinerData: ExaminerFormData) => {
-      return await api.Examiners.createExaminer(examinerData);
-    },
+    mutationFn: (examinerData: ExaminerFormData) => api.Examiners.createExaminer(examinerData),
     onSuccess: (createExaminer) => {
       notifications.show({
         title: 'Success!',
-        message: `${createExaminer.identityCardNumber} created successfully.`,
+        message: `Examiner "${createExaminer.firstName} ${createExaminer.lastName}" created successfully.`,
         color: 'teal',
       });
-      queryClient.setQueryData(
-        ['examiners'],
-        (prevExaminer: any) => [...prevExaminer, createExaminer] as IExaminer[]
-      );
+      // Optimistically update the query data
+      queryClient.setQueryData(['examiners'], (prevExaminers: IExaminer[] = []) => [
+        ...prevExaminers,
+        createExaminer,
+      ]);
+    },
+    onError: (error: any) => {
+      notifications.show({
+        title: 'Creation Failed',
+        message: error.response?.data?.message || 'Failed to create examiner. Please try again.',
+        color: 'red',
+      });
     },
   });
 }
@@ -327,23 +363,25 @@ function useUpdateExaminer() {
     },
     onMutate: async (updatedExaminerInfo) => {
       await queryClient.cancelQueries({ queryKey: ['examiners'] });
-      const previousExaminers = queryClient.getQueryData(['examiners']);
-      queryClient.setQueryData(['examiners'], (prevExaminers: any) =>
-        prevExaminers?.map((prevExaminer: IExaminer) =>
-          prevExaminer.id === updatedExaminerInfo.newValues.id
+      const previousExaminers = queryClient.getQueryData<IExaminer[]>(['examiners']);
+      queryClient.setQueryData(['examiners'], (prevExaminers: IExaminer[] = []) =>
+        prevExaminers.map((examiner) =>
+          examiner.id === updatedExaminerInfo.newValues.id
             ? updatedExaminerInfo.newValues
-            : prevExaminer
+            : examiner
         )
       );
       return { previousExaminers };
     },
-    onError: (err, updatedExaminerInfo, context) => {
+    onError: (_err, _updatedExaminerInfo, context) => {
       notifications.show({
         title: 'Update Failed',
         message: 'Could not update examiner. Please try again.',
         color: 'red',
       });
-      queryClient.setQueryData(['examiners'], context?.previousExaminers);
+      if (context?.previousExaminers) {
+        queryClient.setQueryData(['examiners'], context.previousExaminers);
+      }
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['examiners'] });
@@ -351,7 +389,7 @@ function useUpdateExaminer() {
     onSuccess: (updatedExaminer) => {
       notifications.show({
         title: 'Success!',
-        message: `${updatedExaminer.identityCardNumber} updated successfully.`,
+        message: `Examiner "${updatedExaminer.firstName} ${updatedExaminer.lastName}" updated successfully.`,
         color: 'teal',
       });
     },
@@ -361,21 +399,32 @@ function useUpdateExaminer() {
 function useDeleteExaminer() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (examinerId: number) => {
-      await api.Examiners.deleteExaminer(examinerId);
-      return examinerId;
-    },
-    onMutate: (examinerId: number) => {
-      queryClient.setQueryData(['examiners'], (prevExaminers: any) =>
-        prevExaminers?.filter((examiner: IExaminer) => examiner.id !== examinerId)
+    mutationFn: (examinerId: number) =>
+      api.Examiners.deleteExaminer(examinerId).then(() => examinerId),
+    onMutate: async (examinerId: number) => {
+      await queryClient.cancelQueries({ queryKey: ['examiners'] });
+      const previousExaminers = queryClient.getQueryData<IExaminer[]>(['examiners']);
+      queryClient.setQueryData(['examiners'], (prevExaminers: IExaminer[] = []) =>
+        prevExaminers.filter((examiner) => examiner.id !== examinerId)
       );
+      return { previousExaminers };
     },
-    onSuccess: (deletedExaminerId) => {
+    onSuccess: () => {
       notifications.show({
         title: 'Success!',
-        message: `Examiner with ID ${deletedExaminerId} successfully deleted.`,
+        message: `Examiner successfully deleted.`,
         color: 'teal',
       });
+    },
+    onError: (_err, _examinerId, context) => {
+      notifications.show({
+        title: 'Deletion Failed',
+        message: 'Could not delete examiner. Please try again.',
+        color: 'red',
+      });
+      if (context?.previousExaminers) {
+        queryClient.setQueryData(['examiners'], context.previousExaminers);
+      }
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['examiners'] });
@@ -385,56 +434,63 @@ function useDeleteExaminer() {
 
 const queryClient = new QueryClient();
 
-const ExaminerPage = () => {
-  return (
-    <QueryClientProvider client={queryClient}>
-      <ModalsProvider>
-        <Notifications />
-        <Skeleton>
-          <Title order={2}>Examiners</Title>
-          <ExaminerTable />
-        </Skeleton>
-      </ModalsProvider>
-    </QueryClientProvider>
-  );
-};
+const ExaminerPage = () => (
+  <QueryClientProvider client={queryClient}>
+    <ModalsProvider>
+      <Notifications />
+      <Skeleton>
+        <Title order={2}>Examiners</Title>
+        <ExaminerTable />
+      </Skeleton>
+    </ModalsProvider>
+  </QueryClientProvider>
+);
 
 export default ExaminerPage;
 
-const validateRequired = (value: string) => !!value.length;
+const validateRequired = (value: string) => !!value.trim().length;
 
 const validateDate = (dateString: string) => {
-  if (!dateString.length) {
-    return false;
-  }
+  if (!dateString) return false;
   const date = new Date(dateString);
   return !isNaN(date.getTime()) && date.toString() !== 'Invalid Date';
 };
 
 const validateDateRange = (dateString: string) => {
-  if (!validateDate(dateString)) {
-    return false;
-  }
+  if (!validateDate(dateString)) return false;
   const date = new Date(dateString);
   const now = new Date();
   const minAge = new Date(now.getFullYear() - 120, now.getMonth(), now.getDate());
-
-  return date >= minAge && date <= now;
+  return date >= minAge && date < now; // Should be in the past
 };
 
-function validateExaminer(examiner: IExaminer) {
-  return {
-    firstName: !validateRequired(examiner.firstName) ? 'First name is required' : '',
-    lastName: !validateRequired(examiner.lastName) ? 'Last name is required' : '',
-    dateOfBirth: !validateRequired(examiner.dateOfBirth)
-      ? 'Date of birth is required'
-      : !validateDate(examiner.dateOfBirth)
-        ? 'Invalid date format'
-        : !validateDateRange(examiner.dateOfBirth)
-          ? 'Date must be a valid past date'
-          : '',
-    email: !validateRequired(examiner.email) ? 'Email is required' : '',
-    phone: !validateRequired(examiner.phone) ? 'Phone is required' : '',
-    identityCardNumber: !validateRequired(examiner.identityCardNumber) ? 'ID card number is required' : '',
-  };
+function validateExaminer(examiner: ExaminerFormData) {
+  const errors: Record<string, string> = {};
+
+  if (!validateRequired(examiner.firstName)) {
+    errors.firstName = 'First name is required';
+  }
+  if (!validateRequired(examiner.lastName)) {
+    errors.lastName = 'Last name is required';
+  }
+  if (!validateRequired(examiner.dateOfBirth)) {
+    errors.dateOfBirth = 'Date of birth is required';
+  } else if (!validateDate(examiner.dateOfBirth)) {
+    errors.dateOfBirth = 'Invalid date format';
+  } else if (!validateDateRange(examiner.dateOfBirth)) {
+    errors.dateOfBirth = 'Date must be a valid past date';
+  }
+  if (!validateRequired(examiner.email)) {
+    errors.email = 'Email is required';
+  } else if (!/^\S+@\S+\.\S+$/.test(examiner.email)) {
+    errors.email = 'Invalid email address';
+  }
+  if (!validateRequired(examiner.phone)) {
+    errors.phone = 'Phone is required';
+  }
+  if (!validateRequired(examiner.identityCardNumber)) {
+    errors.identityCardNumber = 'ID card number is required';
+  }
+
+  return errors;
 }

@@ -1,8 +1,4 @@
-import '@mantine/core/styles.css';
-import '@mantine/dates/styles.css';
-import 'mantine-react-table/styles.css';
-
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { IconEdit, IconTrash } from '@tabler/icons-react';
 import {
   QueryClient,
@@ -13,20 +9,28 @@ import {
 } from '@tanstack/react-query';
 import {
   MantineReactTable,
-  MRT_EditActionButtons,
   useMantineReactTable,
   type MRT_ColumnDef,
   type MRT_Row,
-  type MRT_TableOptions,
 } from 'mantine-react-table';
-import { ActionIcon, Button, Flex, Stack, Text, Title, Tooltip } from '@mantine/core';
+import {
+  ActionIcon,
+  Button,
+  Flex,
+  Group,
+  MantineProvider,
+  Stack,
+  Text,
+  TextInput,
+  Title,
+  Tooltip,
+} from '@mantine/core';
+import { useForm } from '@mantine/form';
 import { modals, ModalsProvider } from '@mantine/modals';
 import { Notifications, notifications } from '@mantine/notifications';
 import { IInstitution, InstitutionFormData } from '@/interfaces/IInstitution';
-import api from '../api/api';
 import { Skeleton } from '../components/Skeleton';
-
-import '@mantine/notifications/styles.css';
+import api from '../api/api';
 
 interface JsonPatchOperation {
   op: 'replace' | 'add' | 'remove' | 'copy' | 'move' | 'test';
@@ -40,176 +44,201 @@ const generatePatchDocument = (
   newData: IInstitution
 ): JsonPatchOperation[] => {
   const patch: JsonPatchOperation[] = [];
-  for (const key in newData) {
-    if (Object.hasOwn(newData, key) && (newData as any)[key] !== (oldData as any)[key]) {
+  const newComparableData = { ...newData, zipCode: Number(newData.zipCode) };
+
+  for (const key in newComparableData) {
+    if (
+      Object.hasOwn(newComparableData, key) &&
+      (newComparableData as any)[key] !== (oldData as any)[key]
+    ) {
       patch.push({
         op: 'replace',
         path: `/${key}`,
-        value: (newData as any)[key],
+        value: (newComparableData as any)[key],
       });
     }
   }
   return patch;
 };
 
-const InstitutionTable = () => {
-  const [validationErrors, setValidationErrors] = useState<Record<string, string | undefined>>({});
+const CreateInstitutionForm = () => {
+  const { data: fetchedInstitutions = [] } = useGetInstitutions();
+  const { mutateAsync: createInstitution } = useCreateInstitution();
 
-  const columns = useMemo<MRT_ColumnDef<IInstitution>[]>(
-    () => [
-      {
-        accessorKey: 'id',
-        header: 'ID',
-        enableEditing: false,
-        enableCreating: false,
-        size: 80,
-      },
-      {
-        accessorKey: 'name',
-        header: 'Name',
-        mantineEditTextInputProps: {
-          required: true,
-          errors: validationErrors?.name,
-          onFocus: () => setValidationErrors({ ...validationErrors, name: undefined }),
-        },
-      },
-      {
-        accessorKey: 'educationalId',
-        header: 'Educational ID',
-        mantineEditTextInputProps: {
-          required: true,
-          errors: validationErrors?.educationalId,
-          onFocus: () => setValidationErrors({ ...validationErrors, educationalId: undefined }),
-        },
-      },
-      {
-        accessorKey: 'zipCode',
-        header: 'Zip Code',
-        mantineEditTextInputProps: {
-          required: true,
-          errors: validationErrors?.zipCode,
-          onFocus: () => setValidationErrors({ ...validationErrors, zipCode: undefined }),
-        },
-      },
-      {
-        accessorKey: 'town',
-        header: 'Town',
-        mantineEditTextInputProps: {
-          required: true,
-          errors: validationErrors?.town,
-          onFocus: () => setValidationErrors({ ...validationErrors, town: undefined }),
-        },
-      },
-      {
-        accessorKey: 'street',
-        header: 'Street',
-        mantineEditTextInputProps: {
-          required: true,
-          errors: validationErrors?.street,
-          onFocus: () => setValidationErrors({ ...validationErrors, street: undefined }),
-        },
-      },
-      {
-        accessorKey: 'number',
-        header: 'Number',
-        mantineEditTextInputProps: {
-          required: true,
-          errors: validationErrors?.number,
-          onFocus: () => setValidationErrors({ ...validationErrors, number: undefined }),
-        },
-      },
-      {
-        accessorKey: 'floor',
-        header: 'Floor',
-        mantineEditTextInputProps: {
-          errors: validationErrors?.floor,
-          onFocus: () => setValidationErrors({ ...validationErrors, floor: undefined }),
-        },
-      },
-      {
-        accessorKey: 'door',
-        header: 'Door',
-        mantineEditTextInputProps: {
-          errors: validationErrors?.door,
-          onFocus: () => setValidationErrors({ ...validationErrors, door: undefined }),
-        },
-      },
-    ],
-    [validationErrors]
+  const form = useForm<InstitutionFormData>({
+    initialValues: {
+      name: '',
+      educationalId: '',
+      zipCode: 0,
+      town: '',
+      street: '',
+      number: '',
+      floor: '',
+      door: '',
+    },
+    validate: validateInstitution,
+    validateInputOnBlur: true,
+  });
+
+  const handleSubmit = form.onSubmit(async (values) => {
+    const isDuplicate = fetchedInstitutions.some(
+      (inst) => inst.educationalId.toLowerCase() === values.educationalId.toLowerCase()
+    );
+    if (isDuplicate) {
+      form.setFieldError(
+        'educationalId',
+        'An institution with this educational ID already exists.'
+      );
+      return;
+    }
+    await createInstitution(values);
+    modals.close('create-institution');
+  });
+
+  return (
+    <form onSubmit={handleSubmit}>
+      <Stack>
+        <TextInput label="Name" {...form.getInputProps('name')} required />
+        <TextInput label="Educational ID" {...form.getInputProps('educationalId')} required />
+        <Group grow>
+          <TextInput label="Zip Code" type="number" {...form.getInputProps('zipCode')} required />
+          <TextInput label="Town" {...form.getInputProps('town')} required />
+        </Group>
+        <Group grow>
+          <TextInput label="Street" {...form.getInputProps('street')} required />
+          <TextInput label="Number" {...form.getInputProps('number')} required />
+        </Group>
+        <Group grow>
+          <TextInput label="Floor" {...form.getInputProps('floor')} />
+          <TextInput label="Door" {...form.getInputProps('door')} />
+        </Group>
+        <Flex justify="flex-end" mt="xl">
+          <Button type="submit" mr="xs">
+            Create
+          </Button>
+          <Button variant="outline" onClick={() => modals.close('create-institution')}>
+            Cancel
+          </Button>
+        </Flex>
+      </Stack>
+    </form>
   );
+};
 
-  const { mutateAsync: createInstitution, isPending: isCreatingInstitution } =
-    useCreateInstitution();
+const EditInstitutionForm = ({ initialInstitution }: { initialInstitution: IInstitution }) => {
+  const { data: fetchedInstitutions = [] } = useGetInstitutions();
+  const { mutateAsync: updateInstitution } = useUpdateInstitution();
+
+  const form = useForm<InstitutionFormData>({
+    initialValues: {
+      name: initialInstitution.name,
+      educationalId: initialInstitution.educationalId,
+      zipCode: initialInstitution.zipCode,
+      town: initialInstitution.town,
+      street: initialInstitution.street,
+      number: initialInstitution.number,
+      floor: initialInstitution.floor || '',
+      door: initialInstitution.door || '',
+    },
+    validate: validateInstitution,
+    validateInputOnBlur: true,
+  });
+
+  const handleSubmit = form.onSubmit(async (values) => {
+    const isDuplicate = fetchedInstitutions.some(
+      (inst) =>
+        inst.id !== initialInstitution.id &&
+        inst.educationalId.toLowerCase() === values.educationalId.toLowerCase()
+    );
+    if (isDuplicate) {
+      form.setFieldError(
+        'educationalId',
+        'An institution with this educational ID already exists.'
+      );
+      return;
+    }
+    const newValues: IInstitution = {
+      ...initialInstitution,
+      ...values,
+      zipCode: Number(values.zipCode),
+    };
+    await updateInstitution({ newValues, oldValues: initialInstitution });
+    modals.close('edit-institution');
+  });
+
+  return (
+    <form onSubmit={handleSubmit}>
+      <Stack>
+        <TextInput label="Name" {...form.getInputProps('name')} required />
+        <TextInput label="Educational ID" {...form.getInputProps('educationalId')} required />
+        <Group grow>
+          <TextInput label="Zip Code" type="number" {...form.getInputProps('zipCode')} required />
+          <TextInput label="Town" {...form.getInputProps('town')} required />
+        </Group>
+        <Group grow>
+          <TextInput label="Street" {...form.getInputProps('street')} required />
+          <TextInput label="Number" {...form.getInputProps('number')} required />
+        </Group>
+        <Group grow>
+          <TextInput label="Floor" {...form.getInputProps('floor')} />
+          <TextInput label="Door" {...form.getInputProps('door')} />
+        </Group>
+        <Flex justify="flex-end" mt="xl">
+          <Button type="submit" mr="xs">
+            Save
+          </Button>
+          <Button variant="outline" onClick={() => modals.close('edit-institution')}>
+            Cancel
+          </Button>
+        </Flex>
+      </Stack>
+    </form>
+  );
+};
+
+const InstitutionTable = () => {
   const {
     data: fetchedInstitutions = [],
     isError: isLoadingInstitutionsError,
     isFetching: isFetchingInstitutions,
     isLoading: isLoadingInstitutions,
   } = useGetInstitutions();
-  const { mutateAsync: updateInstitution, isPending: isUpdatingInstitution } =
-    useUpdateInstitution();
   const { mutateAsync: deleteInstitution, isPending: isDeletingInstitution } =
     useDeleteInstitution();
 
-  const handleCreateInstitution: MRT_TableOptions<IInstitution>['onCreatingRowSave'] = async ({
-    values,
-    exitCreatingMode,
-  }) => {
-    const newValidationErrors = validateInstitution(values);
+  const columns = useMemo<MRT_ColumnDef<IInstitution>[]>(
+    () => [
+      { accessorKey: 'id', header: 'ID', size: 80, enableEditing: false },
+      { accessorKey: 'name', header: 'Name' },
+      { accessorKey: 'educationalId', header: 'Educational ID' },
+      { accessorKey: 'zipCode', header: 'Zip Code' },
+      { accessorKey: 'town', header: 'Town' },
+      { accessorKey: 'street', header: 'Street' },
+      { accessorKey: 'number', header: 'Number' },
+    ],
+    []
+  );
 
-    const isDuplicate = fetchedInstitutions.some(
-      (institution) =>
-        institution.educationalId.toLowerCase() === values.educationalId.toLowerCase()
-    );
+  const openCreateModal = () =>
+    modals.open({
+      id: 'create-institution',
+      title: <Title order={3}>Create New Institution</Title>,
+      children: <CreateInstitutionForm />,
+    });
 
-    if (isDuplicate) {
-      notifications.show({
-        title: 'Creation Failed',
-        message:
-          'An institution with this educational ID already exists. Please use a different educational ID.',
-        color: 'red',
-      });
-      setValidationErrors({
-        ...validationErrors,
-        educationalId: 'An institution with this educational ID already exists.',
-      });
-      return;
-    }
-
-    if (Object.values(newValidationErrors).some((error) => error)) {
-      setValidationErrors(newValidationErrors);
-      return;
-    }
-
-    setValidationErrors({});
-    await createInstitution(values as InstitutionFormData);
-    exitCreatingMode();
-  };
-
-  const handleSaveInstitution: MRT_TableOptions<IInstitution>['onEditingRowSave'] = async ({
-    values,
-    row,
-    table,
-  }) => {
-    const newValidationErrors = validateInstitution(values);
-    if (Object.values(newValidationErrors).some((error) => error)) {
-      setValidationErrors(newValidationErrors);
-      return;
-    }
-    setValidationErrors({});
-
-    const oldValues = row.original as IInstitution;
-    await updateInstitution({ newValues: values, oldValues });
-    table.setEditingRow(null);
-  };
+  const openEditModal = (institution: IInstitution) =>
+    modals.open({
+      id: 'edit-institution',
+      title: <Title order={3}>Edit Institution</Title>,
+      children: <EditInstitutionForm initialInstitution={institution} />,
+    });
 
   const openDeleteConfirmModal = (row: MRT_Row<IInstitution>) =>
     modals.openConfirmModal({
       title: 'Are you sure you want to delete this institution?',
       children: (
         <Text>
-          Are you sure you want to delete {row.original.educationalId}? This action cannot be
-          undone.
+          Are you sure you want to delete "{row.original.name}"? This action cannot be undone.
         </Text>
       ),
       labels: { confirm: 'Delete', cancel: 'Cancel' },
@@ -220,71 +249,46 @@ const InstitutionTable = () => {
   const table = useMantineReactTable({
     columns,
     data: fetchedInstitutions,
-    createDisplayMode: 'modal',
-    editDisplayMode: 'modal',
-    enableEditing: true,
+    enableEditing: false, // Custom modal handles editing
+    enableRowActions: true,
     getRowId: (row) => String(row.id),
     mantineToolbarAlertBannerProps: isLoadingInstitutionsError
-      ? {
-          color: 'red',
-          children: 'Error loading data',
-        }
+      ? { color: 'red', children: 'Error loading data' }
       : undefined,
-    mantineTableContainerProps: {
-      style: {
-        minHeight: '500px',
-      },
-    },
-    onCreatingRowCancel: () => setValidationErrors({}),
-    onCreatingRowSave: handleCreateInstitution,
-    onEditingRowCancel: () => setValidationErrors({}),
-    onEditingRowSave: handleSaveInstitution,
-    renderCreateRowModalContent: ({ table, row, internalEditComponents }) => (
-      <Stack>
-        <Title order={3}>Create New Institution</Title>
-        {internalEditComponents}
-        <Flex justify="flex-end" mt="xl">
-          <MRT_EditActionButtons variant="text" table={table} row={row} />
-        </Flex>
-      </Stack>
-    ),
-    renderEditRowModalContent: ({ table, row, internalEditComponents }) => (
-      <Stack>
-        <Title order={3}>Edit Institution</Title>
-        {internalEditComponents}
-        <Flex justify="flex-end" mt="xl">
-          <MRT_EditActionButtons variant="text" table={table} row={row} />
-        </Flex>
-      </Stack>
-    ),
-    renderRowActions: ({ row, table }) => (
+    mantineTableContainerProps: { style: { minHeight: '500px' } },
+    positionActionsColumn: 'first',
+    renderRowActions: ({ row }) => (
       <Flex gap="md">
         <Tooltip label="Edit">
-          <ActionIcon radius="md" onClick={() => table.setEditingRow(row)}>
+          <ActionIcon
+            color="blue"
+            variant="filled"
+            radius="md"
+            onClick={() => openEditModal(row.original)}
+          >
             <IconEdit />
           </ActionIcon>
         </Tooltip>
         <Tooltip label="Delete">
-          <ActionIcon color="red" radius="md" onClick={() => openDeleteConfirmModal(row)}>
+          <ActionIcon
+            color="red"
+            variant="filled"
+            radius="md"
+            onClick={() => openDeleteConfirmModal(row)}
+          >
             <IconTrash />
           </ActionIcon>
         </Tooltip>
       </Flex>
     ),
-    renderTopToolbarCustomActions: ({ table }) => (
-      <Button
-        variant="outline"
-        radius="md"
-        onClick={() => {
-          table.setCreatingRow(true);
-        }}
-      >
+    renderTopToolbarCustomActions: () => (
+      <Button variant="outline" radius="md" onClick={openCreateModal}>
         Create New Entry
       </Button>
     ),
     state: {
       isLoading: isLoadingInstitutions,
-      isSaving: isCreatingInstitution || isUpdatingInstitution || isDeletingInstitution,
+      isSaving: isDeletingInstitution,
       showAlertBanner: isLoadingInstitutionsError,
       showProgressBars: isFetchingInstitutions,
     },
@@ -296,19 +300,22 @@ const InstitutionTable = () => {
 function useCreateInstitution() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (institutionData: InstitutionFormData) => {
-      return await api.Institutions.createInstitution(institutionData);
-    },
+    mutationFn: (institutionData: InstitutionFormData) =>
+      api.Institutions.createInstitution(institutionData),
     onSuccess: (createdInstitution) => {
       notifications.show({
         title: 'Success!',
-        message: `${createdInstitution.educationalId} created successfully.`,
+        message: `Institution "${createdInstitution.name}" created successfully.`,
         color: 'teal',
       });
-      queryClient.setQueryData(
-        ['institutions'],
-        (prevInstitution: any) => [...prevInstitution, createdInstitution] as IInstitution[]
-      );
+      queryClient.invalidateQueries({ queryKey: ['institutions'] });
+    },
+    onError: (error: any) => {
+      notifications.show({
+        title: 'Creation Failed',
+        message: error.response?.data?.message || 'Failed to create institution. Please try again.',
+        color: 'red',
+      });
     },
   });
 }
@@ -316,10 +323,7 @@ function useCreateInstitution() {
 function useGetInstitutions() {
   return useQuery<IInstitution[]>({
     queryKey: ['institutions'],
-    queryFn: async () => {
-      const response = await api.Institutions.getAllInstitutions();
-      return response.data;
-    },
+    queryFn: () => api.Institutions.getAllInstitutions().then((res) => res.data),
     refetchOnWindowFocus: false,
   });
 }
@@ -340,34 +344,19 @@ function useUpdateInstitution() {
       }
       return newValues;
     },
-    onMutate: async (updatedInstitutionInfo) => {
-      await queryClient.cancelQueries({ queryKey: ['institutions'] });
-      const previousInstitutions = queryClient.getQueryData(['institutions']);
-      queryClient.setQueryData(['institutions'], (prevInstitutions: any) =>
-        prevInstitutions?.map((prevInstitution: IInstitution) =>
-          prevInstitution.id === updatedInstitutionInfo.newValues.id
-            ? updatedInstitutionInfo.newValues
-            : prevInstitution
-        )
-      );
-      return { previousInstitutions };
+    onSuccess: (updatedInstitution) => {
+      notifications.show({
+        title: 'Success!',
+        message: `Institution "${updatedInstitution.name}" updated successfully.`,
+        color: 'teal',
+      });
+      queryClient.invalidateQueries({ queryKey: ['institutions'] });
     },
-    onError: (err, updatedInstitutionInfo, context) => {
+    onError: (_err, _vars, context) => {
       notifications.show({
         title: 'Update Failed',
         message: 'Could not update institution. Please try again.',
         color: 'red',
-      });
-      queryClient.setQueryData(['institutions'], context?.previousInstitutions);
-    },
-    onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ['institutions'] });
-    },
-    onSuccess: (updatedInstitution) => {
-      notifications.show({
-        title: 'Success!',
-        message: `${updatedInstitution.educationalId} updated successfully.`,
-        color: 'teal',
       });
     },
   });
@@ -376,32 +365,30 @@ function useUpdateInstitution() {
 function useDeleteInstitution() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (institutionId: number) => {
-      await api.Institutions.deleteInstitution(institutionId);
-      return institutionId;
-    },
-    onMutate: (institutionId: number) => {
-      queryClient.setQueryData(['institutions'], (prevInstitutions: any) =>
-        prevInstitutions?.filter((institution: IInstitution) => institution.id !== institutionId)
-      );
-    },
-    onSuccess: (deletedInstitutionId) => {
+    mutationFn: (institutionId: number) =>
+      api.Institutions.deleteInstitution(institutionId).then(() => institutionId),
+    onSuccess: () => {
       notifications.show({
         title: 'Success!',
-        message: `Institution with ID ${deletedInstitutionId} successfully deleted.`,
+        message: `Institution successfully deleted.`,
         color: 'teal',
       });
-    },
-    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['institutions'] });
+    },
+    onError: (_err, _id, context) => {
+      notifications.show({
+        title: 'Deletion Failed',
+        message: 'Could not delete institution. Please try again.',
+        color: 'red',
+      });
     },
   });
 }
 
 const queryClient = new QueryClient();
 
-const InstitutionPage = () => {
-  return (
+const InstitutionPage = () => (
+  <MantineProvider>
     <QueryClientProvider client={queryClient}>
       <ModalsProvider>
         <Notifications />
@@ -411,20 +398,26 @@ const InstitutionPage = () => {
         </Skeleton>
       </ModalsProvider>
     </QueryClientProvider>
-  );
-};
+  </MantineProvider>
+);
 
 export default InstitutionPage;
 
-const validateRequired = (value: string) => !!value.length;
+const validateRequired = (value: string | number) => {
+  if (typeof value === 'string') return !!value.trim().length;
+  if (typeof value === 'number') return value > 0;
+  return false;
+};
 
-function validateInstitution(institution: IInstitution) {
-  return {
-    name: !validateRequired(institution.name) ? 'Name is required' : '',
-    educationalId: !validateRequired(institution.educationalId) ? 'Educational ID is required' : '',
-    zipCode: !validateRequired(String(institution.zipCode)) ? 'Zip Code is required' : '',
-    town: !validateRequired(institution.town) ? 'Town is required' : '',
-    street: !validateRequired(institution.street) ? 'Street is required' : '',
-    number: !validateRequired(institution.number) ? 'Number is required' : '',
-  };
+function validateInstitution(institution: InstitutionFormData) {
+  const errors: Record<string, string> = {};
+  if (!validateRequired(institution.name)) errors.name = 'Name is required';
+  if (!validateRequired(institution.educationalId))
+    errors.educationalId = 'Educational ID is required';
+  if (!validateRequired(institution.zipCode)) errors.zipCode = 'Zip Code is required';
+  if (!validateRequired(institution.town)) errors.town = 'Town is required';
+  if (!validateRequired(institution.street)) errors.street = 'Street is required';
+  if (!validateRequired(institution.number)) errors.number = 'Number is required';
+
+  return errors;
 }
