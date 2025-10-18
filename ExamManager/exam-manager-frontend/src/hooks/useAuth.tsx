@@ -9,12 +9,6 @@ interface DecodedJwtPayload {
   unique_name: string;
   role: string;
   exp: number;
-  // id: number;
-  // lastName: string;
-  // firstName: string;
-  // userName?: string;
-  // role?: string;
-  // token: string;
 }
 
 const useAuth = () => {

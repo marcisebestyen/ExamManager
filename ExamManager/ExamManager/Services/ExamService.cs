@@ -31,7 +31,7 @@ public class ExamService : IExamService
             if (string.IsNullOrWhiteSpace(createRequest.ExamName) ||
                 string.IsNullOrWhiteSpace(createRequest.ExamCode) ||
                 createRequest.ExamDate == default(DateTime) ||
-                createRequest.ExamDate > DateTime.Now ||
+                createRequest.ExamDate < DateTime.Now ||
                 !Enum.IsDefined(typeof(Status), createRequest.Status) ||
                 createRequest.ProfessionId <= 0 ||
                 createRequest.InstitutionId <= 0 ||
@@ -144,6 +144,32 @@ public class ExamService : IExamService
             _logger.LogError(ex, "Error getting exam with ID {examId}", examId);
             return BaseServiceResponse<ExamResponseDto>.Failed(
                 $"An error occurred while retrieving exam with ID {examId}", "UNEXPECTED_ERROR");
+        }
+    }
+
+    public async Task<BaseServiceResponse<IEnumerable<ExamResponseDto>>> GetAllExamsAsync()
+    {
+        try
+        {
+            string[] includeProperties = new[]
+            {
+                "Profession", "Institution", "ExamType", "Operator", "ExamBoard.Examiner"
+            };
+            
+            var examEntities = await _unitOfWork.ExamRepository.GetAllAsync(includeProperties);
+
+            var examResponseDtos = _mapper.Map<IEnumerable<ExamResponseDto>>(examEntities);
+
+            return BaseServiceResponse<IEnumerable<ExamResponseDto>>.Success(
+                examResponseDtos,
+                "Examiners retrieved successfully.");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving all exams");
+            return BaseServiceResponse<IEnumerable<ExamResponseDto>>.Failed(
+                "An error occured while retrieving exams",
+                "UNEXPECTED_ERROR");
         }
     }
 

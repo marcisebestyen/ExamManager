@@ -1,6 +1,7 @@
 ﻿using AutoMapper;
 using ExamManager.Dtos.InstitutionDtos;
 using ExamManager.Interfaces;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.AspNetCore.Mvc;
 
@@ -8,6 +9,7 @@ namespace ExamManager.Controllers;
 
 [ApiController]
 [Route("api/institutions")]
+[Authorize]
 public class InstitutionController : ControllerBase
 {
     private readonly IInstitutionService _institutionService;
@@ -118,6 +120,7 @@ public class InstitutionController : ControllerBase
     }
 
     [HttpGet("get-institution/{institutionId}")]
+    [AllowAnonymous]
     public async Task<IActionResult> GetInstitutionById(int institutionId)
     {
         var result = await _institutionService.GetInstitutionByIdAsync(institutionId);
@@ -141,6 +144,34 @@ public class InstitutionController : ControllerBase
                         {
                             message = result.Errors.FirstOrDefault() ??
                                       "An unexpected error occurred while retrieving institution."
+                        });
+            }
+        }
+    }
+    
+    [HttpGet("get-all-institutions")]
+    [AllowAnonymous]
+    public async Task<IActionResult> GetAllInstitutions()
+    {
+        var result = await _institutionService.GetAllInstitutionsAsync();
+
+        if (result.Succeeded)
+        {
+            return Ok(result.Data);
+        }
+        else
+        {
+            switch (result.ErrorCode)
+            {
+                case "UNEXPECTED_ERROR":
+                default:
+                    _logger.LogError("Error getting all institutions with errors: {Errors}",
+                        string.Join(", ", result.Errors));
+                    return StatusCode(StatusCodes.Status500InternalServerError,
+                        new
+                        {
+                            message = result.Errors.FirstOrDefault() ??
+                                      "An unexpected error occurred while retrieving institutions."
                         });
             }
         }

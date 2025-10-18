@@ -89,6 +89,27 @@ public class ExamTypeService : IExamTypeService
                 $"An error occured while retrieving exam type with ID {examTypeId}", "UNEXPECTED_ERROR");
         }
     }
+    
+    public async Task<BaseServiceResponse<IEnumerable<ExamTypeResponseDto>>> GetAllExamTypesAsync()
+    {
+        try
+        {
+            var examTypeEntities = await _unitOfWork.ExamTypeRepository.GetAllAsync();
+        
+            var examTypeResponseDtos = _mapper.Map<IEnumerable<ExamTypeResponseDto>>(examTypeEntities);
+        
+            return BaseServiceResponse<IEnumerable<ExamTypeResponseDto>>.Success(
+                examTypeResponseDtos, 
+                "Exam types retrieved successfully.");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving all exam types");
+            return BaseServiceResponse<IEnumerable<ExamTypeResponseDto>>.Failed(
+                "An error occurred while retrieving exam types.", 
+                "UNEXPECTED_ERROR");
+        }
+    }
 
     public async Task<BaseServiceResponse<bool>> UpdateExamTypeAsync(int examTypeId,
         ExamTypeUpdateDto updateRequest)

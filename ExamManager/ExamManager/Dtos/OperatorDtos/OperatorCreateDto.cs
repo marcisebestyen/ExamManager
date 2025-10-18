@@ -18,4 +18,5 @@ public class OperatorCreateDto
     
     [Required(ErrorMessage = "Last name is required")]
     public string LastName { get; set; }
+    public string? Email { get; set; }
 }

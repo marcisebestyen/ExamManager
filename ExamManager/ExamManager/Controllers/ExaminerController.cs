@@ -2,6 +2,7 @@
 using AutoMapper;
 using ExamManager.Dtos.ExaminerDtos;
 using ExamManager.Interfaces;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.AspNetCore.Mvc;
 
@@ -9,6 +10,7 @@ namespace ExamManager.Controllers;
 
 [ApiController]
 [Route("api/examiners")]
+[Authorize]
 public class ExaminerController : ControllerBase
 {
     private readonly IExaminerService _examinerService;
@@ -117,6 +119,7 @@ public class ExaminerController : ControllerBase
     }
 
     [HttpGet("get-examiner/{examinerId}")]
+    [AllowAnonymous]
     public async Task<IActionResult> GetExaminerById(int examinerId)
     {
         var result = await _examinerService.GetExaminerByIdAsync(examinerId);
@@ -140,6 +143,34 @@ public class ExaminerController : ControllerBase
                         {
                             message = result.Errors.FirstOrDefault() ??
                                       "An unexpected error occurred while retrieving examiner."
+                        });
+            }
+        }
+    }
+
+    [HttpGet("get-all-examiners")]
+    [AllowAnonymous]
+    public async Task<IActionResult> GetAllExaminers()
+    {
+        var result = await _examinerService.GetAllExaminersAsync();
+
+        if (result.Succeeded)
+        {
+            return Ok(result.Data);
+        }
+        else
+        {
+            switch (result.ErrorCode)
+            {
+                case "UNEXPECTED_ERROR":
+                default:
+                    _logger.LogError("Error getting all examiners with errors: {Errors}",
+                        string.Join(", ", result.Errors));
+                    return StatusCode(StatusCodes.Status500InternalServerError,
+                        new
+                        {
+                            message = result.Errors.FirstOrDefault() ??
+                                      "An unexpected error occurred while retrieving examiners."
                         });
             }
         }

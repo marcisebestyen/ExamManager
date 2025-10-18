@@ -35,6 +35,7 @@ public class InstitutionService : IInstitutionService
                 createRequest.ZipCode < 0 ||
                 string.IsNullOrWhiteSpace(createRequest.ZipCode.ToString()) ||
                 string.IsNullOrWhiteSpace(createRequest.Town) ||
+                string.IsNullOrWhiteSpace(createRequest.Street) || 
                 string.IsNullOrWhiteSpace(createRequest.Number))
             {
                 return BaseServiceResponse<InstitutionCreateResponseDto>.Failed(
@@ -93,6 +94,27 @@ public class InstitutionService : IInstitutionService
             _logger.LogError(ex, "Error getting institution with ID {id}", institutionId);
             return BaseServiceResponse<InstitutionResponseDto>.Failed(
                 $"An unexpected error occurred while retrieving institution with ID {institutionId}",
+                "UNEXPECTED_ERROR");
+        }
+    }
+
+    public async Task<BaseServiceResponse<IEnumerable<InstitutionResponseDto>>> GetAllInstitutionsAsync()
+    {
+        try
+        {
+            var institutionEntities = await _unitOfWork.InstitutionRepository.GetAllAsync();
+
+            var institutionResponseDtos = _mapper.Map<IEnumerable<InstitutionResponseDto>>(institutionEntities);
+
+            return BaseServiceResponse<IEnumerable<InstitutionResponseDto>>.Success(
+                institutionResponseDtos,
+                "Institutions retrieved successfully.");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving all institutions");
+            return BaseServiceResponse<IEnumerable<InstitutionResponseDto>>.Failed(
+                "An error occured while retrieving institutions",
                 "UNEXPECTED_ERROR");
         }
     }

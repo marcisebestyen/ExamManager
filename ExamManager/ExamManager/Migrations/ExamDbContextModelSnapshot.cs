@@ -306,6 +306,9 @@ namespace ExamManager.Migrations
                     b.Property<int?>("DeletedById")
                         .HasColumnType("integer");
 
+                    b.Property<string>("Email")
+                        .HasColumnType("text");
+
                     b.Property<string>("FirstName")
                         .IsRequired()
                         .HasMaxLength(256)
