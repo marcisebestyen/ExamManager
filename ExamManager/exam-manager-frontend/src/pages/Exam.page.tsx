@@ -611,7 +611,7 @@ const ExamTable = () => {
     ),
     renderTopToolbarCustomActions: () => (
       <Button variant="outline" radius="md" onClick={openCreateModal}>
-        Create New Exam
+        Create New Entry
       </Button>
     ),
     state: {

@@ -48,13 +48,13 @@ function NavbarLink({ icon: Icon, label, path, active, onClick }: NavbarLinkProp
 
 const mockdata = [
   { icon: IconHome, label: 'Home', path: '/' },
-  { icon: IconDashboard, label: 'Dashboard', path: '/dashboard' },
+  // { icon: IconDashboard, label: 'Dashboard', path: '/dashboard' },
   { icon: IconPencilQuestion, label: 'Exams', path: '/exams' },
   { icon: IconUserQuestion, label: 'Examiners', path: '/examiners' },
   { icon: IconClipboardSearch, label: 'Exam Types', path: '/exam-types' },
   { icon: IconBuildings, label: 'Institutions', path: '/institutions' },
   { icon: IconBriefcase2, label: 'Professions', path: '/professions' },
-  { icon: IconUserCog, label: 'Operators', path: '/operators' },
+  // { icon: IconUserCog, label: 'Operators', path: '/operators' },
   { icon: IconSettings, label: 'Settings', path: '/settings' },
 ];
 
