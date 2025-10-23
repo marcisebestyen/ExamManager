@@ -5,12 +5,3 @@
     align-items: center;
     justify-content: center;
 }
-
-.title {
-    color: var(--mantine-color-dark-filled);
-}
-
-.input {
-    background-color: var(--mantine-color-gray-4);
-    color: var(--mantine-color-dark-filled);
-}

@@ -112,7 +112,7 @@ const ExamBoardManager = ({
 
   const examinerOptions = examiners.map((examiner) => ({
     value: examiner.id.toString(),
-    label: `${examiner.id} - ${examiner.firstName} ${examiner.lastName} (${examiner.identityCardNumber})`,
+    label: `${examiner.firstName} ${examiner.lastName} (${examiner.identityCardNumber})`,
   }));
 
   return (
@@ -121,7 +121,8 @@ const ExamBoardManager = ({
         <Text fw={500}>Exam Boards</Text>
         <Button
           leftSection={<IconPlus size={16} />}
-          variant="light"
+          variant="outline"
+          radius='md'
           onClick={addExamBoard}
           size="xs"
         >
@@ -165,7 +166,8 @@ const ExamBoardManager = ({
                 />
                 <ActionIcon
                   color="red"
-                  variant="light"
+                  variant="outline"
+                  radius='md'
                   onClick={() => removeExamBoard(index)}
                   disabled={examBoards.length === 1}
                 >
@@ -272,7 +274,7 @@ const CreateExamForm = () => {
           placeholder="Select profession"
           data={professions.map((p) => ({
             value: p.id.toString(),
-            label: `${p.id} - ${p.professionName}`,
+            label: `${p.professionName}`,
           }))}
           value={form.values.professionId ? form.values.professionId.toString() : ''}
           onChange={(value) => form.setFieldValue('professionId', value ? parseInt(value, 10) : 0)}
@@ -285,7 +287,7 @@ const CreateExamForm = () => {
           placeholder="Select institution"
           data={institutions.map((i) => ({
             value: i.id.toString(),
-            label: `${i.id} - ${i.name}`,
+            label: `${i.name}`,
           }))}
           value={form.values.institutionId ? form.values.institutionId.toString() : ''}
           onChange={(value) => form.setFieldValue('institutionId', value ? parseInt(value, 10) : 0)}
@@ -298,7 +300,7 @@ const CreateExamForm = () => {
           placeholder="Select exam type"
           data={examTypes.map((et) => ({
             value: et.id.toString(),
-            label: `${et.id} - ${et.typeName}`,
+            label: `${et.typeName}`,
           }))}
           value={form.values.examTypeId ? form.values.examTypeId.toString() : ''}
           onChange={(value) => form.setFieldValue('examTypeId', value ? parseInt(value, 10) : 0)}
@@ -309,10 +311,10 @@ const CreateExamForm = () => {
         <Divider />
         <ExamBoardManager form={form} examiners={examiners} />
         <Flex justify="flex-end" mt="xl">
-          <Button type="submit" mr="xs">
+          <Button type="submit" variant='outline' mr="xs" radius='md'>
             Create
           </Button>
-          <Button variant="outline" onClick={() => modals.close('create-exam')}>
+          <Button variant="subtle" radius='md' onClick={() => modals.close('create-exam')}>
             Cancel
           </Button>
         </Flex>
@@ -385,7 +387,7 @@ const EditExamForm = ({ initialExam }: { initialExam: IExam }) => {
       ...initialExam,
       ...values,
       examBoards: values.examBoards,
-    } as IExam; // Cast to handle type mismatch for examBoards
+    } as IExam;
     await updateExam({ newValues, oldValues: initialExam });
     modals.close('edit-exam');
   });
@@ -414,7 +416,7 @@ const EditExamForm = ({ initialExam }: { initialExam: IExam }) => {
           placeholder="Select profession"
           data={professions.map((p) => ({
             value: p.id.toString(),
-            label: `${p.id} - ${p.professionName}`,
+            label: `${p.professionName}`,
           }))}
           value={form.values.professionId ? form.values.professionId.toString() : ''}
           onChange={(value) => form.setFieldValue('professionId', value ? parseInt(value, 10) : 0)}
@@ -427,7 +429,7 @@ const EditExamForm = ({ initialExam }: { initialExam: IExam }) => {
           placeholder="Select institution"
           data={institutions.map((i) => ({
             value: i.id.toString(),
-            label: `${i.id} - ${i.name}`,
+            label: `${i.name}`,
           }))}
           value={form.values.institutionId ? form.values.institutionId.toString() : ''}
           onChange={(value) => form.setFieldValue('institutionId', value ? parseInt(value, 10) : 0)}
@@ -440,7 +442,7 @@ const EditExamForm = ({ initialExam }: { initialExam: IExam }) => {
           placeholder="Select exam type"
           data={examTypes.map((et) => ({
             value: et.id.toString(),
-            label: `${et.id} - ${et.typeName}`,
+            label: `${et.typeName}`,
           }))}
           value={form.values.examTypeId ? form.values.examTypeId.toString() : ''}
           onChange={(value) => form.setFieldValue('examTypeId', value ? parseInt(value, 10) : 0)}
@@ -451,10 +453,10 @@ const EditExamForm = ({ initialExam }: { initialExam: IExam }) => {
         <Divider />
         <ExamBoardManager form={form} examiners={examiners} />
         <Flex justify="flex-end" mt="xl">
-          <Button type="submit" mr="xs">
+          <Button type="submit" variant='outline' radius='md' mr="xs">
             Save
           </Button>
-          <Button variant="outline" onClick={() => modals.close('edit-exam')}>
+          <Button variant="subtle" radius='md' onClick={() => modals.close('edit-exam')}>
             Cancel
           </Button>
         </Flex>
@@ -474,11 +476,6 @@ const ExamTable = () => {
 
   const columns = useMemo<MRT_ColumnDef<IExam>[]>(
     () => [
-      {
-        accessorKey: 'id',
-        header: 'ID',
-        size: 80,
-      },
       {
         accessorKey: 'examName',
         header: 'Exam Name',
@@ -571,7 +568,7 @@ const ExamTable = () => {
     columns,
     data: fetchedExams,
     enableEditing: false,
-    enableRowActions: true, // Add this to enable the row actions column
+    enableRowActions: true,
     getRowId: (row) => String(row.id),
     mantineToolbarAlertBannerProps: isLoadingExamsError
       ? {
@@ -590,7 +587,7 @@ const ExamTable = () => {
         <Tooltip label="Edit">
           <ActionIcon
             color="blue"
-            variant="filled"
+            variant="outline"
             radius="md"
             onClick={() => openEditModal(row.original)}
           >
@@ -600,7 +597,7 @@ const ExamTable = () => {
         <Tooltip label="Delete">
           <ActionIcon
             color="red"
-            variant="filled"
+            variant="outline"
             radius="md"
             onClick={() => openDeleteConfirmModal(row)}
           >

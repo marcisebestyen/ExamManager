@@ -60,7 +60,6 @@ interface OperatorProfile {
   userName: string;
   firstName: string;
   lastName: string;
-  email?: string;
   role: Role;
 }
 
@@ -82,18 +81,10 @@ function Settings() {
     initialValues: {
       firstName: '',
       lastName: '',
-      email: '',
     },
     validate: {
       firstName: (value) => (!value.trim() ? 'First name is required' : null),
       lastName: (value) => (!value.trim() ? 'Last name is required' : null),
-      email: (value) => {
-        if (value.trim()) {
-          return null;
-        }
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        return emailRegex.test(value) ? null : 'Invalid email address';
-      },
     },
   });
 
@@ -110,7 +101,6 @@ function Settings() {
       form.setValues({
         firstName: response.data.firstName,
         lastName: response.data.lastName,
-        email: response.data.email || '',
       });
     } catch (error: any) {
       setError(error.response?.data?.message || 'Failed to load profile');
@@ -144,17 +134,6 @@ function Settings() {
           op: 'replace',
           path: '/lastname',
           value: values.lastName,
-        });
-      }
-
-      const currentEmail = profile.email || '';
-      const newEmail = values.email.trim();
-
-      if (values.email !== currentEmail) {
-        patchOperation.push({
-          op: 'replace',
-          path: '/email',
-          value: newEmail || null,
         });
       }
 
@@ -238,13 +217,6 @@ function Settings() {
 
           <div>
             <Text size="sm" fw={500} c="dimmed" mb={4}>
-              Email
-            </Text>
-            <Text size="md">{profile.email || 'No email set'}</Text>
-          </div>
-
-          <div>
-            <Text size="sm" fw={500} c="dimmed" mb={4}>
               Role
             </Text>
             <RoleBadge role={profile.role as Role} />
@@ -268,18 +240,11 @@ function Settings() {
                 {...form.getInputProps('lastName')}
               />
 
-              <TextInput
-                label="Email"
-                placeholder="Enter your email"
-                type="email"
-                {...form.getInputProps('email')}
-              />
-
               <Group justify="flex-end" mt="md">
                 <Button
                   type="button"
                   variant="subtle"
-                  color="orange"
+                  radius='md'
                   onClick={() => {
                     form.setValues({
                       firstName: profile.firstName,
@@ -292,7 +257,7 @@ function Settings() {
                 >
                   Reset
                 </Button>
-                <Button type="submit" loading={saving} variant="outline">
+                <Button type="submit" loading={saving} variant="outline" radius="md">
                   Save Changes
                 </Button>
               </Group>

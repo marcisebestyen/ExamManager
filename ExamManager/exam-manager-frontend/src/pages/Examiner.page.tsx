@@ -39,7 +39,6 @@ const generatePatchDocument = (oldData: IExaminer, newData: IExaminer): JsonPatc
   for (const key in newData) {
     if (Object.hasOwn(newData, key) && (newData as any)[key] !== (oldData as any)[key]) {
       let val = (newData as any)[key];
-      // Ensure date is in ISO format for the backend
       if (key === 'dateOfBirth' && val) {
         val = new Date(val).toISOString();
       }
@@ -71,7 +70,6 @@ const CreateExaminerForm = () => {
   });
 
   const handleSubmit = form.onSubmit(async (values) => {
-    // Check for duplicate ID card number
     const isDuplicate = fetchedExaminers.some(
       (examiner) =>
         examiner.identityCardNumber.toLowerCase() === values.identityCardNumber.toLowerCase()
@@ -102,10 +100,10 @@ const CreateExaminerForm = () => {
         <TextInput label="Phone" type="tel" {...form.getInputProps('phone')} required />
         <TextInput label="ID Card Number" {...form.getInputProps('identityCardNumber')} required />
         <Flex justify="flex-end" mt="xl">
-          <Button type="submit" mr="xs">
+          <Button type="submit" variant='outline' radius='md' mr="xs">
             Create
           </Button>
-          <Button variant="outline" onClick={() => modals.close('create-examiner')}>
+          <Button variant="subtle" radius='md' onClick={() => modals.close('create-examiner')}>
             Cancel
           </Button>
         </Flex>
@@ -132,7 +130,6 @@ const EditExaminerForm = ({ initialExaminer }: { initialExaminer: IExaminer }) =
   });
 
   const handleSubmit = form.onSubmit(async (values) => {
-    // Check for duplicate ID card number, excluding the current examiner
     const isDuplicate = fetchedExaminers.some(
       (examiner) =>
         examiner.id !== initialExaminer.id &&
@@ -165,10 +162,10 @@ const EditExaminerForm = ({ initialExaminer }: { initialExaminer: IExaminer }) =
         <TextInput label="Phone" type="tel" {...form.getInputProps('phone')} required />
         <TextInput label="ID Card Number" {...form.getInputProps('identityCardNumber')} required />
         <Flex justify="flex-end" mt="xl">
-          <Button type="submit" mr="xs">
+          <Button type="submit" variant='outline' radius='md' mr="xs">
             Save
           </Button>
-          <Button variant="outline" onClick={() => modals.close('edit-examiner')}>
+          <Button variant="subtle" radius='md' onClick={() => modals.close('edit-examiner')}>
             Cancel
           </Button>
         </Flex>
@@ -188,11 +185,6 @@ const ExaminerTable = () => {
 
   const columns = useMemo<MRT_ColumnDef<IExaminer>[]>(
     () => [
-      {
-        accessorKey: 'id',
-        header: 'ID',
-        size: 80,
-      },
       {
         accessorKey: 'firstName',
         header: 'First Name',
@@ -253,7 +245,7 @@ const ExaminerTable = () => {
   const table = useMantineReactTable({
     columns,
     data: fetchedExaminers,
-    enableEditing: false, // Editing is handled by our custom modal
+    enableEditing: false,
     enableRowActions: true,
     getRowId: (row) => String(row.id),
     mantineToolbarAlertBannerProps: isLoadingExaminersError
@@ -273,7 +265,7 @@ const ExaminerTable = () => {
         <Tooltip label="Edit">
           <ActionIcon
             color="blue"
-            variant="filled"
+            variant="outline"
             radius="md"
             onClick={() => openEditModal(row.original)}
           >
@@ -283,7 +275,7 @@ const ExaminerTable = () => {
         <Tooltip label="Delete">
           <ActionIcon
             color="red"
-            variant="filled"
+            variant="outline"
             radius="md"
             onClick={() => openDeleteConfirmModal(row)}
           >
@@ -299,7 +291,7 @@ const ExaminerTable = () => {
     ),
     state: {
       isLoading: isLoadingExaminers,
-      isSaving: isDeletingExaminer, // We only show saving state on delete now
+      isSaving: isDeletingExaminer,
       showAlertBanner: isLoadingExaminersError,
       showProgressBars: isFetchingExaminers,
     },
@@ -318,7 +310,6 @@ function useCreateExaminer() {
         message: `Examiner "${createExaminer.firstName} ${createExaminer.lastName}" created successfully.`,
         color: 'teal',
       });
-      // Optimistically update the query data
       queryClient.setQueryData(['examiners'], (prevExaminers: IExaminer[] = []) => [
         ...prevExaminers,
         createExaminer,
@@ -461,7 +452,7 @@ const validateDateRange = (dateString: string) => {
   const date = new Date(dateString);
   const now = new Date();
   const minAge = new Date(now.getFullYear() - 120, now.getMonth(), now.getDate());
-  return date >= minAge && date < now; // Should be in the past
+  return date >= minAge && date < now;
 };
 
 function validateExaminer(examiner: ExaminerFormData) {

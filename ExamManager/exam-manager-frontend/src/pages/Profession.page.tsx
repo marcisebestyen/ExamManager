@@ -82,10 +82,10 @@ const CreateProfessionForm = () => {
         <TextInput label="Keor ID" {...form.getInputProps('keorId')} required />
         <TextInput label="Profession Name" {...form.getInputProps('professionName')} required />
         <Flex justify="flex-end" mt="xl">
-          <Button type="submit" mr="xs">
+          <Button type="submit" variant='outline' radius='md' mr="xs">
             Create
           </Button>
-          <Button variant="outline" onClick={() => modals.close('create-profession')}>
+          <Button variant="subtle" radius='md' onClick={() => modals.close('create-profession')}>
             Cancel
           </Button>
         </Flex>
@@ -94,7 +94,6 @@ const CreateProfessionForm = () => {
   );
 };
 
-// ## Edit Profession Form Component
 const EditProfessionForm = ({ initialProfession }: { initialProfession: IProfession }) => {
   const { data: fetchedProfessions = [] } = useGetProfessions();
   const { mutateAsync: updateProfession } = useUpdateProfession();
@@ -127,10 +126,10 @@ const EditProfessionForm = ({ initialProfession }: { initialProfession: IProfess
         <TextInput label="Keor ID" {...form.getInputProps('keorId')} required />
         <TextInput label="Profession Name" {...form.getInputProps('professionName')} required />
         <Flex justify="flex-end" mt="xl">
-          <Button type="submit" mr="xs">
+          <Button type="submit" variant='outline' radius='md' mr="xs">
             Save
           </Button>
-          <Button variant="outline" onClick={() => modals.close('edit-profession')}>
+          <Button variant="subtle" radius='md' onClick={() => modals.close('edit-profession')}>
             Cancel
           </Button>
         </Flex>
@@ -139,7 +138,6 @@ const EditProfessionForm = ({ initialProfession }: { initialProfession: IProfess
   );
 };
 
-// ## Profession Table Component
 const ProfessionTable = () => {
   const {
     data: fetchedProfessions = [],
@@ -151,7 +149,6 @@ const ProfessionTable = () => {
 
   const columns = useMemo<MRT_ColumnDef<IProfession>[]>(
     () => [
-      { accessorKey: 'id', header: 'ID', size: 80 },
       { accessorKey: 'keorId', header: 'Keor ID' },
       { accessorKey: 'professionName', header: 'Profession Name' },
     ],
@@ -189,7 +186,7 @@ const ProfessionTable = () => {
   const table = useMantineReactTable({
     columns,
     data: fetchedProfessions,
-    enableEditing: false, // Custom modal handles editing
+    enableEditing: false,
     enableRowActions: true,
     getRowId: (row) => String(row.id),
     mantineToolbarAlertBannerProps: isLoadingProfessionsError
@@ -202,7 +199,7 @@ const ProfessionTable = () => {
         <Tooltip label="Edit">
           <ActionIcon
             color="blue"
-            variant="filled"
+            variant="outline"
             radius="md"
             onClick={() => openEditModal(row.original)}
           >
@@ -212,7 +209,7 @@ const ProfessionTable = () => {
         <Tooltip label="Delete">
           <ActionIcon
             color="red"
-            variant="filled"
+            variant="outline"
             radius="md"
             onClick={() => openDeleteConfirmModal(row)}
           >
