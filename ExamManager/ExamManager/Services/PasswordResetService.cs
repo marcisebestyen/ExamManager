@@ -39,13 +39,13 @@ public class PasswordResetService : IPasswordResetService
                 return BaseServiceResponse<bool>.Failed("User not found", "USER_NOT_FOUND");
             }
 
-            if (string.IsNullOrWhiteSpace(operatorEntity.Email))
-            {
-                _logger.LogWarning("Password reset attempted for user without email: {UserName}", userName);
-                return BaseServiceResponse<bool>.Failed(
-                    "This account does not have an email address associated with it. Please contact an administrator to reset your password.",
-                    "EMAIL_NOT_FOUND");
-            }
+            // if (string.IsNullOrWhiteSpace(operatorEntity.Email))
+            // {
+            //     _logger.LogWarning("Password reset attempted for user without email: {UserName}", userName);
+            //     return BaseServiceResponse<bool>.Failed(
+            //         "This account does not have an email address associated with it. Please contact an administrator to reset your password.",
+            //         "EMAIL_NOT_FOUND");
+            // }
 
             var existingTokens =
                 await _unitOfWork.PasswordResetRepository.GetAsync(pr => pr.OperatorId == operatorEntity.Id && !pr.IsRevoked);
@@ -85,7 +85,7 @@ public class PasswordResetService : IPasswordResetService
                 </body>
                 </html>";
 
-            await _emailService.SendEmailAsync(operatorEntity.Email, emailSubject, emailBody);
+            await _emailService.SendEmailAsync(operatorEntity.UserName, emailSubject, emailBody);
 
             _logger.LogInformation("Password reset token generated and sent for user: {Email}", userName);
             return BaseServiceResponse<bool>.Success(true, "Password reset confirmation sent to your email address.");

@@ -88,10 +88,10 @@ const CreateExamTypeForm = () => {
         <TextInput label="Exam Type Name" {...form.getInputProps('typeName')} required />
         <Textarea label="Description" {...form.getInputProps('description')} minRows={3} autosize />
         <Flex justify="flex-end" mt="xl">
-          <Button type="submit" mr="xs">
+          <Button type="submit" variant='outline' radius='md' mr="xs">
             Create
           </Button>
-          <Button variant="outline" onClick={() => modals.close('create-exam-type')}>
+          <Button variant="subtle" radius='md' onClick={() => modals.close('create-exam-type')}>
             Cancel
           </Button>
         </Flex>
@@ -134,10 +134,10 @@ const EditExamTypeForm = ({ initialExamType }: { initialExamType: IExamType }) =
         <TextInput label="Exam Type Name" {...form.getInputProps('typeName')} required />
         <Textarea label="Description" {...form.getInputProps('description')} minRows={3} autosize />
         <Flex justify="flex-end" mt="xl">
-          <Button type="submit" mr="xs">
+          <Button type="submit" variant='outline' radius='md' mr="xs">
             Save
           </Button>
-          <Button variant="outline" onClick={() => modals.close('edit-exam-type')}>
+          <Button variant="subtle" radius='md' onClick={() => modals.close('edit-exam-type')}>
             Cancel
           </Button>
         </Flex>
@@ -157,11 +157,6 @@ const ExamTypeTable = () => {
 
   const columns = useMemo<MRT_ColumnDef<IExamType>[]>(
     () => [
-      {
-        accessorKey: 'id',
-        header: 'ID',
-        size: 80,
-      },
       {
         accessorKey: 'typeName',
         header: 'Exam Type Name',
@@ -204,7 +199,7 @@ const ExamTypeTable = () => {
   const table = useMantineReactTable({
     columns,
     data: fetchedExamTypes,
-    enableEditing: false, // Custom modal handles editing
+    enableEditing: false,
     enableRowActions: true,
     getRowId: (row) => String(row.id),
     mantineToolbarAlertBannerProps: isLoadingExamTypesError
@@ -224,7 +219,7 @@ const ExamTypeTable = () => {
         <Tooltip label="Edit">
           <ActionIcon
             color="blue"
-            variant="filled"
+            variant="outline"
             radius="md"
             onClick={() => openEditModal(row.original)}
           >
@@ -234,7 +229,7 @@ const ExamTypeTable = () => {
         <Tooltip label="Delete">
           <ActionIcon
             color="red"
-            variant="filled"
+            variant="outline"
             radius="md"
             onClick={() => openDeleteConfirmModal(row)}
           >

@@ -70,19 +70,19 @@ function Login() {
           p="xl"
           radius="lg"
           withBorder
-          style={{ width: '100%', height: '450px', backgroundColor: '#fff' }}
+          style={{ width: '100%', height: '450px' }}
         >
           <Stack>
-            <Title order={2} ta="center" mb="md" mt="xs" className={classes.title}>
-              <Text inherit variant="gradient" component="span" gradient={{from: 'blue', to: 'yellow'}}>
-                Exam Manager
+            <Title order={2} ta="center" mb="md" mt="xs">
+              <Text inherit component="span" >
+                Welcome back!
               </Text>
             </Title>
             <form onSubmit={form.onSubmit(handleSubmit)}>
               <Stack gap="md">
                 <TextInput
                   required
-                  label="User name"
+                  label="Username"
                   placeholder="username"
                   radius="md"
                   size="md"
@@ -122,10 +122,10 @@ function Login() {
                 </Anchor>
                 <Button
                   type="submit"
+                  variant="outline"
                   radius="md"
                   size="md"
                   loading={isLoading}
-                  disabled={!form.isValid()}
                 >
                   Login
                 </Button>

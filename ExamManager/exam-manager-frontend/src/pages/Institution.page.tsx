@@ -113,10 +113,10 @@ const CreateInstitutionForm = () => {
           <TextInput label="Door" {...form.getInputProps('door')} />
         </Group>
         <Flex justify="flex-end" mt="xl">
-          <Button type="submit" mr="xs">
+          <Button type="submit" variant='outline' radius='md' mr="xs">
             Create
           </Button>
-          <Button variant="outline" onClick={() => modals.close('create-institution')}>
+          <Button variant="subtle" radius='md' onClick={() => modals.close('create-institution')}>
             Cancel
           </Button>
         </Flex>
@@ -184,10 +184,10 @@ const EditInstitutionForm = ({ initialInstitution }: { initialInstitution: IInst
           <TextInput label="Door" {...form.getInputProps('door')} />
         </Group>
         <Flex justify="flex-end" mt="xl">
-          <Button type="submit" mr="xs">
+          <Button type="submit" variant='outline' radius='md' mr="xs">
             Save
           </Button>
-          <Button variant="outline" onClick={() => modals.close('edit-institution')}>
+          <Button variant="subtle" radius='md' onClick={() => modals.close('edit-institution')}>
             Cancel
           </Button>
         </Flex>
@@ -208,7 +208,6 @@ const InstitutionTable = () => {
 
   const columns = useMemo<MRT_ColumnDef<IInstitution>[]>(
     () => [
-      { accessorKey: 'id', header: 'ID', size: 80, enableEditing: false },
       { accessorKey: 'name', header: 'Name' },
       { accessorKey: 'educationalId', header: 'Educational ID' },
       { accessorKey: 'zipCode', header: 'Zip Code' },
@@ -249,7 +248,7 @@ const InstitutionTable = () => {
   const table = useMantineReactTable({
     columns,
     data: fetchedInstitutions,
-    enableEditing: false, // Custom modal handles editing
+    enableEditing: false,
     enableRowActions: true,
     getRowId: (row) => String(row.id),
     mantineToolbarAlertBannerProps: isLoadingInstitutionsError
@@ -262,7 +261,7 @@ const InstitutionTable = () => {
         <Tooltip label="Edit">
           <ActionIcon
             color="blue"
-            variant="filled"
+            variant="outline"
             radius="md"
             onClick={() => openEditModal(row.original)}
           >
@@ -272,7 +271,7 @@ const InstitutionTable = () => {
         <Tooltip label="Delete">
           <ActionIcon
             color="red"
-            variant="filled"
+            variant="outline"
             radius="md"
             onClick={() => openDeleteConfirmModal(row)}
           >

@@ -31,7 +31,7 @@ const ForgotPassword = () => {
       });
 
       if (response.status === 200) {
-        setMessage(response.data.message || 'If the user exists and has an email address, we will send a token.');
+        setMessage(response.data.message || 'If the user exists, we will send a token.');
         setViewMode('enterToken');
       }
     } catch (err: any) {
@@ -123,12 +123,12 @@ const ForgotPassword = () => {
           <form onSubmit={handleUsernameSubmit}>
             <Stack gap="md">
               <Text size="sm" c="dimmed">
-                Enter your user name, if your account has an email address, we will send you a token to reset your password.
+                Enter your username, if your account exists, we will send you a token to reset your password.
               </Text>
 
               <TextInput
-                label="User name"
-                placeholder="example_username"
+                label="Username"
+                placeholder="username"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 required
