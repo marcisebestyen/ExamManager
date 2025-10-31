@@ -29,8 +29,8 @@ import { useForm } from '@mantine/form';
 import { modals, ModalsProvider } from '@mantine/modals';
 import { Notifications, notifications } from '@mantine/notifications';
 import { IInstitution, InstitutionFormData } from '@/interfaces/IInstitution';
-import { Skeleton } from '../components/Skeleton';
 import api from '../api/api';
+import { Skeleton } from '../components/Skeleton';
 
 interface JsonPatchOperation {
   op: 'replace' | 'add' | 'remove' | 'copy' | 'move' | 'test';
@@ -113,11 +113,8 @@ const CreateInstitutionForm = () => {
           <TextInput label="Door" {...form.getInputProps('door')} />
         </Group>
         <Flex justify="flex-end" mt="xl">
-          <Button type="submit" variant='outline' radius='md' mr="xs">
+          <Button type="submit" variant="outline" radius="md" mr="xs">
             Create
-          </Button>
-          <Button variant="subtle" radius='md' onClick={() => modals.close('create-institution')}>
-            Cancel
           </Button>
         </Flex>
       </Stack>
@@ -184,15 +181,34 @@ const EditInstitutionForm = ({ initialInstitution }: { initialInstitution: IInst
           <TextInput label="Door" {...form.getInputProps('door')} />
         </Group>
         <Flex justify="flex-end" mt="xl">
-          <Button type="submit" variant='outline' radius='md' mr="xs">
+          <Button type="submit" variant="outline" radius="md" mr="xs">
             Save
-          </Button>
-          <Button variant="subtle" radius='md' onClick={() => modals.close('edit-institution')}>
-            Cancel
           </Button>
         </Flex>
       </Stack>
     </form>
+  );
+};
+
+const DeleteInstitutionModal = ({ institution }: { institution: IInstitution }) => {
+  const { mutateAsync: deleteInstitution } = useDeleteInstitution();
+
+  const handleDelete = async () => {
+    await deleteInstitution(institution.id);
+    modals.close('delete-institution');
+  };
+
+  return (
+    <Stack>
+      <Text>
+        Are you sure you want to delete "{institution.name}"? This action cannot be undone.
+      </Text>
+      <Flex justify="flex-end" mt="xl">
+        <Button color="red" variant="outline" radius="md" mr="xs" onClick={handleDelete}>
+          Delete
+        </Button>
+      </Flex>
+    </Stack>
   );
 };
 
@@ -233,16 +249,10 @@ const InstitutionTable = () => {
     });
 
   const openDeleteConfirmModal = (row: MRT_Row<IInstitution>) =>
-    modals.openConfirmModal({
-      title: 'Are you sure you want to delete this institution?',
-      children: (
-        <Text>
-          Are you sure you want to delete "{row.original.name}"? This action cannot be undone.
-        </Text>
-      ),
-      labels: { confirm: 'Delete', cancel: 'Cancel' },
-      confirmProps: { color: 'red' },
-      onConfirm: () => deleteInstitution(row.original.id),
+    modals.open({
+      id: 'delete-institution',
+      title: <Title order={3}>Delete Institution</Title>,
+      children: <DeleteInstitutionModal institution={row.original} />,
     });
 
   const table = useMantineReactTable({
@@ -403,20 +413,35 @@ const InstitutionPage = () => (
 export default InstitutionPage;
 
 const validateRequired = (value: string | number) => {
-  if (typeof value === 'string') return !!value.trim().length;
-  if (typeof value === 'number') return value > 0;
+  if (typeof value === 'string') {
+    return !!value.trim().length;
+  }
+  if (typeof value === 'number') {
+    return value > 0;
+  }
   return false;
 };
 
 function validateInstitution(institution: InstitutionFormData) {
   const errors: Record<string, string> = {};
-  if (!validateRequired(institution.name)) errors.name = 'Name is required';
-  if (!validateRequired(institution.educationalId))
+  if (!validateRequired(institution.name)) {
+    errors.name = 'Name is required';
+  }
+  if (!validateRequired(institution.educationalId)) {
     errors.educationalId = 'Educational ID is required';
-  if (!validateRequired(institution.zipCode)) errors.zipCode = 'Zip Code is required';
-  if (!validateRequired(institution.town)) errors.town = 'Town is required';
-  if (!validateRequired(institution.street)) errors.street = 'Street is required';
-  if (!validateRequired(institution.number)) errors.number = 'Number is required';
+  }
+  if (!validateRequired(institution.zipCode)) {
+    errors.zipCode = 'Zip Code is required';
+  }
+  if (!validateRequired(institution.town)) {
+    errors.town = 'Town is required';
+  }
+  if (!validateRequired(institution.street)) {
+    errors.street = 'Street is required';
+  }
+  if (!validateRequired(institution.number)) {
+    errors.number = 'Number is required';
+  }
 
   return errors;
 }

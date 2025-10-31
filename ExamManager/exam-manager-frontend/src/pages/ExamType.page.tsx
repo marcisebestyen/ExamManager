@@ -88,11 +88,8 @@ const CreateExamTypeForm = () => {
         <TextInput label="Exam Type Name" {...form.getInputProps('typeName')} required />
         <Textarea label="Description" {...form.getInputProps('description')} minRows={3} autosize />
         <Flex justify="flex-end" mt="xl">
-          <Button type="submit" variant='outline' radius='md' mr="xs">
+          <Button type="submit" variant="outline" radius="md" mr="xs">
             Create
-          </Button>
-          <Button variant="subtle" radius='md' onClick={() => modals.close('create-exam-type')}>
-            Cancel
           </Button>
         </Flex>
       </Stack>
@@ -134,15 +131,34 @@ const EditExamTypeForm = ({ initialExamType }: { initialExamType: IExamType }) =
         <TextInput label="Exam Type Name" {...form.getInputProps('typeName')} required />
         <Textarea label="Description" {...form.getInputProps('description')} minRows={3} autosize />
         <Flex justify="flex-end" mt="xl">
-          <Button type="submit" variant='outline' radius='md' mr="xs">
+          <Button type="submit" variant="outline" radius="md" mr="xs">
             Save
-          </Button>
-          <Button variant="subtle" radius='md' onClick={() => modals.close('edit-exam-type')}>
-            Cancel
           </Button>
         </Flex>
       </Stack>
     </form>
+  );
+};
+
+const DeleteExamTypeModal = ({ examType }: { examType: IExamType }) => {
+  const { mutateAsync: deleteExamType } = useDeleteExamType();
+
+  const handleDelete = async () => {
+    await deleteExamType(examType.id);
+    modals.close('delete-exam-type');
+  };
+
+  return (
+    <Stack>
+      <Text>
+        Are you sure you want to delete "{examType.typeName}"? This action cannot be undone.
+      </Text>
+      <Flex justify="flex-end" mt="xl">
+        <Button color="red" variant="outline" radius="md" mr="xs" onClick={handleDelete}>
+          Delete
+        </Button>
+      </Flex>
+    </Stack>
   );
 };
 
@@ -184,16 +200,10 @@ const ExamTypeTable = () => {
     });
 
   const openDeleteConfirmModal = (row: MRT_Row<IExamType>) =>
-    modals.openConfirmModal({
-      title: 'Are you sure you want to delete this exam type?',
-      children: (
-        <Text>
-          Are you sure you want to delete "{row.original.typeName}"? This action cannot be undone.
-        </Text>
-      ),
-      labels: { confirm: 'Delete', cancel: 'Cancel' },
-      confirmProps: { color: 'red' },
-      onConfirm: () => deleteExamType(row.original.id),
+    modals.open({
+      id: 'delete-exam-type',
+      title: <Title order={3}>Delete Exam Type</Title>,
+      children: <DeleteExamTypeModal examType={row.original} />,
     });
 
   const table = useMantineReactTable({

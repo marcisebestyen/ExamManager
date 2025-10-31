@@ -1,4 +1,4 @@
-import { Welcome } from '../components/Welcome/Welcome';
+import { Welcome } from '../components/Welcome';
 import { Skeleton } from '../components/Skeleton';
 
 export function HomePage() {

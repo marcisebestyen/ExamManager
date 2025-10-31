@@ -5,7 +5,6 @@ import {
   Box,
   Button,
   Center,
-  Divider,
   Group,
   Paper,
   PasswordInput,
@@ -13,7 +12,6 @@ import {
   Text,
   TextInput,
   Title,
-  useMantineTheme,
 } from '@mantine/core';
 import { useForm } from '@mantine/form';
 import useAuth from '../hooks/useAuth';
@@ -25,7 +23,6 @@ function Login() {
   const navigate = useNavigate();
   const [loginError, setLoginError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const theme = useMantineTheme();
 
   const form = useForm({
     initialValues: {
@@ -130,7 +127,6 @@ function Login() {
                   Login
                 </Button>
               </Group>
-              <Divider my="lg" />
             </form>
           </Stack>
         </Paper>

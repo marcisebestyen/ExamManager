@@ -100,11 +100,8 @@ const CreateExaminerForm = () => {
         <TextInput label="Phone" type="tel" {...form.getInputProps('phone')} required />
         <TextInput label="ID Card Number" {...form.getInputProps('identityCardNumber')} required />
         <Flex justify="flex-end" mt="xl">
-          <Button type="submit" variant='outline' radius='md' mr="xs">
+          <Button type="submit" variant="outline" radius="md" mr="xs">
             Create
-          </Button>
-          <Button variant="subtle" radius='md' onClick={() => modals.close('create-examiner')}>
-            Cancel
           </Button>
         </Flex>
       </Stack>
@@ -162,15 +159,35 @@ const EditExaminerForm = ({ initialExaminer }: { initialExaminer: IExaminer }) =
         <TextInput label="Phone" type="tel" {...form.getInputProps('phone')} required />
         <TextInput label="ID Card Number" {...form.getInputProps('identityCardNumber')} required />
         <Flex justify="flex-end" mt="xl">
-          <Button type="submit" variant='outline' radius='md' mr="xs">
+          <Button type="submit" variant="outline" radius="md" mr="xs">
             Save
-          </Button>
-          <Button variant="subtle" radius='md' onClick={() => modals.close('edit-examiner')}>
-            Cancel
           </Button>
         </Flex>
       </Stack>
     </form>
+  );
+};
+
+const DeleteExaminerModal = ({ examiner }: { examiner: IExaminer }) => {
+  const { mutateAsync: deleteExaminer } = useDeleteExaminer();
+
+  const handleDelete = async () => {
+    await deleteExaminer(examiner.id);
+    modals.close('delete-examiner');
+  };
+
+  return (
+    <Stack>
+      <Text>
+        Are you sure you want to delete {examiner.firstName} {examiner.lastName}? This action cannot
+        be undone.
+      </Text>
+      <Flex justify="flex-end" mt="xl">
+        <Button color="red" variant="outline" radius="md" mr="xs" onClick={handleDelete}>
+          Delete
+        </Button>
+      </Flex>
+    </Stack>
   );
 };
 
@@ -229,17 +246,10 @@ const ExaminerTable = () => {
     });
 
   const openDeleteConfirmModal = (row: MRT_Row<IExaminer>) =>
-    modals.openConfirmModal({
-      title: 'Are you sure you want to delete this examiner?',
-      children: (
-        <Text>
-          Are you sure you want to delete {row.original.firstName} {row.original.lastName}? This
-          action cannot be undone.
-        </Text>
-      ),
-      labels: { confirm: 'Delete', cancel: 'Cancel' },
-      confirmProps: { color: 'red' },
-      onConfirm: () => deleteExaminer(row.original.id),
+    modals.open({
+      id: 'delete-examiner',
+      title: <Title order={3}>Delete Examiner</Title>,
+      children: <DeleteExaminerModal examiner={row.original} />,
     });
 
   const table = useMantineReactTable({
@@ -442,13 +452,17 @@ export default ExaminerPage;
 const validateRequired = (value: string) => !!value.trim().length;
 
 const validateDate = (dateString: string) => {
-  if (!dateString) return false;
+  if (!dateString) {
+    return false;
+  }
   const date = new Date(dateString);
   return !isNaN(date.getTime()) && date.toString() !== 'Invalid Date';
 };
 
 const validateDateRange = (dateString: string) => {
-  if (!validateDate(dateString)) return false;
+  if (!validateDate(dateString)) {
+    return false;
+  }
   const date = new Date(dateString);
   const now = new Date();
   const minAge = new Date(now.getFullYear() - 120, now.getMonth(), now.getDate());

@@ -122,7 +122,7 @@ const ExamBoardManager = ({
         <Button
           leftSection={<IconPlus size={16} />}
           variant="outline"
-          radius='md'
+          radius="md"
           onClick={addExamBoard}
           size="xs"
         >
@@ -167,7 +167,7 @@ const ExamBoardManager = ({
                 <ActionIcon
                   color="red"
                   variant="outline"
-                  radius='md'
+                  radius="md"
                   onClick={() => removeExamBoard(index)}
                   disabled={examBoards.length === 1}
                 >
@@ -311,11 +311,8 @@ const CreateExamForm = () => {
         <Divider />
         <ExamBoardManager form={form} examiners={examiners} />
         <Flex justify="flex-end" mt="xl">
-          <Button type="submit" variant='outline' mr="xs" radius='md'>
+          <Button type="submit" variant="outline" mr="xs" radius="md">
             Create
-          </Button>
-          <Button variant="subtle" radius='md' onClick={() => modals.close('create-exam')}>
-            Cancel
           </Button>
         </Flex>
       </Stack>
@@ -453,15 +450,35 @@ const EditExamForm = ({ initialExam }: { initialExam: IExam }) => {
         <Divider />
         <ExamBoardManager form={form} examiners={examiners} />
         <Flex justify="flex-end" mt="xl">
-          <Button type="submit" variant='outline' radius='md' mr="xs">
+          <Button type="submit" variant="outline" radius="md" mr="xs">
             Save
-          </Button>
-          <Button variant="subtle" radius='md' onClick={() => modals.close('edit-exam')}>
-            Cancel
           </Button>
         </Flex>
       </Stack>
     </form>
+  );
+};
+
+const DeleteExamModal = ({ exam }: { exam: IExam }) => {
+  const { mutateAsync: deleteExam } = useDeleteExam();
+
+  const handleDelete = async () => {
+    await deleteExam(exam.id);
+    modals.close('delete-exam');
+  };
+
+  return (
+    <Stack>
+      <Text>
+        Are you sure you want to delete exam "{exam.examName}" ({exam.examCode})? This action cannot
+        be undone.
+      </Text>
+      <Flex justify="flex-end" mt="xl">
+        <Button color="red" variant="outline" radius="md" mr="xs" onClick={handleDelete}>
+          Delete
+        </Button>
+      </Flex>
+    </Stack>
   );
 };
 
@@ -551,17 +568,10 @@ const ExamTable = () => {
     });
 
   const openDeleteConfirmModal = (row: MRT_Row<IExam>) =>
-    modals.openConfirmModal({
-      title: 'Are you sure you want to delete this exam?',
-      children: (
-        <Text>
-          Are you sure you want to delete exam "{row.original.examName}" ({row.original.examCode})?
-          This action cannot be undone.
-        </Text>
-      ),
-      labels: { confirm: 'Delete', cancel: 'Cancel' },
-      confirmProps: { color: 'red' },
-      onConfirm: () => deleteExam(row.original.id),
+    modals.open({
+      id: 'delete-exam',
+      title: <Title order={3}>Delete Exam</Title>,
+      children: <DeleteExamModal exam={row.original} />,
     });
 
   const table = useMantineReactTable({

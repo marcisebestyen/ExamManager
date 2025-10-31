@@ -144,6 +144,8 @@ const ForgotPassword = () => {
 
               <Button
                 type="submit"
+                variant="outline"
+                radius='md'
                 loading={loading}
                 fullWidth
                 size="md"
@@ -195,6 +197,8 @@ const ForgotPassword = () => {
 
               <Button
                 type="submit"
+                variant="outline"
+                radius='md'
                 loading={loading}
                 fullWidth
                 size="md"
@@ -251,6 +255,8 @@ const ForgotPassword = () => {
 
               <Button
                 type="submit"
+                variant="outline"
+                radius='md'
                 loading={loading}
                 fullWidth
                 size="md"
@@ -273,6 +279,8 @@ const ForgotPassword = () => {
 
             <Button
               onClick={handleGoToLogin}
+              variant="outline"
+              radius='md'
               size="md"
               fullWidth
             >

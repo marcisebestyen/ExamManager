@@ -82,11 +82,8 @@ const CreateProfessionForm = () => {
         <TextInput label="Keor ID" {...form.getInputProps('keorId')} required />
         <TextInput label="Profession Name" {...form.getInputProps('professionName')} required />
         <Flex justify="flex-end" mt="xl">
-          <Button type="submit" variant='outline' radius='md' mr="xs">
+          <Button type="submit" variant="outline" radius="md" mr="xs">
             Create
-          </Button>
-          <Button variant="subtle" radius='md' onClick={() => modals.close('create-profession')}>
-            Cancel
           </Button>
         </Flex>
       </Stack>
@@ -126,15 +123,34 @@ const EditProfessionForm = ({ initialProfession }: { initialProfession: IProfess
         <TextInput label="Keor ID" {...form.getInputProps('keorId')} required />
         <TextInput label="Profession Name" {...form.getInputProps('professionName')} required />
         <Flex justify="flex-end" mt="xl">
-          <Button type="submit" variant='outline' radius='md' mr="xs">
+          <Button type="submit" variant="outline" radius="md" mr="xs">
             Save
-          </Button>
-          <Button variant="subtle" radius='md' onClick={() => modals.close('edit-profession')}>
-            Cancel
           </Button>
         </Flex>
       </Stack>
     </form>
+  );
+};
+
+const DeleteProfessionModal = ({ profession }: { profession: IProfession }) => {
+  const { mutateAsync: deleteProfession } = useDeleteProfession();
+
+  const handleDelete = async () => {
+    await deleteProfession(profession.id);
+    modals.close('delete-profession');
+  };
+
+  return (
+    <Stack>
+      <Text>
+        Are you sure you want to delete "{profession.professionName}"? This action cannot be undone.
+      </Text>
+      <Flex justify="flex-end" mt="xl">
+        <Button color="red" variant="outline" radius="md" mr="xs" onClick={handleDelete}>
+          Delete
+        </Button>
+      </Flex>
+    </Stack>
   );
 };
 
@@ -170,17 +186,10 @@ const ProfessionTable = () => {
     });
 
   const openDeleteConfirmModal = (row: MRT_Row<IProfession>) =>
-    modals.openConfirmModal({
-      title: 'Are you sure you want to delete this profession?',
-      children: (
-        <Text>
-          Are you sure you want to delete "{row.original.professionName}"? This action cannot be
-          undone.
-        </Text>
-      ),
-      labels: { confirm: 'Delete', cancel: 'Cancel' },
-      confirmProps: { color: 'red' },
-      onConfirm: () => deleteProfession(row.original.id),
+    modals.open({
+      id: 'delete-profession',
+      title: <Title order={3}>Delete Profession</Title>,
+      children: <DeleteProfessionModal profession={row.original} />,
     });
 
   const table = useMantineReactTable({
