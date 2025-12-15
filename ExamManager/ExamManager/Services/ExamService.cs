@@ -155,7 +155,7 @@ public class ExamService : IExamService
             {
                 "Profession", "Institution", "ExamType", "Operator", "ExamBoard.Examiner"
             };
-            
+
             var examEntities = await _unitOfWork.ExamRepository.GetAllAsync(includeProperties);
 
             var examResponseDtos = _mapper.Map<IEnumerable<ExamResponseDto>>(examEntities);
@@ -209,8 +209,8 @@ public class ExamService : IExamService
             }
 
             if (updateRequest.ExamDate.HasValue &&
-                updateRequest.ExamDate != examEntity.ExamDate &&
-                updateRequest.ExamDate <= DateTime.Now)
+                updateRequest.ExamDate != examEntity.ExamDate
+               )
             {
                 changed = true;
                 examEntity.ExamDate = updateRequest.ExamDate.Value;
@@ -467,7 +467,7 @@ public class ExamService : IExamService
             examEntity.IsDeleted = false;
             examEntity.DeletedAt = null;
             examEntity.DeletedById = null;
-            
+
             var examBoardsToRestore = examEntity.ExamBoard.Where(eb => eb.IsDeleted).ToList();
 
             foreach (var examBoard in examBoardsToRestore)
@@ -483,7 +483,7 @@ public class ExamService : IExamService
             {
                 await _unitOfWork.ExamBoardRepository.UpdateRangeAsync(examBoardsToRestore);
             }
-            
+
             await _unitOfWork.SaveAsync();
 
             _logger.LogInformation("Restored exam with id: {Id}", examId);
@@ -508,6 +508,35 @@ public class ExamService : IExamService
             _logger.LogError(ex, "Unexpected error occurred while restoring exam with ID {ExamId}.",
                 examId);
             return BaseServiceResponse<string>.Failed($"Unexpected error: {ex.Message}", "UNEXPECTED_ERROR");
+        }
+    }
+
+    public async Task<BaseServiceResponse<IEnumerable<ExamUpcomingDto>>> GetUpcomingExamsAsync(int daysAhead = 3)
+    {
+        try
+        {
+            var startDate = DateTime.UtcNow;
+            var endDate = startDate.AddDays(daysAhead);
+            
+            var upcomingExamEntities = await _unitOfWork.ExamRepository.GetAsync(e =>
+                e.ExamDate >= startDate &&
+                e.ExamDate <= endDate &&
+                !e.IsDeleted);
+
+            var sortedExams = upcomingExamEntities.OrderBy(e => e.ExamDate).ToList();
+
+            var examDtos = _mapper.Map<IEnumerable<ExamUpcomingDto>>(sortedExams);
+
+            return BaseServiceResponse<IEnumerable<ExamUpcomingDto>>.Success(
+                examDtos,
+                $"Successfully retrieved the next {sortedExams.Count} exams.");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving upcoming exams.");
+            return BaseServiceResponse<IEnumerable<ExamUpcomingDto>>.Failed(
+                "An error occurred while retrieving upcoming exams.",
+                "UNEXPECTED_ERROR");
         }
     }
 
