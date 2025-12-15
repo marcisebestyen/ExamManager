@@ -12,4 +12,5 @@ public interface IExamService
     Task<BaseServiceResponse<bool>> UpdateExamAsync(int examId, ExamUpdateDto updateRequest);
     Task<BaseServiceResponse<string>> DeleteExamAsync(int examId, int? deletedById = null);
     Task<BaseServiceResponse<string>> RestoreExamAsync(int examId);
+    Task<BaseServiceResponse<IEnumerable<ExamUpcomingDto>>> GetUpcomingExamsAsync(int daysAhead = 3);
 }

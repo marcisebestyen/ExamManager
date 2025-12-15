@@ -254,6 +254,31 @@ public class ExamController : ControllerBase
         }
     }
 
+    [HttpGet("upcoming-exams")]
+    [AllowAnonymous]
+    public async Task<IActionResult> GetUpcomingExams([FromQuery] int daysAhead = 3)
+    {
+        if (daysAhead <= 0)
+        {
+            daysAhead = 3;
+        }
+        
+        var result = await _examService.GetUpcomingExamsAsync(daysAhead);
+
+        if (result.Succeeded)
+        {
+            return Ok(result.Data);
+        }
+        else
+        {
+            _logger.LogError("Error getting upcoming exams: {Errors}", string.Join(", ", result.Errors));
+            return StatusCode(StatusCodes.Status500InternalServerError, new
+            {
+                message = result.Errors.FirstOrDefault() ?? "An unexpected error occurred."
+            });
+        }
+    }
+
     private int GetCurrentUserIdFromToken()
     {
         var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);

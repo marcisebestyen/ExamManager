@@ -113,6 +113,7 @@ public class MappingService : Profile
                     src.ExamBoard.Where(eb => !eb.IsDeleted)));
         CreateMap<Exam, ExamCreateResponseDto>();
         CreateMap<ExamResponseDto, ExamUpdateDto>();
+        CreateMap<Exam, ExamUpcomingDto>();
 
         CreateMap<BackupHistoryCreateDto, BackupHistory>();
         CreateMap<BackupHistory, BackupHistoryResponseDto>()

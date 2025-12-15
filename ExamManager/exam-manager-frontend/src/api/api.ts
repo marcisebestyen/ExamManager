@@ -4,6 +4,7 @@ import { ExamTypeFormData, IExamType } from '../interfaces/IExamType';
 import { IInstitution, InstitutionFormData } from '../interfaces/IInstitution';
 import { IProfession, ProfessionFormData } from '../interfaces/IProfession';
 import axiosInstance from './axios.config';
+import { IExamUpcoming } from '@/interfaces/IExamUpcoming';
 
 interface JsonPatchOperation {
   op: 'replace' | 'add' | 'remove' | 'copy' | 'move' | 'test';
@@ -22,6 +23,9 @@ const Exams = {
   },
   getAllExams: () => {
     return axiosInstance.get<IExam[]>(`/exams/get-all-exams`);
+  },
+  getUpcomingExams: (daysAhead: number = 3) => {
+    return axiosInstance.get<IExamUpcoming[]>(`/exams/upcoming-exams?daysAhead=${daysAhead}`);
   },
   createExam: async (examData: ExamFormData): Promise<IExam> => {
     const payload = {
