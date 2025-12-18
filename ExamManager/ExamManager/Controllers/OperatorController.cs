@@ -94,6 +94,7 @@ public class OperatorController : ControllerBase
         }
     }
 
+    [AllowAnonymous]
     [HttpGet("get-profile")]
     public async Task<IActionResult> GetMyProfile()
     {
