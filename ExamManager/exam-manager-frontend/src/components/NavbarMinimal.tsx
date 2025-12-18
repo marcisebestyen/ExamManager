@@ -46,7 +46,7 @@ function NavbarLink({ icon: Icon, label, path, active, onClick }: NavbarLinkProp
   );
 }
 
-const mockdata = [
+const mockData = [
   { icon: IconHome, label: 'Home', path: '/' },
   { icon: IconDashboard, label: 'Dashboard', path: '/dashboard' },
   { icon: IconPencilQuestion, label: 'Exams', path: '/exams' },
@@ -54,7 +54,7 @@ const mockdata = [
   { icon: IconClipboardSearch, label: 'Exam Types', path: '/exam-types' },
   { icon: IconBuildings, label: 'Institutions', path: '/institutions' },
   { icon: IconBriefcase2, label: 'Professions', path: '/professions' },
-  // { icon: IconUserCog, label: 'Operators', path: '/operators' },
+  { icon: IconUserCog, label: 'Operators', path: '/operators' },
   { icon: IconSettings, label: 'Settings', path: '/settings' },
 ];
 
@@ -69,7 +69,7 @@ export function NavbarMinimal() {
     });
   };
 
-  const links = mockdata.map((link, index) => (
+  const links = mockData.map((link, index) => (
     <NavbarLink {...link} key={link.label} onClick={() => setActive(index)} />
   ));
 

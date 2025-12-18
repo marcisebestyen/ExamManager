@@ -194,12 +194,6 @@ public class OperatorService : IOperatorService
                 changed = true;
             }
 
-            // if (updateRequest.Email != null && operatorEntity.Email != updateRequest.Email)
-            // {
-            //     operatorEntity.Email = updateRequest.Email;
-            //     changed = true;
-            // }
-
             if (updateRequest.Role != null && operatorEntity.Role != updateRequest.Role)
             {
                 operatorEntity.Role = updateRequest.Role.Value;
