@@ -11,7 +11,7 @@ namespace ExamManager.Controllers;
 
 [ApiController]
 [Route("api/operators")]
-[Authorize]
+[Authorize(Roles="Admin, Staff")]
 public class OperatorController : ControllerBase
 {
     private readonly IOperatorService _operatorService;
@@ -56,8 +56,8 @@ public class OperatorController : ControllerBase
         }
     }
 
+    [Authorize(Roles = "Admin")]
     [HttpPost("register")]
-    [AllowAnonymous]
     public async Task<IActionResult> Register([FromBody] OperatorCreateDto createRequest)
     {
         if (!ModelState.IsValid)
@@ -94,6 +94,7 @@ public class OperatorController : ControllerBase
         }
     }
 
+    [AllowAnonymous]
     [HttpGet("get-profile")]
     public async Task<IActionResult> GetMyProfile()
     {
@@ -201,7 +202,6 @@ public class OperatorController : ControllerBase
     }
 
     [HttpGet("get-all-operators")]
-    [Authorize(Roles = "Admin, Staff")]
     public async Task<IActionResult> GetAllOperators()
     {
         var result = await _operatorService.GetAllOperatorsAsync();
@@ -366,6 +366,16 @@ public class OperatorController : ControllerBase
                                   "An unexpected error occurred during role assignment."
                     });
         }
+    }
+
+    [HttpGet("debug-claims")]
+    [AllowAnonymous]
+    public IActionResult DebugClaims()
+    {
+        var claims = User.Claims.Select(claim => new {claim.Type, claim.Value}).ToList();
+        var isAuthenticated = User.Identity?.IsAuthenticated ?? false;
+        
+        return Ok(new { isAuthenticated, claims });
     }
 
     private int GetCurrentUserIdFromToken()

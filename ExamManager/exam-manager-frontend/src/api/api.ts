@@ -1,10 +1,12 @@
+import { IExamUpcoming } from '@/interfaces/IExamUpcoming';
+import { IOperator, OperatorCreateFormData } from '../interfaces/IOperator';
 import { ExamFormData, IExam } from '../interfaces/IExam';
 import { ExaminerFormData, IExaminer } from '../interfaces/IExaminer';
 import { ExamTypeFormData, IExamType } from '../interfaces/IExamType';
 import { IInstitution, InstitutionFormData } from '../interfaces/IInstitution';
 import { IProfession, ProfessionFormData } from '../interfaces/IProfession';
 import axiosInstance from './axios.config';
-import { IExamUpcoming } from '@/interfaces/IExamUpcoming';
+
 
 interface JsonPatchOperation {
   op: 'replace' | 'add' | 'remove' | 'copy' | 'move' | 'test';
@@ -154,6 +156,38 @@ const Professions = {
   },
 };
 
-const api = { Exams, ExamTypes, Examiners, Institutions, Professions };
+const Operators = {
+  getAllOperators: () => {
+    return axiosInstance.get<IOperator[]>('/operators/get-all-operators');
+  },
+  getOperatorById: (id: number) => {
+    return axiosInstance.get<IOperator>(`/operators/get-operator/${id}`);
+  },
+  createOperator: async (operatorData: OperatorCreateFormData): Promise<IOperator> => {
+    const payload = {
+      ...operatorData,
+    };
+    const response = await axiosInstance.post<IOperator>('/operators/register', payload);
+    return response.data;
+  },
+  updateOperator: (id: number, patchDocument: JsonPatchOperation[]) => {
+    return axiosInstance.patch<void>(`/operators/update-profile/${id}`, patchDocument, {
+      headers: {
+        'Content-Type': 'application/json-patch+json',
+      },
+    });
+  },
+  deleteOperator: async (id: number) => {
+    return axiosInstance.delete(`/operators/delete-operator/${id}`);
+  },
+  restoreOperator: async (id: number) => {
+    return axiosInstance.post(`/operators/restore-operator/${id}`);
+  },
+  assignRole: async (id: number, newRole: string) => {
+    return axiosInstance.post(`/operators/assign-role/${id}?newRole=${newRole}`);
+  },
+};
+
+const api = { Exams, ExamTypes, Examiners, Institutions, Professions, Operators };
 
 export default api;

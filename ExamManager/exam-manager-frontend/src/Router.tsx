@@ -8,6 +8,7 @@ import { HomePage } from './pages/Home.page';
 import InstitutionPage from './pages/Institution.page';
 import { LoginPage } from './pages/Login.page';
 import ProfessionPage from './pages/Profession.page';
+import OperatorPage from './pages/Operator.page';
 import { SettingsPage } from './pages/Settings.page';
 
 const router = createBrowserRouter([
@@ -46,6 +47,10 @@ const router = createBrowserRouter([
   {
     path: '/professions',
     element: <ProfessionPage />,
+  },
+  {
+    path: '/operators',
+    element: <OperatorPage />,
   },
   {
     path: '/settings',
