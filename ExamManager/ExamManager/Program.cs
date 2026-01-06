@@ -121,6 +121,7 @@ builder.Services.AddScoped<IExamTypeService, ExamTypeService>();
 builder.Services.AddScoped<IExamService, ExamService>();
 builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddScoped<IPasswordResetService, PasswordResetService>();
+builder.Services.AddScoped<IExportService, ExportService>();
 
 var app = builder.Build();
 
