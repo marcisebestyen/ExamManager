@@ -1,15 +1,28 @@
 import React, { useEffect, useState } from 'react';
 import { IconAlertCircle, IconCalendarEvent, IconFileSpreadsheet } from '@tabler/icons-react';
-import { Alert, Button, Container, Grid, Group, Loader, Paper, ScrollArea, Table, Text, ThemeIcon, Title } from '@mantine/core';
+import {
+  Alert,
+  Button,
+  Container,
+  Grid,
+  Group,
+  Loader,
+  Paper,
+  ScrollArea,
+  Table,
+  Text,
+  ThemeIcon,
+  Title,
+} from '@mantine/core';
 import api from '../api/api';
 import { Skeleton } from '../components/Skeleton';
 import { IExamUpcoming } from '../interfaces/IExamUpcoming';
-
 
 const Dashboard = () => {
   const [upcomingExams, setUpcomingExams] = useState<IExamUpcoming[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const [downloadingType, setDownloadingType] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -26,6 +39,44 @@ const Dashboard = () => {
 
     fetchData();
   }, []);
+
+  const handleDownload = async (
+    exportType: string,
+    apiCall: () => Promise<any>,
+    defaultFileName: string
+  ) => {
+    try {
+      setDownloadingType(exportType);
+
+      const response = await apiCall();
+
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+
+      const link = document.createElement('a');
+      link.href = url;
+
+      const contentDisposition = response.headers['content-disposition'];
+      let fileName = defaultFileName;
+      if (contentDisposition) {
+        const fileNameMatch = contentDisposition.match(/filename="?(.+)"?/);
+        if (fileNameMatch && fileNameMatch.length === 2) {
+          fileName = fileNameMatch[1];
+        }
+      }
+
+      link.setAttribute('download', fileName);
+
+      document.body.appendChild(link);
+      link.click();
+      link.parentNode?.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error(`Failed to download ${exportType}`, err);
+      alert('Download failed. Please try again.');
+    } finally {
+      setDownloadingType(null);
+    }
+  };
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
@@ -72,6 +123,13 @@ const Dashboard = () => {
                 variant="outline"
                 color="green"
                 leftSection={<IconFileSpreadsheet size={16} />}
+                loading={downloadingType === 'exams'}
+                onClick={() => handleDownload(
+                  'exams',
+                  api.Exports.exportExams,
+                  'exams.xlsx'
+                )
+              }
               >
                 All Exams
               </Button>
@@ -79,6 +137,14 @@ const Dashboard = () => {
                 variant="outline"
                 color="green"
                 leftSection={<IconFileSpreadsheet size={16} />}
+                loading={downloadingType === 'examiners'}
+                onClick={() =>
+                  handleDownload(
+                    'examiners',
+                    api.Exports.exportExaminers,
+                    'examiners.xlsx'
+                  )
+                }
               >
                 All Examiners
               </Button>
@@ -86,6 +152,14 @@ const Dashboard = () => {
                 variant="outline"
                 color="green"
                 leftSection={<IconFileSpreadsheet size={16} />}
+                loading={downloadingType === 'examTypes'}
+                onClick={() =>
+                  handleDownload(
+                    'examTypes',
+                    api.Exports.exportExamTypes,
+                    'exam_types.xlsx'
+                  )
+                }
               >
                 All Exam Types
               </Button>
@@ -93,6 +167,14 @@ const Dashboard = () => {
                 variant="outline"
                 color="green"
                 leftSection={<IconFileSpreadsheet size={16} />}
+                loading={downloadingType === 'institutions'}
+                onClick={() =>
+                  handleDownload(
+                    'institutions',
+                    api.Exports.exportInstitutions,
+                    'institutions.xlsx'
+                  )
+                }
               >
                 All Institutions
               </Button>
@@ -100,23 +182,31 @@ const Dashboard = () => {
                 variant="outline"
                 color="green"
                 leftSection={<IconFileSpreadsheet size={16} />}
+                loading={downloadingType === 'professions'}
+                onClick={() =>
+                  handleDownload(
+                    'professions',
+                    api.Exports.exportProfessions,
+                    'professions.xlsx'
+                  )
+                }
               >
                 All Professions
               </Button>
-              <Button
-                variant="outline"
-                color="green"
-                leftSection={<IconFileSpreadsheet size={16} />}
-              >
-                Export Upcoming Exams
-              </Button>
-              <Button
-                variant="outline"
-                color="green"
-                leftSection={<IconFileSpreadsheet size={16} />}
-              >
-                Export Everything
-              </Button>
+              {/*<Button*/}
+              {/*  variant="outline"*/}
+              {/*  color="green"*/}
+              {/*  leftSection={<IconFileSpreadsheet size={16} />}*/}
+              {/*>*/}
+              {/*  Export Upcoming Exams*/}
+              {/*</Button>*/}
+              {/*<Button*/}
+              {/*  variant="outline"*/}
+              {/*  color="green"*/}
+              {/*  leftSection={<IconFileSpreadsheet size={16} />}*/}
+              {/*>*/}
+              {/*  Export Everything*/}
+              {/*</Button>*/}
             </Group>
           </Paper>
         </Grid.Col>

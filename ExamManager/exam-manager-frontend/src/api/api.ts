@@ -1,12 +1,11 @@
 import { IExamUpcoming } from '@/interfaces/IExamUpcoming';
-import { IOperator, OperatorCreateFormData } from '../interfaces/IOperator';
 import { ExamFormData, IExam } from '../interfaces/IExam';
 import { ExaminerFormData, IExaminer } from '../interfaces/IExaminer';
 import { ExamTypeFormData, IExamType } from '../interfaces/IExamType';
 import { IInstitution, InstitutionFormData } from '../interfaces/IInstitution';
+import { IOperator, OperatorCreateFormData } from '../interfaces/IOperator';
 import { IProfession, ProfessionFormData } from '../interfaces/IProfession';
 import axiosInstance from './axios.config';
-
 
 interface JsonPatchOperation {
   op: 'replace' | 'add' | 'remove' | 'copy' | 'move' | 'test';
@@ -101,6 +100,24 @@ const Examiners = {
   },
 };
 
+const Exports = {
+  exportExaminers: () => {
+    return axiosInstance.get(`/export/export-examiners`, { responseType: 'blob' });
+  },
+  exportProfessions: () => {
+    return axiosInstance.get(`/export/export-professions`, { responseType: 'blob' });
+  },
+  exportInstitutions: () => {
+    return axiosInstance.get(`/export/export-institutions`, { responseType: 'blob' });
+  },
+  exportExamTypes: () => {
+    return axiosInstance.get(`/export/export-exam-types`, { responseType: 'blob' });
+  },
+  exportExams: () => {
+    return axiosInstance.get(`/export/export-exams`, { responseType: 'blob' });
+  },
+};
+
 const Institutions = {
   updateInstitution: (id: number, patchDocument: JsonPatchOperation[]) => {
     return axiosInstance.patch<void>(`/institutions/update-institution/${id}`, patchDocument, {
@@ -188,6 +205,6 @@ const Operators = {
   },
 };
 
-const api = { Exams, ExamTypes, Examiners, Institutions, Professions, Operators };
+const api = { Exams, ExamTypes, Examiners, Exports, Institutions, Professions, Operators };
 
 export default api;
