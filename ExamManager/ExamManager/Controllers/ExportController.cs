@@ -1,4 +1,5 @@
 using ExamManager.Interfaces;
+using ExamManager.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -38,11 +39,53 @@ public class ExportController : ControllerBase
             });
         }
     }
+
+    [HttpPost("export-examiners-filtered")]
+    public async Task<IActionResult> ExportExaminersFiltered([FromBody] List<int> ids)
+    {
+        var result = await _exportService.ExportExaminersToExcelAsync(ids);
+
+        if (result.Succeeded)
+        {
+            var fileName = $"Examiners_{DateTime.Now:yyyyMMdd_HHmm}.xlsx";
+            var contentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+            return File(result.Data, contentType, fileName);
+        }
+        else
+        {
+            _logger.LogError("Export failed for examiners: {Errors}", string.Join(", ", result.Errors));
+            return StatusCode(StatusCodes.Status500InternalServerError, new
+            {
+                message = result.Errors.FirstOrDefault() ?? "An unexpected error occurred during export."
+            });
+        }
+    }
     
     [HttpGet("export-professions")]
     public async Task<IActionResult> ExportProfessions()
     {
         var result = await _exportService.ExportProfessionsToExcelAsync();
+
+        if (result.Succeeded)
+        {
+            var fileName = $"Professions_{DateTime.Now:yyyyMMdd_HHmm}.xlsx";
+            var contentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+            return File(result.Data, contentType, fileName);
+        }
+        else
+        {
+            _logger.LogError("Export failed for professions: {Errors}", string.Join(", ", result.Errors));
+            return StatusCode(StatusCodes.Status500InternalServerError, new
+            {
+                message = result.Errors.FirstOrDefault() ?? "An unexpected error occurred during export."
+            });
+        }
+    }
+
+    [HttpPost("export-professions-filtered")]
+    public async Task<IActionResult> ExportProfessionsFiltered([FromBody] List<int> ids)
+    {
+        var result = await _exportService.ExportProfessionsToExcelAsync(ids);
 
         if (result.Succeeded)
         {
@@ -80,12 +123,53 @@ public class ExportController : ControllerBase
             });
         }
     }
+
+    [HttpPost("export-institutions-filtered")]
+    public async Task<IActionResult> ExportInstitutionsFiltered([FromBody] List<int> ids)
+    {
+        var result = await _exportService.ExportInstitutionsToExcelAsync(ids);
+        
+        if (result.Succeeded)
+        {
+            var fileName = $"Institutions_{DateTime.Now:yyyyMMdd_HHmm}.xlsx";
+            var contentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+            return File(result.Data, contentType, fileName);
+        }
+        else
+        {
+            _logger.LogError("Export failed for institutions: {Errors}", string.Join(", ", result.Errors));
+            return StatusCode(StatusCodes.Status500InternalServerError, new
+            {
+                message = result.Errors.FirstOrDefault() ?? "An unexpected error occurred during export."
+            });
+        }
+    }
     
     [HttpGet("export-exam-types")]
     public async Task<IActionResult> ExportExamTypes()
     {
-        var result = await _exportService.ExportExamTypesToExcelAsync();
+        var result = await _exportService.ExportExamTypesToExcelAsync(null);
 
+        if (result.Succeeded)
+        {
+            var fileName = $"ExamTypes_{DateTime.Now:yyyyMMdd_HHmm}.xlsx";
+            var contentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+            return File(result.Data, contentType, fileName);
+        }
+        else
+        {
+            _logger.LogError("Export failed for exam types: {Errors}", string.Join(", ", result.Errors));
+            return StatusCode(StatusCodes.Status500InternalServerError, new
+            {
+                message = result.Errors.FirstOrDefault() ?? "An unexpected error occurred during export."
+            });
+        }
+    }
+
+    [HttpPost("export-exam-types-filtered")]
+    public async Task<IActionResult> ExportExamTypesFiltered([FromBody] List<int> ids)
+    {
+        var result = await _exportService.ExportExamTypesToExcelAsync(ids);
         if (result.Succeeded)
         {
             var fileName = $"ExamTypes_{DateTime.Now:yyyyMMdd_HHmm}.xlsx";
@@ -107,6 +191,27 @@ public class ExportController : ControllerBase
     {
         var result = await _exportService.ExportExamsToExcelAsync();
 
+        if (result.Succeeded)
+        {
+            var fileName = $"Exams_{DateTime.Now:yyyyMMdd_HHmm}.xlsx";
+            var contentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+            return File(result.Data, contentType, fileName);
+        }
+        else
+        {
+            _logger.LogError("Export failed for exams: {Errors}", string.Join(", ", result.Errors));
+            return StatusCode(StatusCodes.Status500InternalServerError, new
+            {
+                message = result.Errors.FirstOrDefault() ?? "An unexpected error occurred during export."
+            });
+        }
+    }
+
+    [HttpPost("export-exams-filtered")]
+    public async Task<IActionResult> ExportExamsFiltered([FromBody] List<int> ids)
+    {
+        var result = await _exportService.ExportExamsToExcelAsync(ids);
+        
         if (result.Succeeded)
         {
             var fileName = $"Exams_{DateTime.Now:yyyyMMdd_HHmm}.xlsx";

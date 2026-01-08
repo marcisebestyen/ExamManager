@@ -104,17 +104,32 @@ const Exports = {
   exportExaminers: () => {
     return axiosInstance.get(`/export/export-examiners`, { responseType: 'blob' });
   },
+  exportExaminersFiltered: (ids: number[]) => {
+    return axiosInstance.post(`/export/export-examiners-filtered`, ids, { responseType: 'blob' });
+  },
   exportProfessions: () => {
     return axiosInstance.get(`/export/export-professions`, { responseType: 'blob' });
+  },
+  exportProfessionsFiltered: (ids: number[]) => {
+    return axiosInstance.post(`/export/export-professions-filtered`, ids, { responseType: 'blob' });
   },
   exportInstitutions: () => {
     return axiosInstance.get(`/export/export-institutions`, { responseType: 'blob' });
   },
+  exportInstitutionsFiltered: (ids: number[]) => {
+    return axiosInstance.post(`/export/export-institutions-filtered`, ids, { responseType: 'blob' });
+  },
   exportExamTypes: () => {
     return axiosInstance.get(`/export/export-exam-types`, { responseType: 'blob' });
   },
+  exportExamTypesFiltered: (ids: number[]) => {
+    return axiosInstance.post(`/export/export-exam-types-filtered`, ids, { responseType: 'blob' });
+  },
   exportExams: () => {
     return axiosInstance.get(`/export/export-exams`, { responseType: 'blob' });
+  },
+  exportExamsFiltered: (ids: number[]) => {
+    return axiosInstance.post(`/export/export-exams-filtered`, ids, { responseType: 'blob' });
   },
 };
 
