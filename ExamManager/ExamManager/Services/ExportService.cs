@@ -44,7 +44,7 @@ public class ExportService : IExportService
         }
     }
 
-    public async Task<BaseServiceResponse<byte[]>> ExportExaminersToExcelAsync()
+    public async Task<BaseServiceResponse<byte[]>> ExportExaminersToExcelAsync(List<int>? filteredIds = null)
     {
         try
         {
@@ -53,6 +53,12 @@ public class ExportService : IExportService
             {
                 return BaseServiceResponse<byte[]>.Failed(
                     response.Errors.FirstOrDefault() ?? "Failed to retrieve examiners.", response.ErrorCode);
+            }
+            
+            var dataToExport = response.Data;
+            if (filteredIds != null && filteredIds.Any())
+            {
+                dataToExport = dataToExport.Where(em => filteredIds.Contains(em.Id)).ToList();
             }
 
             using var package = new ExcelPackage();
@@ -69,7 +75,7 @@ public class ExportService : IExportService
             StyleHeader(ws, 8);
 
             var row = 2;
-            foreach (var dto in response.Data)
+            foreach (var dto in dataToExport)
             {
                 ws.Cells[row, 1].Value = dto.Id;
                 ws.Cells[row, 2].Value = dto.FirstName;
@@ -97,7 +103,7 @@ public class ExportService : IExportService
         }
     }
 
-    public async Task<BaseServiceResponse<byte[]>> ExportProfessionsToExcelAsync()
+    public async Task<BaseServiceResponse<byte[]>> ExportProfessionsToExcelAsync(List<int>? filteredIds = null)
     {
         try
         {
@@ -106,6 +112,12 @@ public class ExportService : IExportService
             {
                 return BaseServiceResponse<byte[]>.Failed(
                     response.Errors.FirstOrDefault() ?? "Failed to retrieve professions.", response.ErrorCode);
+            }
+            
+            var dataToExport = response.Data;
+            if (filteredIds != null && filteredIds.Any())
+            {
+                dataToExport = dataToExport.Where(p => filteredIds.Contains(p.Id)).ToList();
             }
 
             using var package = new ExcelPackage();
@@ -117,7 +129,7 @@ public class ExportService : IExportService
             StyleHeader(ws, 3);
 
             var row = 2;
-            foreach (var dto in response.Data)
+            foreach (var dto in dataToExport)
             {
                 ws.Cells[row, 1].Value = dto.Id;
                 ws.Cells[row, 2].Value = dto.KeorId;
@@ -136,7 +148,7 @@ public class ExportService : IExportService
         }
     }
 
-    public async Task<BaseServiceResponse<byte[]>> ExportInstitutionsToExcelAsync()
+    public async Task<BaseServiceResponse<byte[]>> ExportInstitutionsToExcelAsync(List<int>? filteredIds = null)
     {
         try
         {
@@ -145,6 +157,12 @@ public class ExportService : IExportService
             {
                 return BaseServiceResponse<byte[]>.Failed(
                     response.Errors.FirstOrDefault() ?? "Failed to retrieve institutions.", response.ErrorCode);
+            }
+            
+            var dataToExport = response.Data;
+            if (filteredIds != null && filteredIds.Any())
+            {
+                dataToExport = dataToExport.Where(i => filteredIds.Contains(i.Id));
             }
 
             using var package = new ExcelPackage();
@@ -159,7 +177,7 @@ public class ExportService : IExportService
             StyleHeader(ws, 6);
 
             var row = 2;
-            foreach (var dto in response.Data)
+            foreach (var dto in dataToExport)
             {
                 ws.Cells[row, 1].Value = dto.Id;
                 ws.Cells[row, 2].Value = dto.EducationalId;
@@ -186,7 +204,7 @@ public class ExportService : IExportService
         }
     }
 
-    public async Task<BaseServiceResponse<byte[]>> ExportExamTypesToExcelAsync()
+    public async Task<BaseServiceResponse<byte[]>> ExportExamTypesToExcelAsync(List<int>? filteredIds = null)
     {
         try
         {
@@ -195,6 +213,12 @@ public class ExportService : IExportService
             {
                 return BaseServiceResponse<byte[]>.Failed(
                     response.Errors.FirstOrDefault() ?? "Failed to retrieve exam types.", response.ErrorCode);
+            }
+
+            var dataToExport = response.Data;
+            if (filteredIds != null && filteredIds.Any())
+            {
+                dataToExport = dataToExport.Where(et => filteredIds.Contains(et.Id)).ToList();
             }
 
             using var package = new ExcelPackage();
@@ -206,7 +230,7 @@ public class ExportService : IExportService
             StyleHeader(ws, 3);
 
             var row = 2;
-            foreach (var dto in response.Data)
+            foreach (var dto in dataToExport)
             {
                 ws.Cells[row, 1].Value = dto.Id;
                 ws.Cells[row, 2].Value = dto.TypeName;
@@ -225,7 +249,7 @@ public class ExportService : IExportService
         }
     }
 
-    public async Task<BaseServiceResponse<byte[]>> ExportExamsToExcelAsync()
+    public async Task<BaseServiceResponse<byte[]>> ExportExamsToExcelAsync(List<int>? filteredIds = null)
     {
         try
         {
@@ -234,6 +258,12 @@ public class ExportService : IExportService
             {
                 return BaseServiceResponse<byte[]>.Failed(
                     response.Errors.FirstOrDefault() ?? "Failed to retrieve exams.", response.ErrorCode);
+            }
+            
+            var dataToExport = response.Data;
+            if (filteredIds != null && filteredIds.Any())
+            {
+                dataToExport = dataToExport.Where(e => filteredIds.Contains(e.Id)).ToList();
             }
 
             using var package = new ExcelPackage();
@@ -254,7 +284,7 @@ public class ExportService : IExportService
             StyleHeader(ws, 12);
 
             var row = 2;
-            foreach (var dto in response.Data)
+            foreach (var dto in dataToExport)
             {
                 ws.Cells[row, 1].Value = dto.Id;
                 ws.Cells[row, 2].Value = dto.ExamCode;

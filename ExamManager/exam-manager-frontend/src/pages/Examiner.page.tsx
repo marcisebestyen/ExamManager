@@ -1,23 +1,17 @@
+
+
+
 import '@mantine/core/styles.css';
 import '@mantine/dates/styles.css';
 import 'mantine-react-table/styles.css';
 import '@mantine/notifications/styles.css';
 
-import { useMemo } from 'react';
-import { IconEdit, IconTrash } from '@tabler/icons-react';
-import {
-  QueryClient,
-  QueryClientProvider,
-  useMutation,
-  useQuery,
-  useQueryClient,
-} from '@tanstack/react-query';
-import {
-  MantineReactTable,
-  useMantineReactTable,
-  type MRT_ColumnDef,
-  type MRT_Row,
-} from 'mantine-react-table';
+
+
+import { useMemo, useState } from 'react';
+import { IconDownload, IconEdit, IconTrash } from '@tabler/icons-react';
+import { QueryClient, QueryClientProvider, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { MantineReactTable, useMantineReactTable, type MRT_ColumnDef, type MRT_Row } from 'mantine-react-table';
 import { ActionIcon, Button, Flex, Stack, Text, TextInput, Title, Tooltip } from '@mantine/core';
 import { DateInput } from '@mantine/dates';
 import { useForm } from '@mantine/form';
@@ -26,6 +20,7 @@ import { Notifications, notifications } from '@mantine/notifications';
 import api from '../api/api';
 import { Skeleton } from '../components/Skeleton';
 import { ExaminerFormData, IExaminer } from '../interfaces/IExaminer';
+
 
 interface JsonPatchOperation {
   op: 'replace' | 'add' | 'remove' | 'copy' | 'move' | 'test';
@@ -199,6 +194,7 @@ const ExaminerTable = () => {
     isLoading: isLoadingExaminers,
   } = useGetExaminers();
   const { mutateAsync: deleteExaminer, isPending: isDeletingExaminer } = useDeleteExaminer();
+  const [isExporting, setIsExporting] = useState(false);
 
   const columns = useMemo<MRT_ColumnDef<IExaminer>[]>(
     () => [
@@ -252,6 +248,37 @@ const ExaminerTable = () => {
       children: <DeleteExaminerModal examiner={row.original} />,
     });
 
+  const handleExportData = async (table: any) => {
+    setIsExporting(true);
+    try {
+      const filteredRows = table.getPrePaginationRowModel().rows;
+      const ids = filteredRows.map((row: any) => row.original.id);
+
+      if (ids.length === 0) {
+        notifications.show({ title: 'Info', message: 'No data to export', color: 'blue' });
+        return;
+      }
+
+      const response = await api.Exports.exportExaminersFiltered(ids);
+
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute(
+        'download',
+        `Examiners_Filtered_${new Date().toISOString().slice(0, 10)}.xlsx`
+      );
+      document.body.appendChild(link);
+      link.click();
+      link.parentNode?.removeChild(link);
+    } catch (error) {
+      console.error(error);
+      notifications.show({ title: 'Error', message: 'Export failed', color: 'red' });
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   const table = useMantineReactTable({
     columns,
     data: fetchedExaminers,
@@ -295,9 +322,22 @@ const ExaminerTable = () => {
       </Flex>
     ),
     renderTopToolbarCustomActions: () => (
-      <Button variant="outline" radius="md" onClick={openCreateModal}>
-        Create New Entry
-      </Button>
+      <Flex gap="md">
+        <Button variant="outline" radius="md" onClick={openCreateModal}>
+          Create New Entry
+        </Button>
+
+        <Button
+          variant="outline"
+          color="green"
+          radius="md"
+          leftSection={<IconDownload size={16} />}
+          loading={isExporting}
+          onClick={() => handleExportData(table)}
+        >
+          Export Filtered
+        </Button>
+      </Flex>
     ),
     state: {
       isLoading: isLoadingExaminers,
