@@ -18,6 +18,17 @@ public class ImportController : ControllerBase
         _importService = importService ?? throw new ArgumentNullException(nameof(importService));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
+    
+    [HttpGet("template-examiners")]
+    public IActionResult DownloadExaminersTemplate()
+    {
+        var fileContent = _importService.GenerateExaminersImportTemplate();
+        
+        var fileName = "Examiners_Import_Template.xlsx";
+        var contentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+        
+        return File(fileContent, contentType, fileName);
+    }
 
     [HttpGet("template-exam-types")]
     public IActionResult DownloadExamTypesTemplate()
@@ -39,6 +50,34 @@ public class ImportController : ControllerBase
         var contentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
         
         return File(fileContent, contentType, fileName);
+    }
+
+    [HttpPost("import-examiners")]
+    public async Task<IActionResult> ImportExaminers(IFormFile file)
+    {
+        if (file == null || file.Length == 0)
+        {
+            return BadRequest(new { message = "No file uploaded." });
+        }
+        
+        using var stream = file.OpenReadStream();
+        
+        var result = await _importService.ImportExaminersFromExcelAsync(stream);
+        
+        if (result.Succeeded)
+        {
+            return Ok(result.Data);
+        }
+        else
+        {
+            _logger.LogError("Import failed for examiners: {Errors}",
+                string.Join(", ", result.Errors ?? new List<string>()));
+            return StatusCode(StatusCodes.Status500InternalServerError, new
+            {
+                message = result.Message ?? "An unexpected error occurred during import.",
+                details = result.Data?.Errors
+            });
+        }
     }
 
     [HttpPost("import-exam-types")]
