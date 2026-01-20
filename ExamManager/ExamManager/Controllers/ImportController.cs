@@ -41,6 +41,17 @@ public class ImportController : ControllerBase
         return File(fileContent, contentType, fileName);
     }
 
+    [HttpGet("template-institutions")]
+    public IActionResult DownloadInstitutionsTemplate()
+    {
+        var fileContent = _importService.GenerateInstitutionsImportTemplate();
+        
+        var fileName = "Institutions_Import_Template.xlsx";
+        var contentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+        
+        return File(fileContent, contentType, fileName);
+    }
+
     [HttpGet("template-professions")]
     public IActionResult DownloadProfessionTemplate()
     {
@@ -99,6 +110,34 @@ public class ImportController : ControllerBase
         else
         {
             _logger.LogError("Import failed for exam types: {Errors}",
+                string.Join(", ", result.Errors ?? new List<string>()));
+            return StatusCode(StatusCodes.Status500InternalServerError, new
+            {
+                message = result.Message ?? "An unexpected error occurred during import.",
+                details = result.Data?.Errors
+            });
+        }
+    }
+
+    [HttpPost("import-institutions")]
+    public async Task<IActionResult> ImportInstitutions(IFormFile file)
+    {
+        if (file == null || file.Length == 0)
+        {
+            return BadRequest(new { message = "No file uploaded." });
+        }
+        
+        using var stream = file.OpenReadStream();
+        
+        var result = await _importService.ImportInstitutionsFromExcelAsync(stream);
+        
+        if (result.Succeeded)
+        {
+            return Ok(result.Data);
+        }
+        else
+        {
+            _logger.LogError("Import failed for institutions: {Errors}",
                 string.Join(", ", result.Errors ?? new List<string>()));
             return StatusCode(StatusCodes.Status500InternalServerError, new
             {

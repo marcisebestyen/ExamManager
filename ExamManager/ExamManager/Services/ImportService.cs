@@ -1,11 +1,13 @@
 using AutoMapper;
 using ExamManager.Dtos;
 using ExamManager.Dtos.ExaminerDtos;
+using ExamManager.Dtos.InstitutionDtos;
 using ExamManager.Dtos.ProfessionDtos;
 using ExamManager.Interfaces;
 using ExamManager.Models;
 using ExamManager.Repositories;
 using ExamManager.Responses;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 using OfficeOpenXml;
 
 namespace ExamManager.Services;
@@ -250,6 +252,138 @@ public class ImportService : IImportService
                 "An unexpected error occurred during import.", "IMPORT_ERROR");
         }
     }
+
+    public async Task<BaseServiceResponse<ImportResult>> ImportInstitutionsFromExcelAsync(Stream filestream)
+    {
+        var newInstitutions = new List<Institution>();
+        var errors = new List<string>();
+        int successCount = 0;
+
+        try
+        {
+            using (var package = new ExcelPackage(filestream))
+            {
+                var worksheet = package.Workbook.Worksheets[0];
+                var rowCount = worksheet.Dimension.Rows;
+                
+                var importDtos = new List<InstitutionCreateDto>();
+
+                for (int row = 2; row <= rowCount; row++)
+                {
+                    var educationalId = worksheet.Cells[row, 1].Value?.ToString()?.Trim();
+                    var name = worksheet.Cells[row, 2].Value?.ToString()?.Trim();
+                    var zipCode = worksheet.Cells[row, 3].GetValue<int?>();
+                    var town = worksheet.Cells[row, 4].Value?.ToString()?.Trim();
+                    var street = worksheet.Cells[row, 5].Value?.ToString()?.Trim();
+                    var number = worksheet.Cells[row, 6].Value?.ToString()?.Trim();
+                    var floor = worksheet.Cells[row, 7].Value?.ToString()?.Trim();
+                    var door = worksheet.Cells[row, 8].Value?.ToString()?.Trim();
+
+                    if (string.IsNullOrWhiteSpace(educationalId))
+                    {
+                        errors.Add($"Row {row}: Educational Id is required.");
+                        continue;
+                    }
+                    
+                    if (string.IsNullOrWhiteSpace(name))
+                    {
+                        errors.Add($"Row {row}: Name is required.");
+                        continue;
+                    }
+
+                    if (zipCode == null)
+                    {
+                        errors.Add($"Row {row}: Zip Code is invalid or empty.");
+                        continue;
+                    }
+
+                    if (zipCode <= 0)
+                    {
+                        errors.Add($"Row {row}: Zip Code must be a positive number.");
+                        continue;
+                    }
+
+                    if (string.IsNullOrWhiteSpace(town))
+                    {
+                        errors.Add($"Row {row}: Town is required.");
+                        continue;
+                    }
+
+                    if (string.IsNullOrWhiteSpace(street))
+                    {
+                        errors.Add($"Row {row}: Street is required.");
+                        continue;
+                    }
+
+                    if (string.IsNullOrWhiteSpace(number))
+                    {
+                        errors.Add($"Row {row}: Number is required.");
+                        continue;
+                    }
+                    
+                    importDtos.Add(new InstitutionCreateDto
+                    {
+                        EducationalId = educationalId,
+                        Name = name,
+                        ZipCode = zipCode.Value,
+                        Town = town,
+                        Street = street,
+                        Number = number,
+                        Floor = floor,
+                        Door = door
+                    });
+                }
+                
+                var allImportIds = importDtos.Select(x => x.EducationalId).ToList();
+
+                var existingEntities =
+                    await _unitOfWork.InstitutionRepository.GetAsync(et => allImportIds.Contains(et.EducationalId));
+
+                var existingIds = new HashSet<string>(existingEntities.Select(et => et.EducationalId),
+                    StringComparer.OrdinalIgnoreCase);
+                
+                foreach (var dto in importDtos)
+                {
+                    if (existingIds.Contains(dto.EducationalId))
+                    {
+                        errors.Add($"Skipped '{dto.EducationalId}': Already exists in database.");
+                        continue;
+                    }
+
+                    if (newInstitutions.Any(x => x.EducationalId.Equals(dto.EducationalId, StringComparison.OrdinalIgnoreCase)))
+                    {
+                        errors.Add($"Skipped '{dto.EducationalId}': Duplicate entry in file.");
+                        continue;
+                    }
+
+                    var entity = _mapper.Map<Institution>(dto);
+                    newInstitutions.Add(entity);
+                }
+                
+                if (newInstitutions.Any())
+                {
+                    foreach (var entity in newInstitutions)
+                    {
+                        await _unitOfWork.InstitutionRepository.InsertAsync(entity);
+                    }
+
+                    await _unitOfWork.SaveAsync();
+                    successCount = newInstitutions.Count;
+                }
+            }
+            
+            return BaseServiceResponse<ImportResult>.Success(
+                new ImportResult { SuccessCount = successCount, Errors = errors },
+                $"Import completed. {successCount} added, {errors.Count} skipped."
+            );
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error importing exam types from Excel.");
+            return BaseServiceResponse<ImportResult>.Failed(
+                "An unexpected error occurred during import.", "IMPORT_ERROR");
+        }
+    }
     
     public async Task<BaseServiceResponse<ImportResult>> ImportProfessionsFromExcelAsync(Stream filestream)
     {
@@ -335,7 +469,7 @@ public class ImportService : IImportService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error importing exam types from Excel.");
+            _logger.LogError(ex, "Error importing institutions from Excel.");
             return BaseServiceResponse<ImportResult>.Failed(
                 "An unexpected error occurred during import.", "IMPORT_ERROR");
         }
@@ -386,6 +520,34 @@ public class ImportService : IImportService
 
             sheet.Cells.AutoFitColumns();
 
+            return package.GetAsByteArray();
+        }
+    }
+
+    public byte[] GenerateInstitutionsImportTemplate()
+    {
+        using (var package = new ExcelPackage())
+        {
+            var sheet = package.Workbook.Worksheets.Add("Institution Import");
+            
+            sheet.Cells[1, 1].Value = "EducationalId";
+            sheet.Cells[1, 2].Value = "Name";
+            sheet.Cells[1, 3].Value = "ZipCode";
+            sheet.Cells[1, 4].Value = "Town";
+            sheet.Cells[1, 5].Value = "Street";
+            sheet.Cells[1, 6].Value = "Number";
+            sheet.Cells[1, 7].Value = "Floor";
+            sheet.Cells[1, 8].Value = "Door";
+            
+            using (var range = sheet.Cells[1, 1, 1, 8])
+            {
+                range.Style.Font.Bold = true;
+                range.Style.Fill.PatternType = OfficeOpenXml.Style.ExcelFillStyle.Solid;
+                range.Style.Fill.BackgroundColor.SetColor(System.Drawing.Color.LightGray);
+            }
+            
+            sheet.Cells.AutoFitColumns();
+            
             return package.GetAsByteArray();
         }
     }

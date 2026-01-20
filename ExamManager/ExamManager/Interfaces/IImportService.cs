@@ -8,6 +8,8 @@ public interface IImportService
     byte[] GenerateExaminersImportTemplate();
     Task<BaseServiceResponse<ImportResult>> ImportExamTypesFromExcelAsync(Stream filestream);
     byte[] GenerateExamTypesImportTemplate();
+    Task<BaseServiceResponse<ImportResult>> ImportInstitutionsFromExcelAsync(Stream filestream);
+    byte[] GenerateInstitutionsImportTemplate();
     Task<BaseServiceResponse<ImportResult>> ImportProfessionsFromExcelAsync(Stream filestream);
     byte[] GenerateProfessionsImportTemplate();
 }
