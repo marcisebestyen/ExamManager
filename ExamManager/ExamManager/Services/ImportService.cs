@@ -1,5 +1,6 @@
 using AutoMapper;
 using ExamManager.Dtos;
+using ExamManager.Dtos.ProfessionDtos;
 using ExamManager.Interfaces;
 using ExamManager.Models;
 using ExamManager.Repositories;
@@ -34,7 +35,6 @@ public class ImportService : IImportService
 
         try
         {
-
             using (var package = new ExcelPackage(filestream))
             {
                 var worksheet = package.Workbook.Worksheets[0];
@@ -110,6 +110,96 @@ public class ImportService : IImportService
                 "An unexpected error occurred during import.", "IMPORT_ERROR");
         }
     }
+    
+    public async Task<BaseServiceResponse<ImportResult>> ImportProfessionsFromExcelAsync(Stream filestream)
+    {
+        var newProfessions = new List<Profession>();
+        var errors = new List<string>();
+        var successCount = 0;
+
+        try
+        {
+            using (var package = new ExcelPackage(filestream))
+            {
+                var worksheet = package.Workbook.Worksheets[0];
+                var rowCount = worksheet.Dimension.Rows;
+
+                var importDtos = new List<ProfessionCreateDto>();
+
+                for (int row = 2; row <= rowCount; row++)
+                {
+                    var keorId = worksheet.Cells[row, 1].Value?.ToString()?.Trim();
+                    var professionName = worksheet.Cells[row, 2].Value?.ToString()?.Trim();
+
+                    if (string.IsNullOrWhiteSpace(keorId))
+                    {
+                        errors.Add($"Row {row}: KeorId is required.");
+                        continue;
+                    }
+
+                    if (string.IsNullOrWhiteSpace(professionName))
+                    {
+                        errors.Add($"Row {row}: ProfessionName is required.");
+                        continue;
+                    }
+
+                    importDtos.Add(new ProfessionCreateDto
+                    {
+                        KeorId = keorId,
+                        ProfessionName = professionName
+                    });
+                }
+
+                var allImportNames = importDtos.Select(x => x.KeorId).ToList();
+
+                var existingEntities =
+                    await _unitOfWork.ProfessionRepository.GetAsync(et => allImportNames.Contains(et.KeorId));
+
+                var existingNames = new HashSet<string>(existingEntities.Select(et => et.KeorId),
+                    StringComparer.OrdinalIgnoreCase);
+
+                foreach (var dto in importDtos)
+                {
+                    if (existingNames.Contains(dto.KeorId))
+                    {
+                        errors.Add($"Skipped '{dto.KeorId}': Already exists in database.");
+                        continue;
+                    }
+
+                    if (newProfessions.Any(x => x.KeorId.Equals(dto.KeorId, StringComparison.OrdinalIgnoreCase)))
+                    {
+                        errors.Add($"Skipped '{dto.KeorId}': Duplicate entry in file.");
+                        continue;
+                    }
+
+                    var entity = _mapper.Map<Profession>(dto);
+                    newProfessions.Add(entity);
+                }
+
+                if (newProfessions.Any())
+                {
+                    foreach (var entity in newProfessions)
+                    {
+                        await _unitOfWork.ProfessionRepository.InsertAsync(entity);
+                    }
+
+                    await _unitOfWork.SaveAsync();
+                    successCount = newProfessions.Count;
+                }
+            }
+
+            return BaseServiceResponse<ImportResult>.Success(
+                new ImportResult { SuccessCount = successCount, Errors = errors },
+                $"Import completed. {successCount} added, {errors.Count} skipped."
+            );
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error importing exam types from Excel.");
+            return BaseServiceResponse<ImportResult>.Failed(
+                "An unexpected error occurred during import.", "IMPORT_ERROR");
+        }
+    }
 
     public byte[] GenerateExamTypesImportTemplate()
     {
@@ -129,6 +219,28 @@ public class ImportService : IImportService
 
             sheet.Cells.AutoFitColumns();
 
+            return package.GetAsByteArray();
+        }
+    }
+
+    public byte[] GenerateProfessionsImportTemplate()
+    {
+        using (var package = new ExcelPackage())
+        {
+            var sheet = package.Workbook.Worksheets.Add("Profession Import");
+            
+            sheet.Cells[1, 1].Value = "KeorId";
+            sheet.Cells[1, 2].Value = "ProfessionName";
+
+            using (var range = sheet.Cells[1, 1, 1, 2])
+            {
+                range.Style.Font.Bold = true;
+                range.Style.Fill.PatternType = OfficeOpenXml.Style.ExcelFillStyle.Solid;
+                range.Style.Fill.BackgroundColor.SetColor(System.Drawing.Color.LightGray);
+            }
+            
+            sheet.Cells.AutoFitColumns();
+            
             return package.GetAsByteArray();
         }
     }
