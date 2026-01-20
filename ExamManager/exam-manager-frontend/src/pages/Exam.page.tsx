@@ -1,11 +1,6 @@
-
-
-
 import '@mantine/core/styles.css';
 import '@mantine/dates/styles.css';
 import 'mantine-react-table/styles.css';
-
-
 
 import { useMemo, useState } from 'react';
 import { IconDownload, IconEdit, IconPlus, IconTrash, IconUsers, IconX } from '@tabler/icons-react';
@@ -19,14 +14,9 @@ import api from '../api/api';
 import { Skeleton } from '../components/Skeleton';
 import { ExamBoardFormData, ExamFormData, IExam, Status, STATUS_LABELS } from '../interfaces/IExam';
 
-
-
 import '@mantine/notifications/styles.css';
 
-
-
 import { DateInput } from '@mantine/dates';
-
 
 interface JsonPatchOperation {
   op: 'replace' | 'add' | 'remove' | 'copy' | 'move' | 'test';

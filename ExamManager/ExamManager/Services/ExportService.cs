@@ -23,11 +23,11 @@ public class ExportService : IExportService
         IExamService examService,
         ILogger<ExportService> logger)
     {
-        _examinerService = examinerService;
-        _professionService = professionService;
-        _institutionService = institutionService;
-        _examTypeService = examTypeService;
-        _examService = examService;
+        _examinerService = examinerService ?? throw new ArgumentNullException(nameof(examinerService));
+        _professionService = professionService ?? throw new ArgumentNullException(nameof(professionService));
+        _institutionService = institutionService ?? throw new ArgumentNullException(nameof(institutionService));
+        _examTypeService = examTypeService ?? throw new ArgumentNullException(nameof(examTypeService));
+        _examService = examService ?? throw new ArgumentNullException(nameof(examService));
         _logger = logger;
 
         ExcelPackage.License.SetNonCommercialPersonal("Sebestyén Marcell Achilles - Exam Manager");    

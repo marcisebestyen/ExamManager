@@ -1,12 +1,7 @@
-
-
-
 import '@mantine/core/styles.css';
 import '@mantine/dates/styles.css';
 import 'mantine-react-table/styles.css';
 import '@mantine/notifications/styles.css';
-
-
 
 import { useMemo, useState } from 'react';
 import { IconDownload, IconEdit, IconTrash } from '@tabler/icons-react';
@@ -20,7 +15,6 @@ import { Notifications, notifications } from '@mantine/notifications';
 import api from '../api/api';
 import { Skeleton } from '../components/Skeleton';
 import { ExaminerFormData, IExaminer } from '../interfaces/IExaminer';
-
 
 interface JsonPatchOperation {
   op: 'replace' | 'add' | 'remove' | 'copy' | 'move' | 'test';

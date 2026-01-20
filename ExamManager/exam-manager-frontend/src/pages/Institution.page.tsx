@@ -10,7 +10,6 @@ import { IInstitution, InstitutionFormData } from '@/interfaces/IInstitution';
 import api from '../api/api';
 import { Skeleton } from '../components/Skeleton';
 
-
 interface JsonPatchOperation {
   op: 'replace' | 'add' | 'remove' | 'copy' | 'move' | 'test';
   path: string;
