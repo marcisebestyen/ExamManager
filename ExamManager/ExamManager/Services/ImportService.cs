@@ -722,7 +722,7 @@ public class ImportService : IImportService
                 refSheet.Cells[i + 1, 5].Value = examinerList[i];
             }
             
-            var roles = new[] { "Cheif Examiner", "Deputy Chief Examiner", "Examiner", "Assistant Examiner", "External Examiner" };
+            var roles = new[] { "Chief Examiner", "Deputy Chief Examiner", "Examiner", "Assistant Examiner", "External Examiner" };
             for (int i = 0; i < roles.Length; i++)
             {
                 refSheet.Cells[i + 1, 6].Value = roles[i];
