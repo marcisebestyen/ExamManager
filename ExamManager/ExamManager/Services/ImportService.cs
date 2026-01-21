@@ -64,7 +64,6 @@ public class ImportService : IImportService
                     var profName = worksheet.Cells[row, 5].Value?.ToString()?.Trim();
                     var instName = worksheet.Cells[row, 6].Value?.ToString()?.Trim();
                     var typeName = worksheet.Cells[row, 7].Value?.ToString()?.Trim();
-                    var examinersStr = worksheet.Cells[row, 8].Value?.ToString()?.Trim();
                     
                     if (string.IsNullOrWhiteSpace(examName) || string.IsNullOrWhiteSpace(examCode))
                     {
@@ -112,35 +111,43 @@ public class ImportService : IImportService
                         ExamBoard = new List<ExamBoard>() 
                     };
                     
+                    int[] examCols = { 8, 10, 12, 14, 16 };
                     bool boardError = false;
-                    if (!string.IsNullOrWhiteSpace(examinersStr))
+                    foreach (var colIndex in examCols)
                     {
-                        var entries = examinersStr.Split(';', StringSplitOptions.RemoveEmptyEntries);
-                        foreach (var entry in entries)
+                        var examinerString = worksheet.Cells[row, colIndex].Value?.ToString()?.Trim();
+                        var role = worksheet.Cells[row, colIndex + 1].Value?.ToString()?.Trim();
+
+                        if (string.IsNullOrWhiteSpace(examinerString)) continue;
+
+                        if (string.IsNullOrWhiteSpace(role))
                         {
-                            var parts = entry.Split(':');
-                            if (parts.Length != 2)
-                            {
-                                errors.Add($"Row {row}: Invalid examiner format '{entry}'. Use 'IDCard:Role'.");
-                                boardError = true; break;
-                            }
+                            errors.Add($"Row {row}: Examiner selected in column {colIndex} but Role is missing.");
+                            boardError = true; 
+                            break;
+                        }
 
-                            var cardNum = parts[0].Trim();
-                            var role = parts[1].Trim();
+                        var parts = examinerString.Split(',');
+                        if (parts.Length < 2)
+                        {
+                            errors.Add($"Row {row}: Invalid examiner format in column {colIndex}. Expected 'Name, ID'.");
+                            boardError = true; break;
+                        }
 
-                            if (examinerMap.TryGetValue(cardNum, out int examinerId))
-                            {
-                                exam.ExamBoard.Add(new ExamBoard 
-                                { 
-                                    ExaminerId = examinerId, 
-                                    Role = role 
-                                });
-                            }
-                            else
-                            {
-                                errors.Add($"Row {row}: Examiner ID '{cardNum}' not found.");
-                                boardError = true; break;
-                            }
+                        var cardNum = parts.Last().Trim();
+
+                        if (examinerMap.TryGetValue(cardNum, out int examinerId))
+                        {
+                            exam.ExamBoard.Add(new ExamBoard 
+                            { 
+                                ExaminerId = examinerId, 
+                                Role = role 
+                            });
+                        }
+                        else
+                        {
+                            errors.Add($"Row {row}: Examiner ID '{cardNum}' not found.");
+                            boardError = true; break;
                         }
                     }
                     
@@ -657,6 +664,7 @@ public class ImportService : IImportService
         var professions = _unitOfWork.ProfessionRepository.GetAllAsync().Result;
         var institutions = _unitOfWork.InstitutionRepository.GetAllAsync().Result;
         var examTypes = _unitOfWork.ExamTypeRepository.GetAllAsync().Result;
+        var examiners = _unitOfWork.ExaminerRepository.GetAllAsync().Result;
         
         using (var package = new ExcelPackage())
         {
@@ -669,7 +677,17 @@ public class ImportService : IImportService
             sheet.Cells[1, 5].Value = "Profession";
             sheet.Cells[1, 6].Value = "Institution";
             sheet.Cells[1, 7].Value = "Exam Type";
-            sheet.Cells[1, 8].Value = "Examiners (IDCard:Role;IDCard:Role)";
+            
+            sheet.Cells[1, 8].Value = "Examiner 1";
+            sheet.Cells[1, 9].Value = "Role 1";
+            sheet.Cells[1, 10].Value = "Examiner 2";
+            sheet.Cells[1, 11].Value = "Role 2";
+            sheet.Cells[1, 12].Value = "Examiner 3";
+            sheet.Cells[1, 13].Value = "Role 3";
+            sheet.Cells[1, 14].Value = "Examiner 4";
+            sheet.Cells[1, 15].Value = "Role 4";
+            sheet.Cells[1, 16].Value = "Examiner 5";
+            sheet.Cells[1, 17].Value = "Role 5";
             
             var refSheet = package.Workbook.Worksheets.Add("RefData");
             refSheet.Hidden = eWorkSheetHidden.Hidden;
@@ -697,26 +715,44 @@ public class ImportService : IImportService
             {
                 refSheet.Cells[i + 1, 4].Value = typeList[i].TypeName;
             }
-            
-            var statusVal = sheet.DataValidations.AddListValidation("D2:D1000");
-            statusVal.Formula.ExcelFormula = $"RefData!$A$1:$A${statuses.Length}";
 
-            if (profList.Count > 0) {
-                var profVal = sheet.DataValidations.AddListValidation("E2:E1000");
-                profVal.Formula.ExcelFormula = $"RefData!$B$1:$B${profList.Count}";
-            }
-
-            if (instList.Count > 0) {
-                var instVal = sheet.DataValidations.AddListValidation("F2:F1000");
-                instVal.Formula.ExcelFormula = $"RefData!$C$1:$C${instList.Count}";
-            }
-
-            if (typeList.Count > 0) {
-                var typeVal = sheet.DataValidations.AddListValidation("G2:G1000");
-                typeVal.Formula.ExcelFormula = $"RefData!$D$1:$D${typeList.Count}";
+            var examinerList = examiners.Select(e => $"{e.LastName} {e.FirstName}, {e.IdentityCardNumber}").ToList();
+            for (int i = 0; i < examinerList.Count; i++)
+            {
+                refSheet.Cells[i + 1, 5].Value = examinerList[i];
             }
             
-            using (var range = sheet.Cells[1, 1, 1, 8])
+            var roles = new[] { "Cheif Examiner", "Deputy Chief Examiner", "Examiner", "Assistant Examiner", "External Examiner" };
+            for (int i = 0; i < roles.Length; i++)
+            {
+                refSheet.Cells[i + 1, 6].Value = roles[i];
+            }
+            
+            void AddValidation(int colIndex, string refCol, int count)
+            {
+                if (count == 0) return;
+                var val = sheet.DataValidations.AddListValidation(sheet.Cells[2, colIndex, 1000, colIndex].Address);
+                val.Formula.ExcelFormula = $"RefData!${refCol}$1:${refCol}${count}";
+            }
+            
+            AddValidation(4, "A", statuses.Length);   
+            AddValidation(5, "B", profList.Count);   
+            AddValidation(6, "C", instList.Count);   
+            AddValidation(7, "D", typeList.Count);   
+
+            AddValidation(8, "E", examinerList.Count);
+            AddValidation(10, "E", examinerList.Count);
+            AddValidation(12, "E", examinerList.Count);
+            AddValidation(14, "E", examinerList.Count);
+            AddValidation(16, "E", examinerList.Count);
+
+            AddValidation(9, "F", roles.Length);
+            AddValidation(11, "F", roles.Length);
+            AddValidation(13, "F", roles.Length);
+            AddValidation(15, "F", roles.Length);
+            AddValidation(17, "F", roles.Length);
+            
+            using (var range = sheet.Cells[1, 1, 1, 17])
             {
                 range.Style.Font.Bold = true;
                 range.Style.Fill.PatternType = OfficeOpenXml.Style.ExcelFillStyle.Solid;
@@ -724,7 +760,6 @@ public class ImportService : IImportService
             }
             
             sheet.Cells.AutoFitColumns();
-            sheet.Column(8).Width = 50;
             
             return package.GetAsByteArray();
         }
