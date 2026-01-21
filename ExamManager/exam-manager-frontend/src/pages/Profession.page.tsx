@@ -10,7 +10,6 @@ import { IProfession, ProfessionFormData } from '@/interfaces/IProfession';
 import api from '../api/api';
 import { Skeleton } from '../components/Skeleton';
 
-
 interface JsonPatchOperation {
   op: 'replace';
   path: string;
