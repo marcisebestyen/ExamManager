@@ -1,5 +1,6 @@
 using AutoMapper;
 using ExamManager.Dtos;
+using ExamManager.Dtos.ExamDtos;
 using ExamManager.Dtos.ExaminerDtos;
 using ExamManager.Dtos.InstitutionDtos;
 using ExamManager.Dtos.ProfessionDtos;
@@ -7,7 +8,6 @@ using ExamManager.Interfaces;
 using ExamManager.Models;
 using ExamManager.Repositories;
 using ExamManager.Responses;
-using Microsoft.EntityFrameworkCore.Diagnostics;
 using OfficeOpenXml;
 
 namespace ExamManager.Services;
@@ -28,6 +28,181 @@ public class ImportService : IImportService
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
 
         ExcelPackage.License.SetNonCommercialPersonal("Sebestyén Marcell Achilles - Exam Manager");
+    }
+    
+    // --- Importers ---
+
+    public async Task<BaseServiceResponse<ImportResult>> ImportExamsFromExcelAsync(Stream filestream, int operatorId)
+    {
+        var newExams = new List<Exam>();
+        var errors = new List<string>();
+        var successCount = 0;
+
+        try
+        {
+            var professions = await _unitOfWork.ProfessionRepository.GetAllAsync();
+            var institutions = await _unitOfWork.InstitutionRepository.GetAllAsync();
+            var examTypes = await _unitOfWork.ExamTypeRepository.GetAllAsync();
+            var examiners = await _unitOfWork.ExaminerRepository.GetAllAsync();
+            
+            var professionMap = professions.ToDictionary(x => x.ProfessionName, x=> x.Id, StringComparer.OrdinalIgnoreCase);
+            var institutionMap = institutions.ToDictionary(x => x.Name, x=> x.Id, StringComparer.OrdinalIgnoreCase);
+            var examTypeMap = examTypes.ToDictionary(x => x.TypeName, x=> x.Id, StringComparer.OrdinalIgnoreCase);
+            var examinerMap = examiners.ToDictionary(x => x.IdentityCardNumber, x=> x.Id, StringComparer.OrdinalIgnoreCase);
+
+            using (var package = new ExcelPackage(filestream))
+            {
+                var worksheet = package.Workbook.Worksheets[0];
+                var rowCount = worksheet.Dimension?.Rows ?? 0;
+                
+                for (int row = 2; row <= rowCount; row++)
+                {
+                    var examName = worksheet.Cells[row, 1].Value?.ToString()?.Trim();
+                    var examCode = worksheet.Cells[row, 2].Value?.ToString()?.Trim();
+                    var examDate = worksheet.Cells[row, 3].GetValue<DateTime?>();
+                    var statusStr = worksheet.Cells[row, 4].Value?.ToString()?.Trim();
+                    var profName = worksheet.Cells[row, 5].Value?.ToString()?.Trim();
+                    var instName = worksheet.Cells[row, 6].Value?.ToString()?.Trim();
+                    var typeName = worksheet.Cells[row, 7].Value?.ToString()?.Trim();
+                    var examinersStr = worksheet.Cells[row, 8].Value?.ToString()?.Trim();
+                    
+                    if (string.IsNullOrWhiteSpace(examName) || string.IsNullOrWhiteSpace(examCode))
+                    {
+                        errors.Add($"Row {row}: Name and Code are required.");
+                        continue;
+                    }
+
+                    if (examDate == null)
+                    {
+                        errors.Add($"Row {row}: Date is invalid.");
+                        continue;
+                    }
+                    
+                    if (!Enum.TryParse<Status>(statusStr, true, out var status))
+                    {
+                        status = Status.Planned; 
+                    }
+                    
+                    if (string.IsNullOrWhiteSpace(profName) || !professionMap.TryGetValue(profName, out int profId))
+                    {
+                        errors.Add($"Row {row}: Profession '{profName}' not found.");
+                        continue;
+                    }
+                    if (string.IsNullOrWhiteSpace(instName) || !institutionMap.TryGetValue(instName, out int instId))
+                    {
+                        errors.Add($"Row {row}: Institution '{instName}' not found.");
+                        continue;
+                    }
+                    if (string.IsNullOrWhiteSpace(typeName) || !examTypeMap.TryGetValue(typeName, out int typeId))
+                    {
+                        errors.Add($"Row {row}: Exam Type '{typeName}' not found.");
+                        continue;
+                    }
+                    
+                    var exam = new Exam
+                    {
+                        ExamName = examName,
+                        ExamCode = examCode,
+                        ExamDate = DateTime.SpecifyKind(examDate.Value, DateTimeKind.Utc), 
+                        Status = status,
+                        ProfessionId = profId,
+                        InstitutionId = instId,
+                        ExamTypeId = typeId,
+                        OperatorId = operatorId, 
+                        ExamBoard = new List<ExamBoard>() 
+                    };
+                    
+                    bool boardError = false;
+                    if (!string.IsNullOrWhiteSpace(examinersStr))
+                    {
+                        var entries = examinersStr.Split(';', StringSplitOptions.RemoveEmptyEntries);
+                        foreach (var entry in entries)
+                        {
+                            var parts = entry.Split(':');
+                            if (parts.Length != 2)
+                            {
+                                errors.Add($"Row {row}: Invalid examiner format '{entry}'. Use 'IDCard:Role'.");
+                                boardError = true; break;
+                            }
+
+                            var cardNum = parts[0].Trim();
+                            var role = parts[1].Trim();
+
+                            if (examinerMap.TryGetValue(cardNum, out int examinerId))
+                            {
+                                exam.ExamBoard.Add(new ExamBoard 
+                                { 
+                                    ExaminerId = examinerId, 
+                                    Role = role 
+                                });
+                            }
+                            else
+                            {
+                                errors.Add($"Row {row}: Examiner ID '{cardNum}' not found.");
+                                boardError = true; break;
+                            }
+                        }
+                    }
+                    
+                    if (boardError)
+                    {
+                        continue; 
+                    }
+
+                    if (!exam.ExamBoard.Any())
+                    {
+                        errors.Add($"Row {row}: At least one examiner is required.");
+                        continue;
+                    }
+                    
+                    newExams.Add(exam);
+                }
+                
+                var incomingCodes = newExams.Select(e => e.ExamCode).ToList();
+                var existingCodes = await _unitOfWork.ExamRepository.GetAsync(e => incomingCodes.Contains(e.ExamCode));
+                var existingCodeSet = new HashSet<string>(existingCodes.Select(e => e.ExamCode), StringComparer.OrdinalIgnoreCase);
+
+                var finalExamsToInsert = new List<Exam>();
+                
+                foreach (var exam in newExams)
+                {
+                    if (existingCodeSet.Contains(exam.ExamCode))
+                    {
+                        errors.Add($"Skipped '{exam.ExamCode}': Duplicate code in DB.");
+                        continue;
+                    }
+                
+                    if (finalExamsToInsert.Any(e => e.ExamCode.Equals(exam.ExamCode, StringComparison.OrdinalIgnoreCase)))
+                    {
+                        errors.Add($"Skipped '{exam.ExamCode}': Duplicate code in file.");
+                        continue;
+                    }
+
+                    finalExamsToInsert.Add(exam);
+                }
+                
+                if (finalExamsToInsert.Any())
+                {
+                    foreach (var exam in finalExamsToInsert)
+                    {
+                        await _unitOfWork.ExamRepository.InsertAsync(exam);
+                    }
+                
+                    await _unitOfWork.SaveAsync();
+                    successCount = finalExamsToInsert.Count;
+                }
+            }
+            
+            return BaseServiceResponse<ImportResult>.Success(
+                new ImportResult { SuccessCount = successCount, Errors = errors },
+                $"Import completed. {successCount} added, {errors.Count} skipped.");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error importing exams from Excel.");
+            return BaseServiceResponse<ImportResult>.Failed(
+                "An unexpected error occurred during import.", "IMPORT_ERROR");
+        }
     }
 
     public async Task<BaseServiceResponse<ImportResult>> ImportExaminersFromExcelAsync(Stream filestream)
@@ -472,6 +647,86 @@ public class ImportService : IImportService
             _logger.LogError(ex, "Error importing institutions from Excel.");
             return BaseServiceResponse<ImportResult>.Failed(
                 "An unexpected error occurred during import.", "IMPORT_ERROR");
+        }
+    }
+
+    // --- Template Generators ---
+    
+    public byte[] GenerateExamsImportTemplate()
+    {
+        var professions = _unitOfWork.ProfessionRepository.GetAllAsync().Result;
+        var institutions = _unitOfWork.InstitutionRepository.GetAllAsync().Result;
+        var examTypes = _unitOfWork.ExamTypeRepository.GetAllAsync().Result;
+        
+        using (var package = new ExcelPackage())
+        {
+            var sheet = package.Workbook.Worksheets.Add("Exam Import");
+
+            sheet.Cells[1, 1].Value = "Exam Name";
+            sheet.Cells[1, 2].Value = "Exam Code";
+            sheet.Cells[1, 3].Value = "Date (YYYY-MM-DD)";
+            sheet.Cells[1, 4].Value = "Status";
+            sheet.Cells[1, 5].Value = "Profession";
+            sheet.Cells[1, 6].Value = "Institution";
+            sheet.Cells[1, 7].Value = "Exam Type";
+            sheet.Cells[1, 8].Value = "Examiners (IDCard:Role;IDCard:Role)";
+            
+            var refSheet = package.Workbook.Worksheets.Add("RefData");
+            refSheet.Hidden = eWorkSheetHidden.Hidden;
+
+            var statuses = Enum.GetNames(typeof(Status));
+            for (int i = 0; i < statuses.Length; i++)
+            {
+                refSheet.Cells[i + 1, 1].Value = statuses[i];
+            }
+
+            var profList = professions.ToList();
+            for (int i = 0; i < profList.Count; i++)
+            {
+                refSheet.Cells[i + 1, 2].Value = profList[i].ProfessionName;
+            }
+            
+            var instList = institutions.ToList();
+            for (int i = 0; i < instList.Count; i++)
+            {
+                refSheet.Cells[i + 1, 3].Value = instList[i].Name;
+            }
+            
+            var typeList = examTypes.ToList();
+            for (int i = 0; i < typeList.Count; i++)
+            {
+                refSheet.Cells[i + 1, 4].Value = typeList[i].TypeName;
+            }
+            
+            var statusVal = sheet.DataValidations.AddListValidation("D2:D1000");
+            statusVal.Formula.ExcelFormula = $"RefData!$A$1:$A${statuses.Length}";
+
+            if (profList.Count > 0) {
+                var profVal = sheet.DataValidations.AddListValidation("E2:E1000");
+                profVal.Formula.ExcelFormula = $"RefData!$B$1:$B${profList.Count}";
+            }
+
+            if (instList.Count > 0) {
+                var instVal = sheet.DataValidations.AddListValidation("F2:F1000");
+                instVal.Formula.ExcelFormula = $"RefData!$C$1:$C${instList.Count}";
+            }
+
+            if (typeList.Count > 0) {
+                var typeVal = sheet.DataValidations.AddListValidation("G2:G1000");
+                typeVal.Formula.ExcelFormula = $"RefData!$D$1:$D${typeList.Count}";
+            }
+            
+            using (var range = sheet.Cells[1, 1, 1, 8])
+            {
+                range.Style.Font.Bold = true;
+                range.Style.Fill.PatternType = OfficeOpenXml.Style.ExcelFillStyle.Solid;
+                range.Style.Fill.BackgroundColor.SetColor(System.Drawing.Color.LightGray);
+            }
+            
+            sheet.Cells.AutoFitColumns();
+            sheet.Column(8).Width = 50;
+            
+            return package.GetAsByteArray();
         }
     }
 

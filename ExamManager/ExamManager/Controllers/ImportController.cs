@@ -1,3 +1,5 @@
+using System.Security.Claims;
+using ExamManager.Extensions;
 using ExamManager.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http.HttpResults;
@@ -17,6 +19,17 @@ public class ImportController : ControllerBase
     {
         _importService = importService ?? throw new ArgumentNullException(nameof(importService));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+    }
+
+    [HttpGet("template-exams")]
+    public IActionResult DownloadExamsTemplate()
+    {
+        var filecontent = _importService.GenerateExamsImportTemplate();
+        
+        var fileName = "Exams_Import_Template.xlsx";
+        var contentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+        
+        return File(filecontent, contentType, fileName);
     }
     
     [HttpGet("template-examiners")]
@@ -61,6 +74,36 @@ public class ImportController : ControllerBase
         var contentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
         
         return File(fileContent, contentType, fileName);
+    }
+
+    [HttpPost("import-exams")]
+    public async Task<IActionResult> ImportExams(IFormFile file)
+    {
+        if (file == null || file.Length == 0)
+        {
+            return BadRequest(new { message = "No file uploaded." });
+        }
+
+        var operatorId = User.GetId();
+        
+        var stream = file.OpenReadStream();
+        
+        var result = await _importService.ImportExamsFromExcelAsync(stream, operatorId);
+        
+        if (result.Succeeded)
+        {
+            return Ok(result.Data);
+        }
+        else
+        {
+            _logger.LogError("Import failed for exams: {Errors}",
+                string.Join(", ", result.Errors ?? new List<string>()));
+            return StatusCode(StatusCodes.Status500InternalServerError, new
+            {
+                message = result.Message ?? "An unexpected error occurred during import.",
+                details = result.Data?.Errors
+            });
+        }
     }
 
     [HttpPost("import-examiners")]
@@ -174,4 +217,18 @@ public class ImportController : ControllerBase
             });
         }
     }
+    
+    // private int GetCurrentUserIdFromToken()
+    // {
+    //     var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
+    //
+    //     if (string.IsNullOrEmpty(userIdClaim) || !int.TryParse(userIdClaim, out var userId))
+    //     {
+    //         _logger.LogError("User ID claim (NameIdentifier) not found or invalid in token for an authorized request.");
+    //         throw new UnauthorizedAccessException(
+    //             "User ID (ClaimTypes.NameIdentifier) cannot be found or not int the token, despite the request is authenticated.");
+    //     }
+    //
+    //     return userId;
+    // }
 }
