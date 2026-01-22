@@ -4,15 +4,17 @@ import 'mantine-react-table/styles.css';
 import '@mantine/notifications/styles.css';
 
 import { useMemo, useState } from 'react';
-import { IconDownload, IconEdit, IconTrash } from '@tabler/icons-react';
+import { IconDownload, IconEdit, IconTrash, IconUpload } from '@tabler/icons-react';
 import { QueryClient, QueryClientProvider, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { MantineReactTable, useMantineReactTable, type MRT_ColumnDef, type MRT_Row } from 'mantine-react-table';
 import { ActionIcon, Button, Flex, Stack, Text, TextInput, Title, Tooltip } from '@mantine/core';
 import { DateInput } from '@mantine/dates';
 import { useForm } from '@mantine/form';
+import { useDisclosure } from '@mantine/hooks';
 import { modals, ModalsProvider } from '@mantine/modals';
 import { Notifications, notifications } from '@mantine/notifications';
 import api from '../api/api';
+import { ImportModal } from '../components/ImportModal';
 import { Skeleton } from '../components/Skeleton';
 import { ExaminerFormData, IExaminer } from '../interfaces/IExaminer';
 
@@ -181,6 +183,8 @@ const DeleteExaminerModal = ({ examiner }: { examiner: IExaminer }) => {
 };
 
 const ExaminerTable = () => {
+  const queryClient = useQueryClient();
+
   const {
     data: fetchedExaminers = [],
     isError: isLoadingExaminersError,
@@ -189,6 +193,7 @@ const ExaminerTable = () => {
   } = useGetExaminers();
   const { mutateAsync: deleteExaminer, isPending: isDeletingExaminer } = useDeleteExaminer();
   const [isExporting, setIsExporting] = useState(false);
+  const [isImportOpen, { open: openImport, close: closeImport }] = useDisclosure(false);
 
   const columns = useMemo<MRT_ColumnDef<IExaminer>[]>(
     () => [
@@ -323,6 +328,16 @@ const ExaminerTable = () => {
 
         <Button
           variant="outline"
+          color="violet"
+          radius="md"
+          leftSection={<IconUpload size={16} />}
+          onClick={openImport}
+        >
+          Import
+        </Button>
+
+        <Button
+          variant="outline"
           color="green"
           radius="md"
           leftSection={<IconDownload size={16} />}
@@ -341,7 +356,19 @@ const ExaminerTable = () => {
     },
   });
 
-  return <MantineReactTable table={table} />;
+  return (
+    <>
+      <MantineReactTable table={table} />;
+      <ImportModal
+        opened={isImportOpen}
+        onClose={closeImport}
+        entityName="Examiners"
+        onDownloadTemplate={api.Imports.downloadTemplateExaminers}
+        onImport={api.Imports.importExaminers}
+        onSuccess={() => queryClient.invalidateQueries({ queryKey: ['examiners'] })}
+      />;
+    </>
+  );
 };
 
 function useCreateExaminer() {

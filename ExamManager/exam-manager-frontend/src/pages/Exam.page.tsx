@@ -3,19 +3,20 @@ import '@mantine/dates/styles.css';
 import 'mantine-react-table/styles.css';
 
 import { useMemo, useState } from 'react';
-import { IconDownload, IconEdit, IconPlus, IconTrash, IconUsers, IconX } from '@tabler/icons-react';
+import { IconDownload, IconEdit, IconPlus, IconTrash, IconUpload, IconUsers, IconX } from '@tabler/icons-react';
 import { QueryClient, QueryClientProvider, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { MantineReactTable, useMantineReactTable, type MRT_ColumnDef, type MRT_Row } from 'mantine-react-table';
 import { ActionIcon, Badge, Button, Divider, Flex, Group, Paper, ScrollArea, Select, Stack, Text, TextInput, Title, Tooltip } from '@mantine/core';
 import { useForm, type UseFormReturnType } from '@mantine/form';
+import { useDisclosure } from '@mantine/hooks';
 import { modals, ModalsProvider } from '@mantine/modals';
 import { Notifications, notifications } from '@mantine/notifications';
 import api from '../api/api';
+import { ImportModal } from '../components/ImportModal';
 import { Skeleton } from '../components/Skeleton';
 import { ExamBoardFormData, ExamFormData, IExam, Status, STATUS_LABELS } from '../interfaces/IExam';
 
 import '@mantine/notifications/styles.css';
-
 import { DateInput } from '@mantine/dates';
 
 interface JsonPatchOperation {
@@ -457,6 +458,8 @@ const DeleteExamModal = ({ exam }: { exam: IExam }) => {
 };
 
 const ExamTable = () => {
+  const queryClient = useQueryClient();
+
   const {
     data: fetchedExams = [],
     isError: isLoadingExamsError,
@@ -465,6 +468,7 @@ const ExamTable = () => {
   } = useGetExams();
   const { mutateAsync: deleteExam, isPending: isDeletingExam } = useDeleteExam();
   const [isExporting, setIsExporting] = useState(false);
+  const [isImportOpen, { open: openImport, close: closeImport }] = useDisclosure(false);
 
   const columns = useMemo<MRT_ColumnDef<IExam>[]>(
     () => [
@@ -630,6 +634,16 @@ const ExamTable = () => {
 
         <Button
           variant="outline"
+          color="violet"
+          radius="md"
+          leftSection={<IconUpload size={16} />}
+          onClick={openImport}
+        >
+          Import
+        </Button>
+
+        <Button
+          variant="outline"
           color="green"
           radius="md"
           leftSection={<IconDownload size={16} />}
@@ -648,7 +662,19 @@ const ExamTable = () => {
     },
   });
 
-  return <MantineReactTable table={table} />;
+  return (
+    <>
+      <MantineReactTable table={table} />;
+      <ImportModal
+        opened={isImportOpen}
+        onClose={closeImport}
+        entityName="Exams"
+        onDownloadTemplate={api.Imports.downloadTemplateExams}
+        onImport={api.Imports.importExams}
+        onSuccess={() => queryClient.invalidateQueries({ queryKey: ['exams'] })}
+      />;
+    </>
+  );
 };
 
 function useCreateExam() {

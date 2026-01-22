@@ -1,14 +1,17 @@
 import { useMemo, useState } from 'react';
-import { IconDownload, IconEdit, IconTrash } from '@tabler/icons-react';
+import { IconDownload, IconEdit, IconTrash, IconUpload } from '@tabler/icons-react';
 import { QueryClient, QueryClientProvider, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { MantineReactTable, useMantineReactTable, type MRT_ColumnDef, type MRT_Row } from 'mantine-react-table';
 import { ActionIcon, Button, Flex, Group, MantineProvider, Stack, Text, TextInput, Title, Tooltip } from '@mantine/core';
 import { useForm } from '@mantine/form';
+import { useDisclosure } from '@mantine/hooks';
 import { modals, ModalsProvider } from '@mantine/modals';
 import { Notifications, notifications } from '@mantine/notifications';
 import { IInstitution, InstitutionFormData } from '@/interfaces/IInstitution';
 import api from '../api/api';
+import { ImportModal } from '../components/ImportModal';
 import { Skeleton } from '../components/Skeleton';
+
 
 interface JsonPatchOperation {
   op: 'replace' | 'add' | 'remove' | 'copy' | 'move' | 'test';
@@ -191,6 +194,8 @@ const DeleteInstitutionModal = ({ institution }: { institution: IInstitution }) 
 };
 
 const InstitutionTable = () => {
+  const queryClient = useQueryClient();
+
   const {
     data: fetchedInstitutions = [],
     isError: isLoadingInstitutionsError,
@@ -200,6 +205,7 @@ const InstitutionTable = () => {
   const { mutateAsync: deleteInstitution, isPending: isDeletingInstitution } =
     useDeleteInstitution();
   const [isExporting, setIsExporting] = useState(false);
+  const [isImportOpen, { open: openImport, close: closeImport }] = useDisclosure(false);
 
   const columns = useMemo<MRT_ColumnDef<IInstitution>[]>(
     () => [
@@ -308,6 +314,16 @@ const InstitutionTable = () => {
 
         <Button
           variant="outline"
+          color="violet"
+          radius="md"
+          leftSection={<IconUpload size={16} />}
+          onClick={openImport}
+        >
+          Import
+        </Button>
+
+        <Button
+          variant="outline"
           color="green"
           radius="md"
           leftSection={<IconDownload size={16} />}
@@ -326,7 +342,19 @@ const InstitutionTable = () => {
     },
   });
 
-  return <MantineReactTable table={table} />;
+  return (
+    <>
+      <MantineReactTable table={table} />;
+      <ImportModal
+        opened={isImportOpen}
+        onClose={closeImport}
+        entityName="Institutions"
+        onDownloadTemplate={api.Imports.downloadTemplateInstitutions}
+        onImport={api.Imports.importInstitutions}
+        onSuccess={() => queryClient.invalidateQueries({ queryKey: ['institutions'] })}
+      />;
+    </>
+  );
 };
 
 function useCreateInstitution() {

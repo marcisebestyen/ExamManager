@@ -1,13 +1,15 @@
 import { useMemo, useState } from 'react';
-import { IconDownload, IconEdit, IconTrash } from '@tabler/icons-react';
+import { IconDownload, IconEdit, IconTrash, IconUpload } from '@tabler/icons-react';
 import { QueryClient, QueryClientProvider, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { MantineReactTable, useMantineReactTable, type MRT_ColumnDef, type MRT_Row } from 'mantine-react-table';
 import { ActionIcon, Button, Flex, MantineProvider, Stack, Text, TextInput, Title, Tooltip } from '@mantine/core';
 import { useForm } from '@mantine/form';
+import { useDisclosure } from '@mantine/hooks';
 import { modals, ModalsProvider } from '@mantine/modals';
 import { Notifications, notifications } from '@mantine/notifications';
 import { IProfession, ProfessionFormData } from '@/interfaces/IProfession';
 import api from '../api/api';
+import { ImportModal } from '../components/ImportModal';
 import { Skeleton } from '../components/Skeleton';
 
 interface JsonPatchOperation {
@@ -134,6 +136,8 @@ const DeleteProfessionModal = ({ profession }: { profession: IProfession }) => {
 };
 
 const ProfessionTable = () => {
+  const queryClient = useQueryClient();
+
   const {
     data: fetchedProfessions = [],
     isError: isLoadingProfessionsError,
@@ -142,6 +146,7 @@ const ProfessionTable = () => {
   } = useGetProfessions();
   const { mutateAsync: deleteProfession, isPending: isDeletingProfession } = useDeleteProfession();
   const [isExporting, setIsExporting] = useState(false);
+  const [isImportOpen, { open: openImport, close: closeImport }] = useDisclosure(false);
 
   const columns = useMemo<MRT_ColumnDef<IProfession>[]>(
     () => [
@@ -246,6 +251,16 @@ const ProfessionTable = () => {
 
         <Button
           variant="outline"
+          color="violet"
+          radius="md"
+          leftSection={<IconUpload size={16} />}
+          onClick={openImport}
+        >
+          Import
+        </Button>
+
+        <Button
+          variant="outline"
           color="green"
           radius="md"
           leftSection={<IconDownload size={16} />}
@@ -264,7 +279,20 @@ const ProfessionTable = () => {
     },
   });
 
-  return <MantineReactTable table={table} />;
+  return (
+    <>
+      <MantineReactTable table={table} />;
+
+      <ImportModal
+        opened={isImportOpen}
+        onClose={closeImport}
+        entityName="Professions"
+        onDownloadTemplate={api.Imports.downloadTemplateProfessions}
+        onImport={api.Imports.importProfessions}
+        onSuccess={() => queryClient.invalidateQueries({ queryKey: ['professions'] })}
+      />;
+    </>
+  );
 };
 
 function useCreateProfession() {

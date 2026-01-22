@@ -133,6 +133,49 @@ const Exports = {
   },
 };
 
+const Imports = {
+  downloadTemplateExams: () => {
+    return axiosInstance.get(`/import/template-exams`, { responseType: 'blob' });
+  },
+  importExams: (formData: FormData) => {
+    return axiosInstance.post(`/import/import-exams`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    })
+  },
+  downloadTemplateExaminers: () => {
+    return axiosInstance.get(`/import/template-examiners`, { responseType: 'blob' });
+  },
+  importExaminers: (formData: FormData) => {
+    return axiosInstance.post(`/import/import-examiners`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    })
+  },
+  downloadTemplateExamTypes: () => {
+    return axiosInstance.get(`/import/template-exam-types`, { responseType: 'blob' });
+  },
+  importExamTypes: (formData: FormData) => {
+    return axiosInstance.post(`/import/import-exam-types`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    })
+  },
+  downloadTemplateInstitutions: () => {
+    return axiosInstance.get(`/import/template-institutions`, { responseType: 'blob' });
+  },
+  importInstitutions: (formData: FormData) => {
+    return axiosInstance.post(`/import/import-institutions`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    })
+  },
+  downloadTemplateProfessions: () => {
+    return axiosInstance.get(`/import/template-professions`, { responseType: 'blob' });
+  },
+  importProfessions: (formData: FormData) => {
+    return axiosInstance.post(`/import/import-professions`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    })
+  },
+};
+
 const Institutions = {
   updateInstitution: (id: number, patchDocument: JsonPatchOperation[]) => {
     return axiosInstance.patch<void>(`/institutions/update-institution/${id}`, patchDocument, {
@@ -220,6 +263,6 @@ const Operators = {
   },
 };
 
-const api = { Exams, ExamTypes, Examiners, Exports, Institutions, Professions, Operators };
+const api = { Exams, ExamTypes, Examiners, Exports, Imports, Institutions, Professions, Operators };
 
 export default api;
