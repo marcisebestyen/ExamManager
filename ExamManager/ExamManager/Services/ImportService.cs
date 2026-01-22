@@ -1,6 +1,5 @@
 using AutoMapper;
 using ExamManager.Dtos;
-using ExamManager.Dtos.ExamDtos;
 using ExamManager.Dtos.ExaminerDtos;
 using ExamManager.Dtos.InstitutionDtos;
 using ExamManager.Dtos.ProfessionDtos;

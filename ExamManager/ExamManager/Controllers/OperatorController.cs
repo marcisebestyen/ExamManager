@@ -378,18 +378,4 @@ public class OperatorController : ControllerBase
         
         return Ok(new { isAuthenticated, claims });
     }
-
-    // private int GetCurrentUserIdFromToken()
-    // {
-    //     var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
-    //
-    //     if (string.IsNullOrEmpty(userIdClaim) || !int.TryParse(userIdClaim, out var userId))
-    //     {
-    //         _logger.LogError("User ID claim (NameIdentifier) not found or invalid in token for an authorized request.");
-    //         throw new UnauthorizedAccessException(
-    //             "User ID (ClaimTypes.NameIdentifier) cannot be found or not int the token, despite the request is authenticated.");
-    //     }
-    //
-    //     return userId;
-    // }
 }
