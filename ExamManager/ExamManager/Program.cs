@@ -123,6 +123,7 @@ builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddScoped<IPasswordResetService, PasswordResetService>();
 builder.Services.AddScoped<IExportService, ExportService>();
 builder.Services.AddScoped<IImportService, ImportService>();
+builder.Services.AddScoped<IBackupService, BackupService>();
 
 var app = builder.Build();
 
@@ -139,7 +140,7 @@ using (var scope = app.Services.CreateScope())
             var adminPasswordHash = BCrypt.Net.BCrypt.HashPassword("AdminPassword123#");
             var adminUser = new Operator
             {
-                UserName = "Admin",
+                UserName = "admin@exam-manager.com",
                 Password = adminPasswordHash,
                 FirstName = "Admin",
                 LastName = "System",
@@ -155,7 +156,7 @@ using (var scope = app.Services.CreateScope())
             var staffPasswordHash = BCrypt.Net.BCrypt.HashPassword("StaffPassword123#");
             var staffUser = new Operator
             {
-                UserName = "Staff",
+                UserName = "staff@exam-manager.com",
                 Password = staffPasswordHash,
                 FirstName = "Staff",
                 LastName = "System",
