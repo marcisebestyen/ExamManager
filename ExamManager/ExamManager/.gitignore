@@ -420,3 +420,9 @@ FodyWeavers.xsd
 
 
 *.DS_Store
+
+oauth_credentials.json
+credentials.json
+token/
+
+secrets.json
