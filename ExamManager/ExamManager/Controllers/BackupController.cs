@@ -20,6 +20,7 @@ public class BackupController : ControllerBase
     }
 
     [HttpPost("manual")]
+    [AllowAnonymous]
     public async Task<IActionResult> PerformManualBackup()
     {
         int operatorId = User.GetId();

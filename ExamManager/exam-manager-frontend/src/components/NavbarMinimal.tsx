@@ -114,7 +114,12 @@ export function NavbarMinimal() {
       return link.path === '/';
     }
 
-    if (user?.role === 'Admin' || user?.role === 'Staff') {
+    if (user?.role === 'Staff') {
+      const staffPaths = ['/', '/settings', '/operators'];
+      return staffPaths.includes(link.path);
+    }
+
+    if (user?.role === 'Admin') {
       const adminPaths = ['/', '/settings', '/operators', '/backups'];
       return adminPaths.includes(link.path);
     }
@@ -153,15 +158,7 @@ export function NavbarMinimal() {
 
         {isAuthenticated && (
           <>
-            {user?.role === 'Admin' && (
-              <NavbarLink
-                icon={IconDatabaseExport}
-                label="Trigger Manual Backup"
-                path="#"
-                onClick={handleManualBackup}
-              />
-            )}
-
+            <NavbarLink icon={IconDatabaseExport} label="Trigger Manual Backup" path="#" onClick={handleManualBackup} />
             <NavbarLink icon={IconLogout} label="Logout" path="/" onClick={handleLogout} />
           </>
         )}
