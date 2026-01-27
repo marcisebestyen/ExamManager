@@ -125,6 +125,9 @@ builder.Services.AddScoped<IExportService, ExportService>();
 builder.Services.AddScoped<IImportService, ImportService>();
 builder.Services.AddScoped<IBackupService, BackupService>();
 
+// Background service registration
+builder.Services.AddHostedService<AutomaticBackupWorker>();
+
 var app = builder.Build();
 
 using (var scope = app.Services.CreateScope())

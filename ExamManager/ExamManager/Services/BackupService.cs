@@ -1,4 +1,6 @@
 using System.Diagnostics;
+using AutoMapper;
+using ExamManager.Dtos.BackupHistoryDtos;
 using ExamManager.Interfaces;
 using ExamManager.Models;
 using ExamManager.Repositories;
@@ -15,19 +17,71 @@ public class BackupService : IBackupService
     private readonly IUnitOfWork _unitOfWork;
     private readonly ILogger<BackupService> _logger;
     private readonly IConfiguration _configuration;
-    
+    private readonly IMapper _mapper;
+
     private const string DbName = "examdb";
     private const string DbUser = "adminuser";
     private const string DbPassword = "yourStrongPassword123!";
-    
-    public BackupService(IUnitOfWork unitOfWork, ILogger<BackupService> logger, IConfiguration configuration)
+
+    public BackupService(IUnitOfWork unitOfWork, ILogger<BackupService> logger, IConfiguration configuration,
+        IMapper mapper)
     {
         _unitOfWork = unitOfWork ?? throw new ArgumentNullException(nameof(unitOfWork));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
+        _mapper = mapper ?? throw new ArgumentNullException(nameof(mapper));
     }
 
-    public async Task<BaseServiceResponse<bool>> PerformManualBackup(int operatorId)
+    public async Task<BaseServiceResponse<bool>> PerformManualBackupAsync(int operatorId)
+    {
+        return await ProcessBackupAsync(ActivityType.Manual, operatorId);
+    }
+
+    public async Task<BaseServiceResponse<bool>> PerformAutomaticBackupAsync()
+    {
+        var adminUserName = "admin@exam-manager.com";
+        var admin = (await _unitOfWork.OperatorRepository
+            .GetAsync(x => x.Role == Role.Admin || x.UserName == adminUserName)).FirstOrDefault();
+
+        if (admin == null)
+        {
+            _logger.LogError("Automatic Backup Skipped: Default Admin user not found.");
+            return BaseServiceResponse<bool>.Failed("Admin user missing", "NO_ADMIN");
+        }
+
+        var result = await ProcessBackupAsync(ActivityType.Auto, admin.Id);
+
+        if (result.Succeeded)
+        {
+            await RotateBackupsAsync();
+        }
+
+        return result;
+    }
+
+    public async Task<BaseServiceResponse<IEnumerable<BackupHistoryResponseDto>>> GetAllBackupsAsync()
+    {
+        try
+        {
+            var backupEntities =
+                await _unitOfWork.BackupHistoryRepository.GetAllAsync(includeProperties: new[] { "Operator" });
+
+            var backupResponseDtos = _mapper.Map<IEnumerable<BackupHistoryResponseDto>>(backupEntities);
+
+            return BaseServiceResponse<IEnumerable<BackupHistoryResponseDto>>.Success(
+                backupResponseDtos,
+                "Backups retrieved successfully.");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving all backups");
+            return BaseServiceResponse<IEnumerable<BackupHistoryResponseDto>>.Failed(
+                "An error occured while retrieving backups",
+                "UNEXPECTED_ERROR");
+        }
+    }
+
+    private async Task<BaseServiceResponse<bool>> ProcessBackupAsync(ActivityType activityType, int operatorId)
     {
         var fileName = $"backup_{DateTime.UtcNow:yyyyMMdd_HHmmss}.custom";
         var localTempPath = Path.Combine(Path.GetTempPath(), fileName);
@@ -36,7 +90,7 @@ public class BackupService : IBackupService
         {
             BackupDate = DateTime.UtcNow,
             FileName = fileName,
-            ActivityType = ActivityType.Manual,
+            ActivityType = activityType,
             OperatorId = operatorId,
             IsSuccessful = true,
         };
@@ -59,7 +113,7 @@ public class BackupService : IBackupService
         }
         finally
         {
-            try 
+            try
             {
                 await _unitOfWork.BackupHistoryRepository.InsertAsync(historyLog);
                 await _unitOfWork.SaveAsync();
@@ -76,12 +130,40 @@ public class BackupService : IBackupService
         }
     }
 
+    private async Task RotateBackupsAsync()
+    {
+        try
+        {
+            var allAutoBackups =
+                await _unitOfWork.BackupHistoryRepository.GetAsync(x => x.ActivityType == ActivityType.Auto);
+
+            var orderedBackups = allAutoBackups.OrderByDescending(x => x.BackupDate).ToList();
+
+            if (orderedBackups.Count > 7)
+            {
+                var backupsToDelete = orderedBackups.Skip(7).ToList();
+
+                foreach (var backup in backupsToDelete)
+                {
+                    await _unitOfWork.BackupHistoryRepository.DeleteAsync(backup);
+                }
+
+                await _unitOfWork.SaveAsync();
+                _logger.LogInformation($"Rotation: Cleaned up {backupsToDelete.Count} old backups.");
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError($"Rotation Failed: {ex.Message}");
+        }
+    }
+
     private async Task RunPgDumpAsync(string outputPath)
     {
         var dockerPath = "/usr/local/bin/docker";
         var containerName = "postgresql";
         var arguments = $"exec -i -e PGPASSWORD={DbPassword} {containerName} pg_dump -U {DbUser} -F c {DbName}";
-        
+
         var processInfo = new ProcessStartInfo
         {
             FileName = dockerPath,
@@ -91,7 +173,7 @@ public class BackupService : IBackupService
             UseShellExecute = false,
             CreateNoWindow = true,
         };
-        
+
         using var process = new Process { StartInfo = processInfo };
         process.Start();
 
@@ -99,7 +181,7 @@ public class BackupService : IBackupService
         {
             await process.StandardOutput.BaseStream.CopyToAsync(stream);
         }
-        
+
         await process.WaitForExitAsync();
 
         if (process.ExitCode != 0)
@@ -107,7 +189,7 @@ public class BackupService : IBackupService
             var error = await process.StandardError.ReadToEndAsync();
             throw new Exception($"pg_dump failed: {error}");
         }
-        
+
         if (!File.Exists(outputPath) || new FileInfo(outputPath).Length == 0)
         {
             throw new Exception("The backup file was not created or is empty.");
@@ -125,7 +207,7 @@ public class BackupService : IBackupService
         {
             RefreshToken = refreshToken
         };
-        
+
         var credential = new UserCredential(
             new GoogleAuthorizationCodeFlow(
                 new GoogleAuthorizationCodeFlow.Initializer
@@ -136,7 +218,7 @@ public class BackupService : IBackupService
                         ClientSecret = clientSecret
                     }
                 }),
-            "user", 
+            "user",
             tokenResponse);
 
         var service = new DriveService(new BaseClientService.Initializer()
@@ -144,15 +226,15 @@ public class BackupService : IBackupService
             HttpClientInitializer = credential,
             ApplicationName = "ExamManager",
         });
-        
+
         var fileMetadata = new Google.Apis.Drive.v3.Data.File()
         {
             Name = fileName,
             Parents = new List<string> { folderId }
         };
-        
+
         using var uploadStream = new FileStream(localPath, FileMode.Open);
-        
+
         var request = service.Files.Create(fileMetadata, uploadStream, "application/octet-stream");
         var result = await request.UploadAsync();
 

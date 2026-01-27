@@ -1,4 +1,5 @@
-import { IExamUpcoming } from '@/interfaces/IExamUpcoming';
+import { IBackupHistory } from '../interfaces/IBackup';
+import { IExamUpcoming } from '../interfaces/IExamUpcoming';
 import { ExamFormData, IExam } from '../interfaces/IExam';
 import { ExaminerFormData, IExaminer } from '../interfaces/IExaminer';
 import { ExamTypeFormData, IExamType } from '../interfaces/IExamType';
@@ -12,6 +13,15 @@ interface JsonPatchOperation {
   path: string;
   value?: any;
   from?: string;
+}
+
+const Backups = {
+  getHistory: () => {
+    return axiosInstance.get<IBackupHistory[]>(`backups/history`);
+  },
+  performManualBackup: () => {
+    return axiosInstance.post<boolean>(`backups/manual`);
+  }
 }
 
 const Exams = {
@@ -263,6 +273,6 @@ const Operators = {
   },
 };
 
-const api = { Exams, ExamTypes, Examiners, Exports, Imports, Institutions, Professions, Operators };
+const api = { Backups, Exams, ExamTypes, Examiners, Exports, Imports, Institutions, Professions, Operators };
 
 export default api;
