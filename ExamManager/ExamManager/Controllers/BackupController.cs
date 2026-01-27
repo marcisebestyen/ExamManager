@@ -43,6 +43,28 @@ public class BackupController : ControllerBase
         }
     }
 
+    [HttpPost("restore/{id}")]
+    public async Task<IActionResult> RestoreBackup(int id)
+    {
+        int operatorId = User.GetId();
+        var result = await _backupService.RestoreBackupAsync(id, operatorId);
+        
+        if (result.Succeeded)
+        {
+            return Ok(result.Data);
+        }
+        else
+        {
+            _logger.LogError("Restore backup failed: {Error}", 
+                string.Join(", ", result.Errors ?? new List<string>()));
+            return StatusCode(StatusCodes.Status500InternalServerError, new
+            {
+                message = result.Message ?? "An unexpected error occurred during restore.",
+                details = result.Errors
+            });
+        }
+    }
+
     [HttpGet("history")]
     [AllowAnonymous]
     public async Task<IActionResult> GetAllBackups()

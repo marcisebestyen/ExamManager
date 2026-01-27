@@ -21,7 +21,10 @@ const Backups = {
   },
   performManualBackup: () => {
     return axiosInstance.post<boolean>(`backups/manual`);
-  }
+  },
+  restoreBackup: (id: number) => {
+    return axiosInstance.post<boolean>(`backups/restore/${id}`);
+  },
 }
 
 const Exams = {

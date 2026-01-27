@@ -159,6 +159,23 @@ public class Repository<T> : IRepository<T> where T : class
         }
         await Task.CompletedTask;
     }
+    
+    public async Task DetachAsync(T entity)
+    {
+        if (entity == null)
+        {
+            throw new ArgumentNullException(nameof(entity));
+        }
+        
+        _dbContext.Entry(entity).State = EntityState.Detached;
+        await Task.CompletedTask;
+    }
+
+    public async Task ClearChangeTrackerAsync()
+    {
+        _dbContext.ChangeTracker.Clear();
+        await Task.CompletedTask;
+    }
 
     public async Task<(IEnumerable<T> Items, int TotalCount)> GetPagedAsync(
         Expression<Func<T, bool>> predicate,

@@ -1,6 +1,6 @@
 export enum ActivityType {
-  Manual = 0,
-  Auto = 1,
+  Auto = 0,
+  Manual = 1,
   Restore = 2,
 }
 
