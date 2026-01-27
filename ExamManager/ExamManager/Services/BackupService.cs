@@ -59,6 +59,59 @@ public class BackupService : IBackupService
         return result;
     }
 
+    public async Task<BaseServiceResponse<bool>> RestoreBackupAsync(int backupId, int operatorId)
+    {
+        var targetBackup = 
+            (await _unitOfWork.BackupHistoryRepository.GetAsync(x => x.Id == backupId)).FirstOrDefault();
+        if (targetBackup == null)
+        {
+            return BaseServiceResponse<bool>.Failed("Backup record not found.", "NOT_FOUND");
+        }
+        string fileToRestore = targetBackup.FileName;
+        
+        await _unitOfWork.BackupHistoryRepository.DetachAsync(targetBackup);
+        
+        var localTempPath = Path.Combine(Path.GetTempPath(), targetBackup.FileName);
+
+        var restoreLog = new BackupHistory
+        {
+            BackupDate = DateTime.UtcNow,
+            FileName = targetBackup.FileName,
+            ActivityType = ActivityType.Restore,
+            OperatorId = operatorId,
+            IsSuccessful = false,
+        };
+        
+        try
+        {
+            _logger.LogInformation("Restoring: Downloading {File} from Google Drive...", fileToRestore);
+            await DownloadFromDriveAsync(fileToRestore, localTempPath);
+
+            _logger.LogInformation("Restoring: Applying database dump...");
+            await RunPgRestoreAsync(localTempPath);
+
+            await _unitOfWork.BackupHistoryRepository.ClearChangeTrackerAsync();
+            
+            restoreLog.IsSuccessful = true;
+
+            _logger.LogInformation("Restore completed successfully.");
+            
+            await _unitOfWork.BackupHistoryRepository.InsertAsync(restoreLog);
+            await _unitOfWork.SaveAsync();
+            
+            return BaseServiceResponse<bool>.Success(true, "Database restored successfully.");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Restore failed");
+            return BaseServiceResponse<bool>.Failed($"Restore failed: {ex.Message}", "RESTORE_FAIL");
+        }
+        finally
+        {
+            if (File.Exists(localTempPath)) File.Delete(localTempPath);
+        }
+    }
+
     public async Task<BaseServiceResponse<IEnumerable<BackupHistoryResponseDto>>> GetAllBackupsAsync()
     {
         try
@@ -242,5 +295,86 @@ public class BackupService : IBackupService
         {
             throw new Exception($"Failed to upload backup to Google Drive, {result.Exception?.Message}");
         }
+    }
+
+    private async Task RunPgRestoreAsync(string inputFilePath)
+    {
+        var dockerPath = "/usr/local/bin/docker";
+        var containerName = "postgresql";
+
+        var arguments =
+            $"exec -i -e PGPASSWORD={DbPassword} {containerName} pg_restore -U {DbUser} -d {DbName} --clean --if-exists --no-owner";
+
+        var processInfo = new ProcessStartInfo
+        {
+            FileName = dockerPath,
+            Arguments = arguments,
+            RedirectStandardInput = true,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            UseShellExecute = false,
+            CreateNoWindow = true,
+        };
+        
+        using var process = new Process { StartInfo = processInfo };
+        process.Start();
+        
+        using (var fileStream = new FileStream(inputFilePath, FileMode.Open, FileAccess.Read))
+        {
+            await fileStream.CopyToAsync(process.StandardInput.BaseStream);
+        }
+        process.StandardInput.Close();
+        
+        await process.WaitForExitAsync();
+        
+        if (process.ExitCode != 0)
+        {
+            var error = await process.StandardError.ReadToEndAsync();
+            throw new Exception($"pg_restore failed: {error}");
+        }
+    }
+
+    private async Task DownloadFromDriveAsync(string fileName, string localSavePath)
+    {
+        var service = GetDriveService();
+
+        var listRequest = service.Files.List();
+        listRequest.Q = $"name = '{fileName}' and trashed = false";
+        listRequest.Fields = "files(id, name)";
+        var files = await listRequest.ExecuteAsync();
+
+        var file = files.Files.FirstOrDefault();
+        if (file == null)
+        {
+            throw new Exception($"File: {fileName} not found in Google Drive.");
+        }
+
+        var request = service.Files.Get(file.Id);
+        using (var fileStream = new FileStream(localSavePath, FileMode.Create, FileAccess.Write))
+        {
+            await request.DownloadAsync(fileStream);
+        }
+    }
+
+    private DriveService GetDriveService()
+    {
+        var clientId = _configuration["GoogleDrive:ClientId"];
+        var clientSecret = _configuration["GoogleDrive:ClientSecret"];
+        var refreshToken = _configuration["RefreshToken"];
+
+        var tokenResponse = new Google.Apis.Auth.OAuth2.Responses.TokenResponse { RefreshToken = refreshToken };
+        var credential = new UserCredential(
+            new GoogleAuthorizationCodeFlow(
+                new GoogleAuthorizationCodeFlow.Initializer
+                {
+                    ClientSecrets = new ClientSecrets { ClientId = clientId, ClientSecret = clientSecret }
+                }),
+            "user", tokenResponse);
+
+        return new DriveService(new BaseClientService.Initializer()
+        {
+            HttpClientInitializer = credential,
+            ApplicationName = "ExamManager",
+        });
     }
 }
