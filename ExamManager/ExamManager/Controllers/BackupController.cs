@@ -24,7 +24,7 @@ public class BackupController : ControllerBase
     {
         int operatorId = User.GetId();
 
-        var result = await _backupService.PerformManualBackup(operatorId);
+        var result = await _backupService.PerformManualBackupAsync(operatorId);
 
         if (result.Succeeded)
         {
@@ -41,4 +41,33 @@ public class BackupController : ControllerBase
             });
         }
     }
+
+    [HttpGet("history")]
+    [AllowAnonymous]
+    public async Task<IActionResult> GetAllBackups()
+    {
+        var result = await _backupService.GetAllBackupsAsync();
+
+        if (result.Succeeded)
+        {
+            return Ok(result.Data);
+        }
+        else
+        {
+            switch (result.ErrorCode)
+            {
+                case "UNEXPECTED_ERROR":
+                default:
+                    _logger.LogError("Error getting all backups with errors: {Errors}",
+                        string.Join(", ", result.Errors));
+                    return StatusCode(StatusCodes.Status500InternalServerError,
+                        new
+                        {
+                            message = result.Errors.FirstOrDefault() ??
+                                      "An unexpected error occurred while retrieving backups."
+                        });
+            }
+        }
+    }
+    
 }
