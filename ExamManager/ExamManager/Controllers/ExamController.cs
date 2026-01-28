@@ -279,4 +279,17 @@ public class ExamController : ControllerBase
             });
         }
     }
+
+    [HttpGet("generate-exam-board-report/{examId}")]
+    public async Task<IActionResult> GenerateExamBoardReport(int examId)
+    {
+        var result = await _examService.GenerateExamBoardReportAsync(examId);
+
+        if (!result.Succeeded)
+        {
+            return BadRequest(result.Errors);
+        }
+        
+        return File(result.Data, "application/pdf", $"ExamBoardReport_Exam_{examId}.pdf");
+    }
 }

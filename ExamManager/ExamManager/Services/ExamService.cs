@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using ExamManager.Configurations;
 using ExamManager.Dtos.ExamBoardDtos;
 using ExamManager.Dtos.ExamDtos;
 using ExamManager.Interfaces;
@@ -7,6 +8,7 @@ using ExamManager.Repositories;
 using ExamManager.Responses;
 using ExamManager.Responses.ExamResponses;
 using Microsoft.EntityFrameworkCore;
+using QuestPDF.Fluent;
 
 namespace ExamManager.Services;
 
@@ -537,6 +539,48 @@ public class ExamService : IExamService
             return BaseServiceResponse<IEnumerable<ExamUpcomingDto>>.Failed(
                 "An error occurred while retrieving upcoming exams.",
                 "UNEXPECTED_ERROR");
+        }
+    }
+    
+    public async Task<BaseServiceResponse<byte[]>> GenerateExamBoardReportAsync(int examId)
+    {
+        try
+        {
+            string[] includeProperties = new[]
+            {
+                "Profession", 
+                "Institution", 
+                "ExamType", 
+                "ExamBoard.Examiner"
+            };
+
+            var examEntity = (await _unitOfWork.ExamRepository.GetAsync(e => e.Id == examId, includeProperties))
+                .FirstOrDefault();
+
+            if (examEntity == null)
+            {
+                return BaseServiceResponse<byte[]>.Failed("Exam not found.", "EXAM_NOT_FOUND");
+            }
+        
+            if (!examEntity.ExamBoard.Any())
+            {
+                return BaseServiceResponse<byte[]>.Failed(
+                    "This exam has no examiners assigned yet.", "NO_EXAMINERS_FOUND");
+            }
+
+            var document = new ExamBoardDocument(examEntity);
+        
+            var pdfBytes = document.GeneratePdf();
+
+            _logger.LogInformation("Generated Exam Board PDF for Exam ID: {ExamId}", examId);
+
+            return BaseServiceResponse<byte[]>.Success(pdfBytes, "PDF generated successfully.");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error generating PDF for exam ID {examId}", examId);
+            return BaseServiceResponse<byte[]>.Failed(
+                $"An error occurred while generating the PDF: {ex.Message}", "PDF_GENERATION_ERROR");
         }
     }
 

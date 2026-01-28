@@ -59,6 +59,9 @@ const Exams = {
   deleteExam: async (id: number) => {
     return axiosInstance.delete(`/exams/delete-exam/${id}`);
   },
+  generateExamBoardReport: (id: number) => {
+    return axiosInstance.get(`/exams/generate-exam-board-report/${id}`, { responseType: 'blob' });
+  }
 };
 
 const ExamTypes = {
