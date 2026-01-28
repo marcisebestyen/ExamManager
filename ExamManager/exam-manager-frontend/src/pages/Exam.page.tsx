@@ -3,7 +3,7 @@ import '@mantine/dates/styles.css';
 import 'mantine-react-table/styles.css';
 
 import { useMemo, useState } from 'react';
-import { IconDownload, IconEdit, IconPlus, IconTrash, IconUpload, IconUsers, IconX } from '@tabler/icons-react';
+import { IconDownload, IconEdit, IconFileTypePdf, IconPlus, IconTrash, IconUpload, IconUsers, IconX } from '@tabler/icons-react';
 import { QueryClient, QueryClientProvider, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { MantineReactTable, useMantineReactTable, type MRT_ColumnDef, type MRT_Row } from 'mantine-react-table';
 import { ActionIcon, Badge, Button, Divider, Flex, Group, Paper, ScrollArea, Select, Stack, Text, TextInput, Title, Tooltip } from '@mantine/core';
@@ -199,6 +199,8 @@ const CreateExamForm = () => {
   });
   const { data: fetchedExams = [] } = useGetExams();
   const { mutateAsync: createExam } = useCreateExam();
+  const minDate = new Date();
+  minDate.setDate(minDate.getDate() + 1);
 
   const form = useForm<ExamFormData>({
     initialValues: {
@@ -233,6 +235,8 @@ const CreateExamForm = () => {
         <DateInput
           label="Exam Date"
           valueFormat="YYYY-MM-DD"
+          minDate={minDate}
+          placeholder="Exam Date"
           {...form.getInputProps('examDate')}
           required
         />
@@ -467,6 +471,7 @@ const ExamTable = () => {
     isLoading: isLoadingExams,
   } = useGetExams();
   const { mutateAsync: deleteExam, isPending: isDeletingExam } = useDeleteExam();
+  const { mutateAsync: downloadReport, isPending: isDownloading } = useDownloadExamBoardReport();
   const [isExporting, setIsExporting] = useState(false);
   const [isImportOpen, { open: openImport, close: closeImport }] = useDisclosure(false);
 
@@ -604,6 +609,17 @@ const ExamTable = () => {
     positionActionsColumn: 'first',
     renderRowActions: ({ row }) => (
       <Flex gap="md">
+        <Tooltip label="Download Board PDF">
+          <ActionIcon
+            color="orange"
+            variant="outline"
+            radius="md"
+            loading={isDownloading && table.getState().rowSelection[row.id]}
+            onClick={() => downloadReport(row.original)}
+          >
+            <IconFileTypePdf size={18} />
+          </ActionIcon>
+        </Tooltip>
         <Tooltip label="Edit">
           <ActionIcon
             color="blue"
@@ -792,6 +808,41 @@ function useDeleteExam() {
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['exams'] });
+    },
+  });
+}
+
+function useDownloadExamBoardReport() {
+  return useMutation({
+    mutationFn: async (exam: IExam) => {
+      const response = await api.Exams.generateExamBoardReport(exam.id);
+      return { data: response.data, fileName: `${exam.examCode}_BoardReport.pdf` };
+    },
+    onSuccess: ({ data, fileName }) => {
+      const url = window.URL.createObjectURL(new Blob([data], { type: 'application/pdf' }));
+
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', fileName);
+      document.body.appendChild(link);
+      link.click();
+
+      link.parentNode?.removeChild(link);
+      window.URL.revokeObjectURL(url);
+
+      notifications.show({
+        title: 'Download Started',
+        message: 'The Exam Board PDF has been generated.',
+        color: 'teal',
+      });
+    },
+    onError: (error: any) => {
+      console.error(error);
+      notifications.show({
+        title: 'Download Failed',
+        message: 'Could not generate the PDF report.',
+        color: 'red',
+      });
     },
   });
 }
