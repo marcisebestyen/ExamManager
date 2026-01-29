@@ -35,7 +35,7 @@ public class FileHistoryController : ControllerBase
         });
     }
 
-    [HttpGet("{id}/download")]
+    [HttpGet("download/{id}")]
     public async Task<IActionResult> DownloadFile(int id)
     {
         if (id <= 0) return BadRequest("Invalid File ID.");

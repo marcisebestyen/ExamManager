@@ -1,12 +1,14 @@
 import { IBackupHistory } from '../interfaces/IBackup';
-import { IExamUpcoming } from '../interfaces/IExamUpcoming';
 import { ExamFormData, IExam } from '../interfaces/IExam';
 import { ExaminerFormData, IExaminer } from '../interfaces/IExaminer';
 import { ExamTypeFormData, IExamType } from '../interfaces/IExamType';
+import { IExamUpcoming } from '../interfaces/IExamUpcoming';
+import { IFileHistory } from '../interfaces/IFileHistory';
 import { IInstitution, InstitutionFormData } from '../interfaces/IInstitution';
 import { IOperator, OperatorCreateFormData } from '../interfaces/IOperator';
 import { IProfession, ProfessionFormData } from '../interfaces/IProfession';
 import axiosInstance from './axios.config';
+
 
 interface JsonPatchOperation {
   op: 'replace' | 'add' | 'remove' | 'copy' | 'move' | 'test';
@@ -149,6 +151,15 @@ const Exports = {
   },
 };
 
+const FileHistory = {
+  getAll: () => {
+    return axiosInstance.get<IFileHistory[]>('/file-history/get-all');
+  },
+  downloadFile: (id: number) => {
+    return axiosInstance.get(`/file-history/download/${id}`, { responseType: 'blob' });
+  },
+};
+
 const Imports = {
   downloadTemplateExams: () => {
     return axiosInstance.get(`/import/template-exams`, { responseType: 'blob' });
@@ -279,6 +290,17 @@ const Operators = {
   },
 };
 
-const api = { Backups, Exams, ExamTypes, Examiners, Exports, Imports, Institutions, Professions, Operators };
+const api = {
+  Backups,
+  Exams,
+  ExamTypes,
+  Examiners,
+  Exports,
+  FileHistory,
+  Imports,
+  Institutions,
+  Professions,
+  Operators
+};
 
 export default api;

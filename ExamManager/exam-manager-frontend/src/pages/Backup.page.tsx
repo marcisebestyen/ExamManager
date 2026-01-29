@@ -7,7 +7,7 @@ import { useMemo } from 'react';
 import { IconCheck, IconHistory, IconRefresh, IconX } from '@tabler/icons-react';
 import { QueryClient, QueryClientProvider, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { MantineReactTable, useMantineReactTable, type MRT_ColumnDef } from 'mantine-react-table';
-import { ActionIcon, Badge, Button, Flex, Stack, Text as MantineText, ThemeIcon, Title, Tooltip } from '@mantine/core';
+import { ActionIcon, Badge, Button, Flex, Text as MantineText, Stack, ThemeIcon, Title, Tooltip } from '@mantine/core';
 import { modals, ModalsProvider } from '@mantine/modals';
 import { notifications, Notifications } from '@mantine/notifications';
 import api from '../api/api';
@@ -155,7 +155,6 @@ const BackupTable = () => {
     enableEditing: false,
     enableRowActions: true,
     enableDensityToggle: false,
-    positionActionsColumn: 'last',
     renderRowActions: ({ row }) => {
       const type = row.original.activityType;
       const isRestorable = type === ActivityType.Manual || type === ActivityType.Auto;
@@ -195,6 +194,7 @@ const BackupTable = () => {
       showAlertBanner: isLoadingError,
       showProgressBars: isFetching,
     },
+    positionActionsColumn: 'first',
     renderTopToolbarCustomActions: () => (
       <Flex gap="md">
         <Button
