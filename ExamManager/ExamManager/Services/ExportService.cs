@@ -3,6 +3,8 @@ using OfficeOpenXml.Style;
 using ExamManager.Interfaces;
 using ExamManager.Responses;
 using System.Drawing;
+using ExamManager.Dtos.FileHistoryDtos;
+using ExamManager.Models;
 
 namespace ExamManager.Services;
 
@@ -13,6 +15,7 @@ public class ExportService : IExportService
     private readonly IInstitutionService _institutionService;
     private readonly IExamTypeService _examTypeService;
     private readonly IExamService _examService;
+    private readonly IFileHistoryService _fileHistoryService;
     private readonly ILogger<ExportService> _logger;
 
     public ExportService(
@@ -21,6 +24,7 @@ public class ExportService : IExportService
         IInstitutionService institutionService,
         IExamTypeService examTypeService,
         IExamService examService,
+        IFileHistoryService fileHistoryService,
         ILogger<ExportService> logger)
     {
         _examinerService = examinerService ?? throw new ArgumentNullException(nameof(examinerService));
@@ -28,6 +32,7 @@ public class ExportService : IExportService
         _institutionService = institutionService ?? throw new ArgumentNullException(nameof(institutionService));
         _examTypeService = examTypeService ?? throw new ArgumentNullException(nameof(examTypeService));
         _examService = examService ?? throw new ArgumentNullException(nameof(examService));
+        _fileHistoryService = fileHistoryService ?? throw new ArgumentNullException(nameof(fileHistoryService));
         _logger = logger;
 
         ExcelPackage.License.SetNonCommercialPersonal("Sebestyén Marcell Achilles - Exam Manager");    
@@ -44,7 +49,7 @@ public class ExportService : IExportService
         }
     }
 
-    public async Task<BaseServiceResponse<byte[]>> ExportExaminersToExcelAsync(List<int>? filteredIds = null)
+    public async Task<BaseServiceResponse<byte[]>> ExportExaminersToExcelAsync(List<int>? filteredIds, int operatorId)
     {
         try
         {
@@ -93,7 +98,23 @@ public class ExportService : IExportService
             }
 
             ws.Cells.AutoFitColumns();
-            return BaseServiceResponse<byte[]>.Success(package.GetAsByteArray(), "Export successful.");
+            
+            var fileBytes = package.GetAsByteArray();
+            var fileName = $"Examiners_Export_{DateTime.UtcNow:yyyyMMdd_HHmm}.xlsx";
+
+            await _fileHistoryService.CreateFileHistoryAsync(new FileHistoryCreateDto
+            {
+                FileName = fileName,
+                ContentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                FileContent = fileBytes,
+                Action = FileAction.Export,
+                Category = FileCategory.Examiner,
+                OperatorId = operatorId,
+                IsSuccessful = true,
+                ProcessingNotes = $"Exported {dataToExport.Count()} rows."
+            });
+            
+            return BaseServiceResponse<byte[]>.Success(fileBytes, "Export successful.");
         }
         catch (Exception ex)
         {
@@ -103,7 +124,7 @@ public class ExportService : IExportService
         }
     }
 
-    public async Task<BaseServiceResponse<byte[]>> ExportProfessionsToExcelAsync(List<int>? filteredIds = null)
+    public async Task<BaseServiceResponse<byte[]>> ExportProfessionsToExcelAsync(List<int>? filteredIds, int operatorId)
     {
         try
         {
@@ -136,9 +157,24 @@ public class ExportService : IExportService
                 ws.Cells[row, 3].Value = dto.ProfessionName;
                 row++;
             }
+            
+            var fileBytes = package.GetAsByteArray();
+            var fileName = $"Professions_Export_{DateTime.UtcNow:yyyyMMdd_HHmm}.xlsx";
+
+            await _fileHistoryService.CreateFileHistoryAsync(new FileHistoryCreateDto
+            {
+                FileName = fileName,
+                ContentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                FileContent = fileBytes,
+                Action = FileAction.Export,
+                Category = FileCategory.Profession,
+                OperatorId = operatorId,
+                IsSuccessful = true,
+                ProcessingNotes = $"Exported {dataToExport.Count()} rows."
+            });
 
             ws.Cells.AutoFitColumns();
-            return BaseServiceResponse<byte[]>.Success(package.GetAsByteArray(), "Export successful.");
+            return BaseServiceResponse<byte[]>.Success(fileBytes, "Export successful.");
         }
         catch (Exception ex)
         {
@@ -148,7 +184,7 @@ public class ExportService : IExportService
         }
     }
 
-    public async Task<BaseServiceResponse<byte[]>> ExportInstitutionsToExcelAsync(List<int>? filteredIds = null)
+    public async Task<BaseServiceResponse<byte[]>> ExportInstitutionsToExcelAsync(List<int>? filteredIds, int operatorId)
     {
         try
         {
@@ -194,7 +230,23 @@ public class ExportService : IExportService
             }
 
             ws.Cells.AutoFitColumns();
-            return BaseServiceResponse<byte[]>.Success(package.GetAsByteArray(), "Export successful.");
+            
+            var fileBytes = package.GetAsByteArray();
+            var fileName = $"Institutions_Export_{DateTime.UtcNow:yyyyMMdd_HHmm}.xlsx";
+
+            await _fileHistoryService.CreateFileHistoryAsync(new FileHistoryCreateDto
+            {
+                FileName = fileName,
+                ContentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                FileContent = fileBytes,
+                Action = FileAction.Export,
+                Category = FileCategory.Institution,
+                OperatorId = operatorId,
+                IsSuccessful = true,
+                ProcessingNotes = $"Exported {dataToExport.Count()} rows."
+            });
+            
+            return BaseServiceResponse<byte[]>.Success(fileBytes, "Export successful.");
         }
         catch (Exception ex)
         {
@@ -204,7 +256,7 @@ public class ExportService : IExportService
         }
     }
 
-    public async Task<BaseServiceResponse<byte[]>> ExportExamTypesToExcelAsync(List<int>? filteredIds = null)
+    public async Task<BaseServiceResponse<byte[]>> ExportExamTypesToExcelAsync(List<int>? filteredIds, int operatorId)
     {
         try
         {
@@ -239,7 +291,23 @@ public class ExportService : IExportService
             }
 
             ws.Cells.AutoFitColumns();
-            return BaseServiceResponse<byte[]>.Success(package.GetAsByteArray(), "Export successful.");
+            
+            var fileBytes = package.GetAsByteArray();
+            var fileName = $"ExamTypes_Export_{DateTime.UtcNow:yyyyMMdd_HHmm}.xlsx";
+
+            await _fileHistoryService.CreateFileHistoryAsync(new FileHistoryCreateDto
+            {
+                FileName = fileName,
+                ContentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                FileContent = fileBytes,
+                Action = FileAction.Export,
+                Category = FileCategory.ExamType,
+                OperatorId = operatorId,
+                IsSuccessful = true,
+                ProcessingNotes = $"Exported {dataToExport.Count()} rows."
+            });
+            
+            return BaseServiceResponse<byte[]>.Success(fileBytes, "Export successful.");
         }
         catch (Exception ex)
         {
@@ -249,7 +317,7 @@ public class ExportService : IExportService
         }
     }
 
-    public async Task<BaseServiceResponse<byte[]>> ExportExamsToExcelAsync(List<int>? filteredIds = null)
+    public async Task<BaseServiceResponse<byte[]>> ExportExamsToExcelAsync(List<int>? filteredIds, int operatorId)
     {
         try
         {
@@ -324,7 +392,23 @@ public class ExportService : IExportService
             }
 
             ws.Cells.AutoFitColumns();
-            return BaseServiceResponse<byte[]>.Success(package.GetAsByteArray(), "Export successful.");
+            
+            var fileBytes = package.GetAsByteArray();
+            var fileName = $"Exams_Export_{DateTime.UtcNow:yyyyMMdd_HHmm}.xlsx";
+
+            await _fileHistoryService.CreateFileHistoryAsync(new FileHistoryCreateDto
+            {
+                FileName = fileName,
+                ContentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                FileContent = fileBytes,
+                Action = FileAction.Export,
+                Category = FileCategory.Exam,
+                OperatorId = operatorId,
+                IsSuccessful = true,
+                ProcessingNotes = $"Exported {dataToExport.Count()} rows."
+            });
+            
+            return BaseServiceResponse<byte[]>.Success(fileBytes, "Export successful.");
         }
         catch (Exception ex)
         {

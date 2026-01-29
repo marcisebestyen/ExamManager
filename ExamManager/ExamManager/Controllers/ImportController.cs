@@ -22,9 +22,9 @@ public class ImportController : ControllerBase
     }
 
     [HttpGet("template-exams")]
-    public IActionResult DownloadExamsTemplate()
+    public async Task<IActionResult> DownloadExamsTemplate()
     {
-        var filecontent = _importService.GenerateExamsImportTemplate();
+        var filecontent = await _importService.GenerateExamsImportTemplate(User.GetId());
         
         var fileName = "Exams_Import_Template.xlsx";
         var contentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
@@ -33,9 +33,9 @@ public class ImportController : ControllerBase
     }
     
     [HttpGet("template-examiners")]
-    public IActionResult DownloadExaminersTemplate()
+    public async Task<IActionResult> DownloadExaminersTemplate()
     {
-        var fileContent = _importService.GenerateExaminersImportTemplate();
+        var fileContent = await _importService.GenerateExaminersImportTemplate(User.GetId());
         
         var fileName = "Examiners_Import_Template.xlsx";
         var contentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
@@ -44,9 +44,9 @@ public class ImportController : ControllerBase
     }
 
     [HttpGet("template-exam-types")]
-    public IActionResult DownloadExamTypesTemplate()
+    public async Task<IActionResult> DownloadExamTypesTemplate()
     {
-        var fileContent = _importService.GenerateExamTypesImportTemplate();
+        var fileContent = await _importService.GenerateExamTypesImportTemplate(User.GetId());
 
         var fileName = "ExamTypes_Import_Template.xlsx";
         var contentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
@@ -55,9 +55,9 @@ public class ImportController : ControllerBase
     }
 
     [HttpGet("template-institutions")]
-    public IActionResult DownloadInstitutionsTemplate()
+    public async Task<IActionResult> DownloadInstitutionsTemplate()
     {
-        var fileContent = _importService.GenerateInstitutionsImportTemplate();
+        var fileContent = await _importService.GenerateInstitutionsImportTemplate(User.GetId());
         
         var fileName = "Institutions_Import_Template.xlsx";
         var contentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
@@ -66,9 +66,9 @@ public class ImportController : ControllerBase
     }
 
     [HttpGet("template-professions")]
-    public IActionResult DownloadProfessionTemplate()
+    public async Task<IActionResult> DownloadProfessionTemplate()
     {
-        var fileContent = _importService.GenerateProfessionsImportTemplate();
+        var fileContent = await _importService.GenerateProfessionsImportTemplate(User.GetId());
         
         var fileName = "Professions_Import_Template.xlsx";
         var contentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
@@ -83,12 +83,10 @@ public class ImportController : ControllerBase
         {
             return BadRequest(new { message = "No file uploaded." });
         }
-
-        var operatorId = User.GetId();
         
         var stream = file.OpenReadStream();
         
-        var result = await _importService.ImportExamsFromExcelAsync(stream, operatorId);
+        var result = await _importService.ImportExamsFromExcelAsync(stream, User.GetId());
         
         if (result.Succeeded)
         {
@@ -116,7 +114,7 @@ public class ImportController : ControllerBase
         
         using var stream = file.OpenReadStream();
         
-        var result = await _importService.ImportExaminersFromExcelAsync(stream);
+        var result = await _importService.ImportExaminersFromExcelAsync(stream, User.GetId());
         
         if (result.Succeeded)
         {
@@ -144,7 +142,7 @@ public class ImportController : ControllerBase
 
         using var stream = file.OpenReadStream();
 
-        var result = await _importService.ImportExamTypesFromExcelAsync(stream);
+        var result = await _importService.ImportExamTypesFromExcelAsync(stream, User.GetId());
 
         if (result.Succeeded)
         {
@@ -172,7 +170,7 @@ public class ImportController : ControllerBase
         
         using var stream = file.OpenReadStream();
         
-        var result = await _importService.ImportInstitutionsFromExcelAsync(stream);
+        var result = await _importService.ImportInstitutionsFromExcelAsync(stream, User.GetId());
         
         if (result.Succeeded)
         {
@@ -200,7 +198,7 @@ public class ImportController : ControllerBase
         
         using var stream = file.OpenReadStream();
         
-        var result = await _importService.ImportProfessionsFromExcelAsync(stream);
+        var result = await _importService.ImportProfessionsFromExcelAsync(stream, User.GetId());
 
         if (result.Succeeded)
         {

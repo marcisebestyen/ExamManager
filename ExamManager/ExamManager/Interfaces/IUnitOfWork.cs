@@ -9,6 +9,7 @@ public interface IUnitOfWork : IDisposable
     IRepository<ExamBoard> ExamBoardRepository { get; }
     IRepository<Examiner> ExaminerRepository { get; }
     IRepository<ExamType> ExamTypeRepository { get; }
+    IRepository<FileHistory> FileHistoryRepository { get; }
     IRepository<Institution> InstitutionRepository { get; }
     IRepository<Operator> OperatorRepository { get; }
     IRepository<PasswordReset> PasswordResetRepository { get; }

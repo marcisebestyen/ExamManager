@@ -283,7 +283,7 @@ public class ExamController : ControllerBase
     [HttpGet("generate-exam-board-report/{examId}")]
     public async Task<IActionResult> GenerateExamBoardReport(int examId)
     {
-        var result = await _examService.GenerateExamBoardReportAsync(examId);
+        var result = await _examService.GenerateExamBoardReportAsync(examId, User.GetId());
 
         if (!result.Succeeded)
         {

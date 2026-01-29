@@ -1,6 +1,7 @@
 using AutoMapper;
 using ExamManager.Dtos;
 using ExamManager.Dtos.ExaminerDtos;
+using ExamManager.Dtos.FileHistoryDtos;
 using ExamManager.Dtos.InstitutionDtos;
 using ExamManager.Dtos.ProfessionDtos;
 using ExamManager.Interfaces;
@@ -16,15 +17,18 @@ public class ImportService : IImportService
     private readonly IUnitOfWork _unitOfWork;
     private readonly IMapper _mapper;
     private readonly ILogger<ImportService> _logger;
+    IFileHistoryService _fileHistoryService;
 
     public ImportService(
         IUnitOfWork unitOfWork,
         IMapper mapper,
-        ILogger<ImportService> logger)
+        ILogger<ImportService> logger,
+        IFileHistoryService fileHistoryService)
     {
         _unitOfWork = unitOfWork ?? throw new ArgumentNullException(nameof(unitOfWork));
         _mapper = mapper ?? throw new ArgumentNullException(nameof(mapper));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _fileHistoryService = fileHistoryService ?? throw new ArgumentNullException(nameof(fileHistoryService));
 
         ExcelPackage.License.SetNonCommercialPersonal("Sebestyén Marcell Achilles - Exam Manager");
     }
@@ -33,6 +37,14 @@ public class ImportService : IImportService
 
     public async Task<BaseServiceResponse<ImportResult>> ImportExamsFromExcelAsync(Stream filestream, int operatorId)
     {
+        byte[] fileBytes;
+        using (var memoryStream = new MemoryStream())
+        {
+            await filestream.CopyToAsync(memoryStream);
+            fileBytes = memoryStream.ToArray();
+            filestream.Position = 0; 
+        }
+        
         var newExams = new List<Exam>();
         var errors = new List<string>();
         var successCount = 0;
@@ -199,20 +211,52 @@ public class ImportService : IImportService
                 }
             }
             
+            await _fileHistoryService.CreateFileHistoryAsync(new FileHistoryCreateDto
+            {
+                FileName = $"Import_Exams_{DateTime.UtcNow:yyyyMMdd_HHmm}.xlsx",
+                ContentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                FileContent = fileBytes,
+                Action = FileAction.Import,
+                Category = FileCategory.Exam,
+                OperatorId = operatorId,
+                IsSuccessful = errors.Count == 0, 
+                ProcessingNotes = $"Imported: {successCount}, Skipped/Errors: {errors.Count}"
+            });
+            
             return BaseServiceResponse<ImportResult>.Success(
                 new ImportResult { SuccessCount = successCount, Errors = errors },
                 $"Import completed. {successCount} added, {errors.Count} skipped.");
         }
         catch (Exception ex)
         {
+            await _fileHistoryService.CreateFileHistoryAsync(new FileHistoryCreateDto
+            {
+                FileName = $"Failed_Import_Exams_{DateTime.UtcNow:yyyyMMdd_HHmm}.xlsx",
+                ContentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                FileContent = fileBytes,
+                Action = FileAction.Import,
+                Category = FileCategory.Exam,
+                OperatorId = operatorId,
+                IsSuccessful = false,
+                ProcessingNotes = $"CRITICAL ERROR: {ex.Message}"
+            });
+            
             _logger.LogError(ex, "Error importing exams from Excel.");
             return BaseServiceResponse<ImportResult>.Failed(
                 "An unexpected error occurred during import.", "IMPORT_ERROR");
         }
     }
 
-    public async Task<BaseServiceResponse<ImportResult>> ImportExaminersFromExcelAsync(Stream filestream)
+    public async Task<BaseServiceResponse<ImportResult>> ImportExaminersFromExcelAsync(Stream filestream, int operatorId)
     {
+        byte[] fileBytes;
+        using (var memoryStream = new MemoryStream())
+        {
+            await filestream.CopyToAsync(memoryStream);
+            fileBytes = memoryStream.ToArray();
+            filestream.Position = 0; 
+        }
+        
         var newExaminers = new List<Examiner>();
         var errors = new List<string>();
         int successCount = 0;
@@ -337,6 +381,18 @@ public class ImportService : IImportService
                 }
             }
             
+            await _fileHistoryService.CreateFileHistoryAsync(new FileHistoryCreateDto
+            {
+                FileName = $"Import_Examiners_{DateTime.UtcNow:yyyyMMdd_HHmm}.xlsx",
+                ContentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                FileContent = fileBytes,
+                Action = FileAction.Import,
+                Category = FileCategory.Examiner,
+                OperatorId = operatorId,
+                IsSuccessful = errors.Count == 0, 
+                ProcessingNotes = $"Imported: {successCount}, Skipped/Errors: {errors.Count}"
+            });
+            
             return BaseServiceResponse<ImportResult>.Success(
                 new ImportResult { SuccessCount = successCount, Errors = errors },
                 $"Import completed. {successCount} added, {errors.Count} skipped."
@@ -344,14 +400,34 @@ public class ImportService : IImportService
         }
         catch (Exception ex)
         {
+            await _fileHistoryService.CreateFileHistoryAsync(new FileHistoryCreateDto
+            {
+                FileName = $"Failed_Import_Examiners_{DateTime.UtcNow:yyyyMMdd_HHmm}.xlsx",
+                ContentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                FileContent = fileBytes,
+                Action = FileAction.Import,
+                Category = FileCategory.Examiner,
+                OperatorId = operatorId,
+                IsSuccessful = false,
+                ProcessingNotes = $"CRITICAL ERROR: {ex.Message}"
+            });
+            
             _logger.LogError(ex, "Error importing exam types from Excel.");
             return BaseServiceResponse<ImportResult>.Failed(
                 "An unexpected error occurred during import.", "IMPORT_ERROR");
         }
     }
 
-    public async Task<BaseServiceResponse<ImportResult>> ImportExamTypesFromExcelAsync(Stream filestream)
+    public async Task<BaseServiceResponse<ImportResult>> ImportExamTypesFromExcelAsync(Stream filestream, int operatorId)
     {
+        byte[] fileBytes;
+        using (var memoryStream = new MemoryStream())
+        {
+            await filestream.CopyToAsync(memoryStream);
+            fileBytes = memoryStream.ToArray();
+            filestream.Position = 0; 
+        }
+        
         var newExamTypes = new List<ExamType>();
         var errors = new List<string>();
         int successCount = 0;
@@ -420,6 +496,18 @@ public class ImportService : IImportService
                     successCount = newExamTypes.Count;
                 }
             }
+            
+            await _fileHistoryService.CreateFileHistoryAsync(new FileHistoryCreateDto
+            {
+                FileName = $"Import_ExamTypes_{DateTime.UtcNow:yyyyMMdd_HHmm}.xlsx",
+                ContentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                FileContent = fileBytes,
+                Action = FileAction.Import,
+                Category = FileCategory.ExamType,
+                OperatorId = operatorId,
+                IsSuccessful = errors.Count == 0, 
+                ProcessingNotes = $"Imported: {successCount}, Skipped/Errors: {errors.Count}"
+            });
 
             return BaseServiceResponse<ImportResult>.Success(
                 new ImportResult { SuccessCount = successCount, Errors = errors },
@@ -428,14 +516,34 @@ public class ImportService : IImportService
         }
         catch (Exception ex)
         {
+            await _fileHistoryService.CreateFileHistoryAsync(new FileHistoryCreateDto
+            {
+                FileName = $"Failed_Import_ExamTyepes_{DateTime.UtcNow:yyyyMMdd_HHmm}.xlsx",
+                ContentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                FileContent = fileBytes,
+                Action = FileAction.Import,
+                Category = FileCategory.ExamType,
+                OperatorId = operatorId,
+                IsSuccessful = false,
+                ProcessingNotes = $"CRITICAL ERROR: {ex.Message}"
+            });
+            
             _logger.LogError(ex, "Error importing exam types from Excel.");
             return BaseServiceResponse<ImportResult>.Failed(
                 "An unexpected error occurred during import.", "IMPORT_ERROR");
         }
     }
 
-    public async Task<BaseServiceResponse<ImportResult>> ImportInstitutionsFromExcelAsync(Stream filestream)
+    public async Task<BaseServiceResponse<ImportResult>> ImportInstitutionsFromExcelAsync(Stream filestream, int operatorId)
     {
+        byte[] fileBytes;
+        using (var memoryStream = new MemoryStream())
+        {
+            await filestream.CopyToAsync(memoryStream);
+            fileBytes = memoryStream.ToArray();
+            filestream.Position = 0; 
+        }
+        
         var newInstitutions = new List<Institution>();
         var errors = new List<string>();
         int successCount = 0;
@@ -553,6 +661,18 @@ public class ImportService : IImportService
                 }
             }
             
+            await _fileHistoryService.CreateFileHistoryAsync(new FileHistoryCreateDto
+            {
+                FileName = $"Import_Institutions_{DateTime.UtcNow:yyyyMMdd_HHmm}.xlsx",
+                ContentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                FileContent = fileBytes,
+                Action = FileAction.Import,
+                Category = FileCategory.Institution,
+                OperatorId = operatorId,
+                IsSuccessful = errors.Count == 0, 
+                ProcessingNotes = $"Imported: {successCount}, Skipped/Errors: {errors.Count}"
+            });
+            
             return BaseServiceResponse<ImportResult>.Success(
                 new ImportResult { SuccessCount = successCount, Errors = errors },
                 $"Import completed. {successCount} added, {errors.Count} skipped."
@@ -560,14 +680,34 @@ public class ImportService : IImportService
         }
         catch (Exception ex)
         {
+            await _fileHistoryService.CreateFileHistoryAsync(new FileHistoryCreateDto
+            {
+                FileName = $"Failed_Import_Institutions_{DateTime.UtcNow:yyyyMMdd_HHmm}.xlsx",
+                ContentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                FileContent = fileBytes,
+                Action = FileAction.Import,
+                Category = FileCategory.Institution,
+                OperatorId = operatorId,
+                IsSuccessful = false,
+                ProcessingNotes = $"CRITICAL ERROR: {ex.Message}"
+            });
+            
             _logger.LogError(ex, "Error importing exam types from Excel.");
             return BaseServiceResponse<ImportResult>.Failed(
                 "An unexpected error occurred during import.", "IMPORT_ERROR");
         }
     }
     
-    public async Task<BaseServiceResponse<ImportResult>> ImportProfessionsFromExcelAsync(Stream filestream)
+    public async Task<BaseServiceResponse<ImportResult>> ImportProfessionsFromExcelAsync(Stream filestream, int operatorId)
     {
+        byte[] fileBytes;
+        using (var memoryStream = new MemoryStream())
+        {
+            await filestream.CopyToAsync(memoryStream);
+            fileBytes = memoryStream.ToArray();
+            filestream.Position = 0; 
+        }
+        
         var newProfessions = new List<Profession>();
         var errors = new List<string>();
         var successCount = 0;
@@ -642,6 +782,18 @@ public class ImportService : IImportService
                     successCount = newProfessions.Count;
                 }
             }
+            
+            await _fileHistoryService.CreateFileHistoryAsync(new FileHistoryCreateDto
+            {
+                FileName = $"Import_Professions_{DateTime.UtcNow:yyyyMMdd_HHmm}.xlsx",
+                ContentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                FileContent = fileBytes,
+                Action = FileAction.Import,
+                Category = FileCategory.Profession,
+                OperatorId = operatorId,
+                IsSuccessful = errors.Count == 0, 
+                ProcessingNotes = $"Imported: {successCount}, Skipped/Errors: {errors.Count}"
+            });
 
             return BaseServiceResponse<ImportResult>.Success(
                 new ImportResult { SuccessCount = successCount, Errors = errors },
@@ -650,6 +802,18 @@ public class ImportService : IImportService
         }
         catch (Exception ex)
         {
+            await _fileHistoryService.CreateFileHistoryAsync(new FileHistoryCreateDto
+            {
+                FileName = $"Failed_Import_Professions_{DateTime.UtcNow:yyyyMMdd_HHmm}.xlsx",
+                ContentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                FileContent = fileBytes,
+                Action = FileAction.Import,
+                Category = FileCategory.Profession,
+                OperatorId = operatorId,
+                IsSuccessful = false,
+                ProcessingNotes = $"CRITICAL ERROR: {ex.Message}"
+            });
+            
             _logger.LogError(ex, "Error importing institutions from Excel.");
             return BaseServiceResponse<ImportResult>.Failed(
                 "An unexpected error occurred during import.", "IMPORT_ERROR");
@@ -658,7 +822,7 @@ public class ImportService : IImportService
 
     // --- Template Generators ---
     
-    public byte[] GenerateExamsImportTemplate()
+    public async Task<byte[]> GenerateExamsImportTemplate(int operatorId)
     {
         var professions = _unitOfWork.ProfessionRepository.GetAllAsync().Result;
         var institutions = _unitOfWork.InstitutionRepository.GetAllAsync().Result;
@@ -760,11 +924,25 @@ public class ImportService : IImportService
             
             sheet.Cells.AutoFitColumns();
             
-            return package.GetAsByteArray();
+            var fileBytes = package.GetAsByteArray();
+            
+            await _fileHistoryService.CreateFileHistoryAsync(new FileHistoryCreateDto
+            {
+                FileName = "Template_Exams.xlsx",
+                ContentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                FileContent = fileBytes,
+                Action = FileAction.DownloadTemplate,
+                Category = FileCategory.Exam,
+                OperatorId = operatorId,
+                IsSuccessful = true,
+                ProcessingNotes = "Template generated"
+            });
+
+            return fileBytes;
         }
     }
 
-    public byte[] GenerateExaminersImportTemplate()
+    public async Task<byte[]> GenerateExaminersImportTemplate(int operatorId)
     {
         using (var package = new ExcelPackage())
         {
@@ -787,11 +965,25 @@ public class ImportService : IImportService
 
             sheet.Cells.AutoFitColumns();
 
-            return package.GetAsByteArray();
+            var fileBytes = package.GetAsByteArray();
+            
+            await _fileHistoryService.CreateFileHistoryAsync(new FileHistoryCreateDto
+            {
+                FileName = "Template_Examiners.xlsx",
+                ContentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                FileContent = fileBytes,
+                Action = FileAction.DownloadTemplate,
+                Category = FileCategory.Examiner,
+                OperatorId = operatorId,
+                IsSuccessful = true,
+                ProcessingNotes = "Template generated"
+            });
+
+            return fileBytes;
         }
     }
 
-    public byte[] GenerateExamTypesImportTemplate()
+    public async Task<byte[]> GenerateExamTypesImportTemplate(int operatorId)
     {
         using (var package = new ExcelPackage())
         {
@@ -809,11 +1001,25 @@ public class ImportService : IImportService
 
             sheet.Cells.AutoFitColumns();
 
-            return package.GetAsByteArray();
+            var fileBytes = package.GetAsByteArray();
+            
+            await _fileHistoryService.CreateFileHistoryAsync(new FileHistoryCreateDto
+            {
+                FileName = "Template_ExamTypes.xlsx",
+                ContentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                FileContent = fileBytes,
+                Action = FileAction.DownloadTemplate,
+                Category = FileCategory.ExamType,
+                OperatorId = operatorId,
+                IsSuccessful = true,
+                ProcessingNotes = "Template generated"
+            });
+
+            return fileBytes;
         }
     }
 
-    public byte[] GenerateInstitutionsImportTemplate()
+    public async Task<byte[]> GenerateInstitutionsImportTemplate(int operatorId)
     {
         using (var package = new ExcelPackage())
         {
@@ -837,11 +1043,25 @@ public class ImportService : IImportService
             
             sheet.Cells.AutoFitColumns();
             
-            return package.GetAsByteArray();
+            var fileBytes = package.GetAsByteArray();
+            
+            await _fileHistoryService.CreateFileHistoryAsync(new FileHistoryCreateDto
+            {
+                FileName = "Template_Institutions.xlsx",
+                ContentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                FileContent = fileBytes,
+                Action = FileAction.DownloadTemplate,
+                Category = FileCategory.Institution,
+                OperatorId = operatorId,
+                IsSuccessful = true,
+                ProcessingNotes = "Template generated"
+            });
+
+            return fileBytes;
         }
     }
 
-    public byte[] GenerateProfessionsImportTemplate()
+    public async Task<byte[]> GenerateProfessionsImportTemplate(int operatorId)
     {
         using (var package = new ExcelPackage())
         {
@@ -859,7 +1079,21 @@ public class ImportService : IImportService
             
             sheet.Cells.AutoFitColumns();
             
-            return package.GetAsByteArray();
+            var fileBytes = package.GetAsByteArray();
+            
+            await _fileHistoryService.CreateFileHistoryAsync(new FileHistoryCreateDto
+            {
+                FileName = "Template_Professions.xlsx",
+                ContentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                FileContent = fileBytes,
+                Action = FileAction.DownloadTemplate,
+                Category = FileCategory.Profession,
+                OperatorId = operatorId,
+                IsSuccessful = true,
+                ProcessingNotes = "Template generated"
+            });
+
+            return fileBytes;
         }
     }
 }

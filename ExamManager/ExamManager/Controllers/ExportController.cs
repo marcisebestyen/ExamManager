@@ -1,3 +1,4 @@
+using ExamManager.Extensions;
 using ExamManager.Interfaces;
 using ExamManager.Models;
 using Microsoft.AspNetCore.Authorization;
@@ -22,7 +23,7 @@ public class ExportController : ControllerBase
     [HttpGet("export-examiners")]
     public async Task<IActionResult> ExportExaminers()
     {
-        var result = await _exportService.ExportExaminersToExcelAsync();
+        var result = await _exportService.ExportExaminersToExcelAsync(null, User.GetId());
 
         if (result.Succeeded)
         {
@@ -43,7 +44,7 @@ public class ExportController : ControllerBase
     [HttpPost("export-examiners-filtered")]
     public async Task<IActionResult> ExportExaminersFiltered([FromBody] List<int> ids)
     {
-        var result = await _exportService.ExportExaminersToExcelAsync(ids);
+        var result = await _exportService.ExportExaminersToExcelAsync(ids, User.GetId());
 
         if (result.Succeeded)
         {
@@ -64,7 +65,7 @@ public class ExportController : ControllerBase
     [HttpGet("export-professions")]
     public async Task<IActionResult> ExportProfessions()
     {
-        var result = await _exportService.ExportProfessionsToExcelAsync();
+        var result = await _exportService.ExportProfessionsToExcelAsync(null, User.GetId());
 
         if (result.Succeeded)
         {
@@ -85,7 +86,7 @@ public class ExportController : ControllerBase
     [HttpPost("export-professions-filtered")]
     public async Task<IActionResult> ExportProfessionsFiltered([FromBody] List<int> ids)
     {
-        var result = await _exportService.ExportProfessionsToExcelAsync(ids);
+        var result = await _exportService.ExportProfessionsToExcelAsync(ids, User.GetId());
 
         if (result.Succeeded)
         {
@@ -106,7 +107,7 @@ public class ExportController : ControllerBase
     [HttpGet("export-institutions")]
     public async Task<IActionResult> ExportInstitutions()
     {
-        var result = await _exportService.ExportInstitutionsToExcelAsync();
+        var result = await _exportService.ExportInstitutionsToExcelAsync(null, User.GetId());
 
         if (result.Succeeded)
         {
@@ -127,7 +128,7 @@ public class ExportController : ControllerBase
     [HttpPost("export-institutions-filtered")]
     public async Task<IActionResult> ExportInstitutionsFiltered([FromBody] List<int> ids)
     {
-        var result = await _exportService.ExportInstitutionsToExcelAsync(ids);
+        var result = await _exportService.ExportInstitutionsToExcelAsync(ids, User.GetId());
         
         if (result.Succeeded)
         {
@@ -148,7 +149,7 @@ public class ExportController : ControllerBase
     [HttpGet("export-exam-types")]
     public async Task<IActionResult> ExportExamTypes()
     {
-        var result = await _exportService.ExportExamTypesToExcelAsync(null);
+        var result = await _exportService.ExportExamTypesToExcelAsync(null, User.GetId());
 
         if (result.Succeeded)
         {
@@ -169,7 +170,7 @@ public class ExportController : ControllerBase
     [HttpPost("export-exam-types-filtered")]
     public async Task<IActionResult> ExportExamTypesFiltered([FromBody] List<int> ids)
     {
-        var result = await _exportService.ExportExamTypesToExcelAsync(ids);
+        var result = await _exportService.ExportExamTypesToExcelAsync(ids, User.GetId());
         if (result.Succeeded)
         {
             var fileName = $"ExamTypes_{DateTime.Now:yyyyMMdd_HHmm}.xlsx";
@@ -189,7 +190,7 @@ public class ExportController : ControllerBase
     [HttpGet("export-exams")]
     public async Task<IActionResult> ExportExams()
     {
-        var result = await _exportService.ExportExamsToExcelAsync();
+        var result = await _exportService.ExportExamsToExcelAsync(null, User.GetId());
 
         if (result.Succeeded)
         {
@@ -210,7 +211,7 @@ public class ExportController : ControllerBase
     [HttpPost("export-exams-filtered")]
     public async Task<IActionResult> ExportExamsFiltered([FromBody] List<int> ids)
     {
-        var result = await _exportService.ExportExamsToExcelAsync(ids);
+        var result = await _exportService.ExportExamsToExcelAsync(ids, User.GetId());
         
         if (result.Succeeded)
         {
