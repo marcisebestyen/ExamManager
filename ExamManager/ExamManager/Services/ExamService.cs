@@ -2,6 +2,7 @@
 using ExamManager.Configurations;
 using ExamManager.Dtos.ExamBoardDtos;
 using ExamManager.Dtos.ExamDtos;
+using ExamManager.Dtos.FileHistoryDtos;
 using ExamManager.Interfaces;
 using ExamManager.Models;
 using ExamManager.Repositories;
@@ -17,12 +18,14 @@ public class ExamService : IExamService
     private readonly IUnitOfWork _unitOfWork;
     private readonly IMapper _mapper;
     private readonly ILogger<ExamService> _logger;
+    private readonly IFileHistoryService _fileHistoryService;
 
-    public ExamService(IUnitOfWork unitOfWork, IMapper mapper, ILogger<ExamService> logger)
+    public ExamService(IUnitOfWork unitOfWork, IMapper mapper, ILogger<ExamService> logger, IFileHistoryService fileHistoryService)
     {
         _unitOfWork = unitOfWork ?? throw new ArgumentNullException(nameof(unitOfWork));
         _mapper = mapper ?? throw new ArgumentNullException(nameof(mapper));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _fileHistoryService = fileHistoryService ?? throw new ArgumentNullException(nameof(fileHistoryService));
     }
 
     public async Task<BaseServiceResponse<ExamCreateResponseDto>> CreateExamAsync(ExamCreateDto createRequest,
@@ -542,7 +545,7 @@ public class ExamService : IExamService
         }
     }
     
-    public async Task<BaseServiceResponse<byte[]>> GenerateExamBoardReportAsync(int examId)
+    public async Task<BaseServiceResponse<byte[]>> GenerateExamBoardReportAsync(int examId, int operatorId)
     {
         try
         {
@@ -569,8 +572,21 @@ public class ExamService : IExamService
             }
 
             var document = new ExamBoardDocument(examEntity);
-        
             var pdfBytes = document.GeneratePdf();
+            var fileName = $"{examEntity.ExamCode}_BoardReport.pdf";
+            
+            await _fileHistoryService.CreateFileHistoryAsync(new FileHistoryCreateDto
+            {
+                FileName = fileName,
+                ContentType = "application/pdf",
+                FileContent = pdfBytes,
+                Action = FileAction.GenerateReport,
+                Category = FileCategory.Exam,
+                OperatorId = operatorId,
+                IsSuccessful = true,
+                RelatedEntityId = examId,
+                ProcessingNotes = "Generated Board Report PDF"
+            });
 
             _logger.LogInformation("Generated Exam Board PDF for Exam ID: {ExamId}", examId);
 

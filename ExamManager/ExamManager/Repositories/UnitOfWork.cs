@@ -12,6 +12,7 @@ public class UnitOfWork : IUnitOfWork
     public IRepository<ExamBoard> ExamBoardRepository { get; set; }
     public IRepository<Examiner> ExaminerRepository { get; set; }
     public IRepository<ExamType> ExamTypeRepository { get; set; }
+    public IRepository<FileHistory> FileHistoryRepository { get; set; }
     public IRepository<Institution> InstitutionRepository { get; set; }
     public IRepository<Operator> OperatorRepository { get; set; }
     public IRepository<PasswordReset> PasswordResetRepository { get; set; }
@@ -26,6 +27,7 @@ public class UnitOfWork : IUnitOfWork
         ExamBoardRepository = new Repository<ExamBoard>(_dbContext);
         ExaminerRepository = new Repository<Examiner>(_dbContext);
         ExamTypeRepository = new Repository<ExamType>(_dbContext);
+        FileHistoryRepository = new Repository<FileHistory>(_dbContext);
         InstitutionRepository = new Repository<Institution>(_dbContext);
         OperatorRepository = new Repository<Operator>(_dbContext);
         PasswordResetRepository = new Repository<PasswordReset>(_dbContext);

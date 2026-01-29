@@ -1,4 +1,19 @@
-import { IconBriefcase2, IconBuildings, IconClipboardSearch, IconDashboard, IconDatabase, IconDatabaseExport, IconHome, IconLogin, IconLogout, IconPencilQuestion, IconSettings, IconUserCog, IconUserQuestion } from '@tabler/icons-react';
+import {
+  IconBriefcase2,
+  IconBuildings,
+  IconClipboardSearch,
+  IconDashboard,
+  IconDatabase,
+  IconDatabaseExport,
+  IconFileTime,
+  IconHome,
+  IconLogin,
+  IconLogout,
+  IconPencilQuestion,
+  IconSettings,
+  IconUserCog,
+  IconUserQuestion,
+} from '@tabler/icons-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Stack, Text, Tooltip, UnstyledButton } from '@mantine/core';
 import { modals } from '@mantine/modals';
@@ -44,6 +59,7 @@ const mockData = [
   { icon: IconPencilQuestion, label: 'Exams', path: '/exams' },
   { icon: IconUserQuestion, label: 'Examiners', path: '/examiners' },
   { icon: IconClipboardSearch, label: 'Exam Types', path: '/exam-types' },
+  { icon: IconFileTime, label: 'File History', path: '/file-history' },
   { icon: IconBuildings, label: 'Institutions', path: '/institutions' },
   { icon: IconBriefcase2, label: 'Professions', path: '/professions' },
   { icon: IconUserCog, label: 'Operators', path: '/operators' },
@@ -115,7 +131,7 @@ export function NavbarMinimal() {
     }
 
     if (user?.role === 'Staff') {
-      const staffPaths = ['/', '/settings', '/operators'];
+      const staffPaths = ['/', '/settings', '/operators', '/file-history'];
       return staffPaths.includes(link.path);
     }
 

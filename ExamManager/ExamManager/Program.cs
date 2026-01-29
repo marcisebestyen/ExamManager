@@ -125,6 +125,7 @@ builder.Services.AddScoped<IPasswordResetService, PasswordResetService>();
 builder.Services.AddScoped<IExportService, ExportService>();
 builder.Services.AddScoped<IImportService, ImportService>();
 builder.Services.AddScoped<IBackupService, BackupService>();
+builder.Services.AddScoped<IFileHistoryService, FileHistoryService>();
 
 // Background service registration
 builder.Services.AddHostedService<AutomaticBackupWorker>();
