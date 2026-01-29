@@ -10,6 +10,8 @@ import { LoginPage } from './pages/Login.page';
 import ProfessionPage from './pages/Profession.page';
 import OperatorPage from './pages/Operator.page';
 import { SettingsPage } from './pages/Settings.page';
+import BackupPage from './pages/Backup.page';
+import FileHistoryPage from './pages/FileHistory.page';
 
 const router = createBrowserRouter([
   {
@@ -51,6 +53,14 @@ const router = createBrowserRouter([
   {
     path: '/operators',
     element: <OperatorPage />,
+  },
+  {
+    path: '/backups',
+    element: <BackupPage />,
+  },
+  {
+    path: "/file-history",
+    element: <FileHistoryPage />,
   },
   {
     path: '/settings',

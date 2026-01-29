@@ -15,6 +15,8 @@ public interface IRepository<T> where T : class
     Task DeleteRangeAsync(Expression<Func<T, bool>> predicate);
     Task UpdateAsync(T entity);
     Task UpdateRangeAsync(IEnumerable<T> entities);
+    Task DetachAsync(T entity);
+    Task ClearChangeTrackerAsync();
 
     Task<(IEnumerable<T> Items, int TotalCount)> GetPagedAsync(
         Expression<Func<T, bool>> predicate,

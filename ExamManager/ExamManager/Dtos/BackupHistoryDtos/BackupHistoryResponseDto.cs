@@ -7,7 +7,7 @@ public class BackupHistoryResponseDto
     public int Id { get; set; }
     public DateTime BackupDate { get; set; }
     public string FileName { get; set; }
-    public ActivityType Activity { get; set; }
+    public ActivityType ActivityType { get; set; }
     public bool IsSuccessful { get; set; }
     public string? ErrorMessage { get; set; }
     

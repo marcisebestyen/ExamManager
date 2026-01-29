@@ -1,6 +1,7 @@
 ﻿using System.Security.Claims;
 using AutoMapper;
 using ExamManager.Dtos.ExamDtos;
+using ExamManager.Extensions;
 using ExamManager.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.JsonPatch;
@@ -32,7 +33,7 @@ public class ExamController : ControllerBase
             return BadRequest(ModelState);
         }
 
-        var operatorId = GetCurrentUserIdFromToken();
+        var operatorId = User.GetId();
 
         var result = await _examService.CreateExamAsync(createRequest, operatorId);
 
@@ -190,7 +191,7 @@ public class ExamController : ControllerBase
     [HttpDelete("delete-exam/{examId}")]
     public async Task<IActionResult> DeleteExam(int examId)
     {
-        var deletedById = GetCurrentUserIdFromToken();
+        var deletedById = User.GetId();
 
         var result = await _examService.DeleteExamAsync(examId, deletedById);
 
@@ -279,17 +280,16 @@ public class ExamController : ControllerBase
         }
     }
 
-    private int GetCurrentUserIdFromToken()
+    [HttpGet("generate-exam-board-report/{examId}")]
+    public async Task<IActionResult> GenerateExamBoardReport(int examId)
     {
-        var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        var result = await _examService.GenerateExamBoardReportAsync(examId, User.GetId());
 
-        if (string.IsNullOrEmpty(userIdClaim) || !int.TryParse(userIdClaim, out var userId))
+        if (!result.Succeeded)
         {
-            _logger.LogError("User ID claim (NameIdentifier) not found or invalid in token for an authorized request.");
-            throw new UnauthorizedAccessException(
-                "User ID (ClaimTypes.NameIdentifier) cannot be found or not int the token, despite the request is authenticated.");
+            return BadRequest(result.Errors);
         }
-
-        return userId;
+        
+        return File(result.Data, "application/pdf", $"ExamBoardReport_Exam_{examId}.pdf");
     }
 }

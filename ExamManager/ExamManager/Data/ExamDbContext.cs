@@ -193,6 +193,19 @@ public class ExamDbContext : DbContext
             examType.Property(et => et.Description)
                 .HasMaxLength(1000);
         });
+
+        modelBuilder.Entity<FileHistory>(fileHistory =>
+        {
+            fileHistory.HasKey(fh => fh.Id); // PK
+            
+            fileHistory.Property(fh => fh.FileName)
+                .HasMaxLength(256)
+                .IsRequired();
+            
+            fileHistory.Property(fh => fh.ContentType)
+                .HasMaxLength(256)
+                .IsRequired();
+        });
         
         // Institution entity configuration 
         modelBuilder.Entity<Institution>(institution =>

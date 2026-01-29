@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import { IconAlertCircle, IconCalendarEvent, IconFileSpreadsheet } from '@tabler/icons-react';
+import { IconAlertCircle, IconCalendarEvent, IconDownload, IconFileSpreadsheet } from '@tabler/icons-react';
 import { Alert, Button, Container, Grid, Group, Loader, Paper, ScrollArea, Table, Text, ThemeIcon, Title } from '@mantine/core';
+import { notifications } from '@mantine/notifications';
 import api from '../api/api';
 import { Skeleton } from '../components/Skeleton';
 import { IExamUpcoming } from '../interfaces/IExamUpcoming';
@@ -10,6 +11,7 @@ const Dashboard = () => {
   const [upcomingExams, setUpcomingExams] = useState<IExamUpcoming[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const [downloadingType, setDownloadingType] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -26,6 +28,49 @@ const Dashboard = () => {
 
     fetchData();
   }, []);
+
+  const handleDownload = async (
+    exportType: string,
+    apiCall: () => Promise<any>,
+    defaultFileName: string
+  ) => {
+    try {
+      setDownloadingType(exportType);
+
+      const response = await apiCall();
+
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+
+      const link = document.createElement('a');
+      link.href = url;
+
+      const contentDisposition = response.headers['content-disposition'];
+      let fileName = defaultFileName;
+      if (contentDisposition) {
+        const fileNameMatch = contentDisposition.match(/filename\*=UTF-8''([^;]+)/);
+        if (fileNameMatch && fileNameMatch[1]) {
+          fileName = decodeURIComponent(fileNameMatch[1]);
+        }
+        else {
+          const filenameMatch = contentDisposition.match(/filename="?([^";]+)"?/);
+          if (filenameMatch && filenameMatch[1]) {
+            fileName = filenameMatch[1];
+          }
+        }
+      }
+
+      link.setAttribute('download', fileName);
+
+      document.body.appendChild(link);
+      link.click();
+      link.parentNode?.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      notifications.show({ title: 'Error', message: `Failed to download ${exportType}`, color: 'red' });
+    } finally {
+      setDownloadingType(null);
+    }
+  };
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
@@ -71,51 +116,162 @@ const Dashboard = () => {
               <Button
                 variant="outline"
                 color="green"
+                radius="md"
                 leftSection={<IconFileSpreadsheet size={16} />}
+                loading={downloadingType === 'exams'}
+                onClick={() => handleDownload('exams', api.Exports.exportExams, 'exams.xlsx')}
               >
                 All Exams
               </Button>
               <Button
                 variant="outline"
                 color="green"
+                radius="md"
                 leftSection={<IconFileSpreadsheet size={16} />}
+                loading={downloadingType === 'examiners'}
+                onClick={() =>
+                  handleDownload('examiners', api.Exports.exportExaminers, 'examiners.xlsx')
+                }
               >
                 All Examiners
               </Button>
               <Button
                 variant="outline"
                 color="green"
+                radius="md"
                 leftSection={<IconFileSpreadsheet size={16} />}
+                loading={downloadingType === 'examTypes'}
+                onClick={() =>
+                  handleDownload('examTypes', api.Exports.exportExamTypes, 'exam_types.xlsx')
+                }
               >
                 All Exam Types
               </Button>
               <Button
                 variant="outline"
                 color="green"
+                radius="md"
                 leftSection={<IconFileSpreadsheet size={16} />}
+                loading={downloadingType === 'institutions'}
+                onClick={() =>
+                  handleDownload(
+                    'institutions',
+                    api.Exports.exportInstitutions,
+                    'institutions.xlsx'
+                  )
+                }
               >
                 All Institutions
               </Button>
               <Button
                 variant="outline"
                 color="green"
+                radius="md"
                 leftSection={<IconFileSpreadsheet size={16} />}
+                loading={downloadingType === 'professions'}
+                onClick={() =>
+                  handleDownload('professions', api.Exports.exportProfessions, 'professions.xlsx')
+                }
               >
                 All Professions
               </Button>
+            </Group>
+          </Paper>
+        </Grid.Col>
+
+        <Grid.Col span={12}>
+          <Paper shadow="xs" p="md" withBorder>
+            <Group mb="md">
+              <ThemeIcon color="violet" variant="light" size="lg">
+                <IconDownload size={20} />
+              </ThemeIcon>
+              <Title order={4}>Import Templates (XLSX)</Title>
+            </Group>
+
+            <Text c="dimmed" mb="md" size="sm">
+              Download blank Excel templates formatted for bulk data import.
+            </Text>
+
+            <Group>
               <Button
                 variant="outline"
-                color="green"
-                leftSection={<IconFileSpreadsheet size={16} />}
+                color="violet"
+                radius="md"
+                leftSection={<IconDownload size={16} />}
+                loading={downloadingType === 'template-exams'}
+                onClick={() =>
+                  handleDownload(
+                    'template-exams',
+                    api.Imports.downloadTemplateExams,
+                    'Exams_Import_Template.xlsx'
+                  )
+                }
               >
-                Export Upcoming Exams
+                Exams Template
               </Button>
               <Button
                 variant="outline"
-                color="green"
-                leftSection={<IconFileSpreadsheet size={16} />}
+                color="violet"
+                radius="md"
+                leftSection={<IconDownload size={16} />}
+                loading={downloadingType === 'template-examiners'}
+                onClick={() =>
+                  handleDownload(
+                    'template-examiners',
+                    api.Imports.downloadTemplateExaminers,
+                    'Examiners_Import_Template.xlsx'
+                  )
+                }
               >
-                Export Everything
+                Examiners Template
+              </Button>
+              <Button
+                variant="outline"
+                color="violet"
+                radius="md"
+                leftSection={<IconDownload size={16} />}
+                loading={downloadingType === 'template-examTypes'}
+                onClick={() =>
+                  handleDownload(
+                    'template-examTypes',
+                    api.Imports.downloadTemplateExamTypes,
+                    'ExamTypes_Import_Template.xlsx'
+                  )
+                }
+              >
+                Exam Types Template
+              </Button>
+              <Button
+                variant="outline"
+                color="violet"
+                radius="md"
+                leftSection={<IconDownload size={16} />}
+                loading={downloadingType === 'template-institutions'}
+                onClick={() =>
+                  handleDownload(
+                    'template-institutions',
+                    api.Imports.downloadTemplateInstitutions,
+                    'Institutions_Import_Template.xlsx'
+                  )
+                }
+              >
+                Institutions Template
+              </Button>
+              <Button
+                variant="outline"
+                color="violet"
+                radius="md"
+                leftSection={<IconDownload size={16} />}
+                loading={downloadingType === 'template-professions'}
+                onClick={() =>
+                  handleDownload(
+                    'template-professions',
+                    api.Imports.downloadTemplateProfessions,
+                    'Professions_Import_Template.xlsx'
+                  )
+                }
+              >
+                Professions Template
               </Button>
             </Group>
           </Paper>
