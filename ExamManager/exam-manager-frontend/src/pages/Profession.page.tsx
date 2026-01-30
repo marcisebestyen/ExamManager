@@ -1,6 +1,15 @@
-import { useMemo } from 'react';
-import { IconEdit, IconTrash } from '@tabler/icons-react';
+import { useMemo, useState } from 'react';
 import {
+  IconBriefcase,
+  IconDownload,
+  IconEdit,
+  IconId,
+  IconPlus,
+  IconTrash,
+  IconUpload,
+} from '@tabler/icons-react';
+import {
+  keepPreviousData,
   QueryClient,
   QueryClientProvider,
   useMutation,
@@ -9,9 +18,9 @@ import {
 } from '@tanstack/react-query';
 import {
   MantineReactTable,
+  MRT_ColumnDef,
+  MRT_Row,
   useMantineReactTable,
-  type MRT_ColumnDef,
-  type MRT_Row,
 } from 'mantine-react-table';
 import {
   ActionIcon,
@@ -25,10 +34,12 @@ import {
   Tooltip,
 } from '@mantine/core';
 import { useForm } from '@mantine/form';
+import { useDisclosure } from '@mantine/hooks';
 import { modals, ModalsProvider } from '@mantine/modals';
 import { Notifications, notifications } from '@mantine/notifications';
 import { IProfession, ProfessionFormData } from '@/interfaces/IProfession';
 import api from '../api/api';
+import { ImportModal } from '../components/ImportModal';
 import { Skeleton } from '../components/Skeleton';
 
 interface JsonPatchOperation {
@@ -53,6 +64,19 @@ const generatePatchDocument = (
   }
   return patch;
 };
+
+const validateRequired = (value: string) => !!value.trim().length;
+
+function validateProfession(profession: ProfessionFormData) {
+  const errors: { keorId?: string; professionName?: string } = {};
+  if (!validateRequired(profession.keorId)) {
+    errors.keorId = 'Keor ID is required';
+  }
+  if (!validateRequired(profession.professionName)) {
+    errors.professionName = 'Profession Name is required';
+  }
+  return errors;
+}
 
 const CreateProfessionForm = () => {
   const { data: fetchedProfessions = [] } = useGetProfessions();
@@ -79,11 +103,26 @@ const CreateProfessionForm = () => {
   return (
     <form onSubmit={handleSubmit}>
       <Stack>
-        <TextInput label="Keor ID" {...form.getInputProps('keorId')} required />
-        <TextInput label="Profession Name" {...form.getInputProps('professionName')} required />
+        <TextInput
+          label="Keor ID"
+          description="Unique identifier for the profession"
+          leftSection={<IconId size={16} />}
+          {...form.getInputProps('keorId')}
+          required
+        />
+        <TextInput
+          label="Profession Name"
+          description="Official name of the profession"
+          leftSection={<IconBriefcase size={16} />}
+          {...form.getInputProps('professionName')}
+          required
+        />
         <Flex justify="flex-end" mt="xl">
-          <Button type="submit" variant="outline" radius="md" mr="xs">
-            Create
+          <Button type="button" variant="subtle" onClick={() => modals.closeAll()} mr="xs">
+            Cancel
+          </Button>
+          <Button type="submit" variant="filled" radius="md">
+            Create Profession
           </Button>
         </Flex>
       </Stack>
@@ -120,11 +159,24 @@ const EditProfessionForm = ({ initialProfession }: { initialProfession: IProfess
   return (
     <form onSubmit={handleSubmit}>
       <Stack>
-        <TextInput label="Keor ID" {...form.getInputProps('keorId')} required />
-        <TextInput label="Profession Name" {...form.getInputProps('professionName')} required />
+        <TextInput
+          label="Keor ID"
+          leftSection={<IconId size={16} />}
+          {...form.getInputProps('keorId')}
+          required
+        />
+        <TextInput
+          label="Profession Name"
+          leftSection={<IconBriefcase size={16} />}
+          {...form.getInputProps('professionName')}
+          required
+        />
         <Flex justify="flex-end" mt="xl">
-          <Button type="submit" variant="outline" radius="md" mr="xs">
-            Save
+          <Button type="button" variant="subtle" onClick={() => modals.closeAll()} mr="xs">
+            Cancel
+          </Button>
+          <Button type="submit" variant="filled" radius="md">
+            Save Changes
           </Button>
         </Flex>
       </Stack>
@@ -142,12 +194,16 @@ const DeleteProfessionModal = ({ profession }: { profession: IProfession }) => {
 
   return (
     <Stack>
-      <Text>
-        Are you sure you want to delete "{profession.professionName}"? This action cannot be undone.
+      <Text size="sm">
+        Are you sure you want to delete <b>{profession.professionName}</b>? This action cannot be
+        undone.
       </Text>
       <Flex justify="flex-end" mt="xl">
-        <Button color="red" variant="outline" radius="md" mr="xs" onClick={handleDelete}>
-          Delete
+        <Button variant="default" onClick={() => modals.closeAll()} mr="xs">
+          Cancel
+        </Button>
+        <Button color="red" variant="filled" onClick={handleDelete}>
+          Delete Profession
         </Button>
       </Flex>
     </Stack>
@@ -155,18 +211,36 @@ const DeleteProfessionModal = ({ profession }: { profession: IProfession }) => {
 };
 
 const ProfessionTable = () => {
+  const queryClient = useQueryClient();
+
   const {
     data: fetchedProfessions = [],
     isError: isLoadingProfessionsError,
     isFetching: isFetchingProfessions,
     isLoading: isLoadingProfessions,
   } = useGetProfessions();
-  const { mutateAsync: deleteProfession, isPending: isDeletingProfession } = useDeleteProfession();
+  const { isPending: isDeletingProfession } = useDeleteProfession();
+  const [isExporting, setIsExporting] = useState(false);
+  const [isImportOpen, { open: openImport, close: closeImport }] = useDisclosure(false);
+
+  const [pagination, setPagination] = useState({
+    pageIndex: 0,
+    pageSize: 10,
+  });
 
   const columns = useMemo<MRT_ColumnDef<IProfession>[]>(
     () => [
-      { accessorKey: 'keorId', header: 'Keor ID' },
-      { accessorKey: 'professionName', header: 'Profession Name' },
+      {
+        accessorKey: 'keorId',
+        header: 'Keor ID',
+        size: 150,
+        enableClickToCopy: true,
+      },
+      {
+        accessorKey: 'professionName',
+        header: 'Profession Name',
+        size: 300,
+      },
     ],
     []
   );
@@ -174,23 +248,66 @@ const ProfessionTable = () => {
   const openCreateModal = () =>
     modals.open({
       id: 'create-profession',
-      title: <Title order={3}>Create New Profession</Title>,
+      title: <Text fw={700}>Create New Profession</Text>,
       children: <CreateProfessionForm />,
     });
 
   const openEditModal = (profession: IProfession) =>
     modals.open({
       id: 'edit-profession',
-      title: <Title order={3}>Edit Profession</Title>,
+      title: <Text fw={700}>Edit Profession</Text>,
       children: <EditProfessionForm initialProfession={profession} />,
     });
 
   const openDeleteConfirmModal = (row: MRT_Row<IProfession>) =>
     modals.open({
       id: 'delete-profession',
-      title: <Title order={3}>Delete Profession</Title>,
+      title: (
+        <Text fw={700} c="red">
+          Delete Profession
+        </Text>
+      ),
       children: <DeleteProfessionModal profession={row.original} />,
     });
+
+  const handleExportData = async (table: any) => {
+    setIsExporting(true);
+    try {
+      const filteredRows = table.getPrePaginationRowModel().rows;
+      const ids = filteredRows.map((row: any) => row.original.id);
+
+      if (ids.length === 0) {
+        notifications.show({
+          title: 'Info',
+          message: 'No data to export',
+          color: 'blue',
+        });
+        return;
+      }
+
+      const response = await api.Exports.exportProfessionsFiltered(ids);
+
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute(
+        'download',
+        `Professions_Filtered_${new Date().toISOString().slice(0, 10)}.xlsx`
+      );
+      document.body.appendChild(link);
+      link.click();
+      link.parentNode?.removeChild(link);
+    } catch (error) {
+      console.error(error);
+      notifications.show({
+        title: 'Error',
+        message: 'Export failed',
+        color: 'red',
+      });
+    } finally {
+      setIsExporting(false);
+    }
+  };
 
   const table = useMantineReactTable({
     columns,
@@ -198,49 +315,97 @@ const ProfessionTable = () => {
     enableEditing: false,
     enableRowActions: true,
     getRowId: (row) => String(row.id),
-    mantineToolbarAlertBannerProps: isLoadingProfessionsError
-      ? { color: 'red', children: 'Error loading data' }
-      : undefined,
-    mantineTableContainerProps: { style: { minHeight: '500px' } },
-    positionActionsColumn: 'first',
-    renderRowActions: ({ row }) => (
-      <Flex gap="md">
-        <Tooltip label="Edit">
-          <ActionIcon
-            color="blue"
-            variant="outline"
-            radius="md"
-            onClick={() => openEditModal(row.original)}
-          >
-            <IconEdit />
-          </ActionIcon>
-        </Tooltip>
-        <Tooltip label="Delete">
-          <ActionIcon
-            color="red"
-            variant="outline"
-            radius="md"
-            onClick={() => openDeleteConfirmModal(row)}
-          >
-            <IconTrash />
-          </ActionIcon>
-        </Tooltip>
-      </Flex>
-    ),
-    renderTopToolbarCustomActions: () => (
-      <Button variant="outline" radius="md" onClick={openCreateModal}>
-        Create New Entry
-      </Button>
-    ),
+
+    autoResetPageIndex: false,
+    onPaginationChange: setPagination,
     state: {
       isLoading: isLoadingProfessions,
       isSaving: isDeletingProfession,
       showAlertBanner: isLoadingProfessionsError,
       showProgressBars: isFetchingProfessions,
+      pagination,
     },
+
+    mantinePaperProps: {
+      shadow: 'sm',
+      radius: 'md',
+      withBorder: true,
+    },
+    mantineToolbarAlertBannerProps: isLoadingProfessionsError
+      ? { color: 'red', children: 'Error loading data' }
+      : undefined,
+    mantineTableContainerProps: { style: { minHeight: '500px' } },
+
+    enableDensityToggle: false,
+    enableFullScreenToggle: false,
+    positionActionsColumn: 'first',
+    initialState: {
+      showGlobalFilter: true,
+      density: 'xs',
+    },
+    renderRowActions: ({ row }) => (
+      <Flex gap="sm">
+        <Tooltip label="Edit">
+          <ActionIcon color="blue" variant="subtle" onClick={() => openEditModal(row.original)}>
+            <IconEdit size={18} />
+          </ActionIcon>
+        </Tooltip>
+        <Tooltip label="Delete">
+          <ActionIcon color="red" variant="subtle" onClick={() => openDeleteConfirmModal(row)}>
+            <IconTrash size={18} />
+          </ActionIcon>
+        </Tooltip>
+      </Flex>
+    ),
+    renderTopToolbarCustomActions: ({ table }) => (
+      <Flex gap="sm">
+        <Button
+          variant="filled"
+          radius="md"
+          leftSection={<IconPlus size={16} />}
+          onClick={openCreateModal}
+        >
+          Create Entry
+        </Button>
+
+        <Button
+          variant="filled"
+          color="violet"
+          radius="md"
+          leftSection={<IconUpload size={16} />}
+          onClick={openImport}
+        >
+          Import
+        </Button>
+
+        <Button
+          variant="filled"
+          color="green"
+          radius="md"
+          leftSection={<IconDownload size={16} />}
+          loading={isExporting}
+          onClick={() => handleExportData(table)}
+        >
+          Export
+        </Button>
+      </Flex>
+    ),
   });
 
-  return <MantineReactTable table={table} />;
+  return (
+    <>
+      <MantineReactTable table={table} />
+
+      <ImportModal
+        opened={isImportOpen}
+        onClose={closeImport}
+        entityName="Professions"
+        onDownloadTemplate={api.Imports.downloadTemplateProfessions}
+        onImport={api.Imports.importProfessions}
+        onSuccess={() => queryClient.invalidateQueries({ queryKey: ['professions'] })}
+      />
+    </>
+  );
 };
 
 function useCreateProfession() {
@@ -270,6 +435,7 @@ function useGetProfessions() {
   return useQuery<IProfession[]>({
     queryKey: ['professions'],
     queryFn: () => api.Professions.getAllProfessions().then((res) => res.data),
+    placeholderData: keepPreviousData,
     refetchOnWindowFocus: false,
   });
 }
@@ -339,7 +505,11 @@ const ProfessionPage = () => (
       <ModalsProvider>
         <Notifications />
         <Skeleton>
-          <Title order={2}>Professions</Title>
+          <Stack mb="lg">
+            <Title order={2} style={{ fontFamily: 'Greycliff CF, var(--mantine-font-family)' }}>
+              Professions
+            </Title>
+          </Stack>
           <ProfessionTable />
         </Skeleton>
       </ModalsProvider>
@@ -348,16 +518,3 @@ const ProfessionPage = () => (
 );
 
 export default ProfessionPage;
-
-const validateRequired = (value: string) => !!value.trim().length;
-
-function validateProfession(profession: ProfessionFormData) {
-  const errors: { keorId?: string; professionName?: string } = {};
-  if (!validateRequired(profession.keorId)) {
-    errors.keorId = 'Keor ID is required';
-  }
-  if (!validateRequired(profession.professionName)) {
-    errors.professionName = 'Profession Name is required';
-  }
-  return errors;
-}

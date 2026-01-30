@@ -1,6 +1,7 @@
 ﻿using System.Security.Claims;
 using AutoMapper;
 using ExamManager.Dtos.ExamDtos;
+using ExamManager.Extensions;
 using ExamManager.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.JsonPatch;
@@ -32,7 +33,7 @@ public class ExamController : ControllerBase
             return BadRequest(ModelState);
         }
 
-        var operatorId = GetCurrentUserIdFromToken();
+        var operatorId = User.GetId();
 
         var result = await _examService.CreateExamAsync(createRequest, operatorId);
 
@@ -190,7 +191,7 @@ public class ExamController : ControllerBase
     [HttpDelete("delete-exam/{examId}")]
     public async Task<IActionResult> DeleteExam(int examId)
     {
-        var deletedById = GetCurrentUserIdFromToken();
+        var deletedById = User.GetId();
 
         var result = await _examService.DeleteExamAsync(examId, deletedById);
 
@@ -254,17 +255,41 @@ public class ExamController : ControllerBase
         }
     }
 
-    private int GetCurrentUserIdFromToken()
+    [HttpGet("upcoming-exams")]
+    [AllowAnonymous]
+    public async Task<IActionResult> GetUpcomingExams([FromQuery] int daysAhead = 3)
     {
-        var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
-
-        if (string.IsNullOrEmpty(userIdClaim) || !int.TryParse(userIdClaim, out var userId))
+        if (daysAhead <= 0)
         {
-            _logger.LogError("User ID claim (NameIdentifier) not found or invalid in token for an authorized request.");
-            throw new UnauthorizedAccessException(
-                "User ID (ClaimTypes.NameIdentifier) cannot be found or not int the token, despite the request is authenticated.");
+            daysAhead = 3;
         }
+        
+        var result = await _examService.GetUpcomingExamsAsync(daysAhead);
 
-        return userId;
+        if (result.Succeeded)
+        {
+            return Ok(result.Data);
+        }
+        else
+        {
+            _logger.LogError("Error getting upcoming exams: {Errors}", string.Join(", ", result.Errors));
+            return StatusCode(StatusCodes.Status500InternalServerError, new
+            {
+                message = result.Errors.FirstOrDefault() ?? "An unexpected error occurred."
+            });
+        }
+    }
+
+    [HttpGet("generate-exam-board-report/{examId}")]
+    public async Task<IActionResult> GenerateExamBoardReport(int examId)
+    {
+        var result = await _examService.GenerateExamBoardReportAsync(examId, User.GetId());
+
+        if (!result.Succeeded)
+        {
+            return BadRequest(result.Errors);
+        }
+        
+        return File(result.Data, "application/pdf", $"ExamBoardReport_Exam_{examId}.pdf");
     }
 }

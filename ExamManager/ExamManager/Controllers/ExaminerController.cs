@@ -1,6 +1,7 @@
 ﻿using System.Security.Claims;
 using AutoMapper;
 using ExamManager.Dtos.ExaminerDtos;
+using ExamManager.Extensions;
 using ExamManager.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.JsonPatch;
@@ -187,7 +188,7 @@ public class ExaminerController : ControllerBase
         int? deletedById = null;
         try
         {
-            deletedById = GetCurrentUserIdFromToken();
+            deletedById = User.GetId();
         }
         catch (UnauthorizedAccessException)
         {
@@ -256,19 +257,5 @@ public class ExaminerController : ControllerBase
                                   "Unknown error happened during the restoration of the examiner."
                     });
         }
-    }
-
-    private int GetCurrentUserIdFromToken()
-    {
-        var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
-
-        if (string.IsNullOrEmpty(userIdClaim) || !int.TryParse(userIdClaim, out var userId))
-        {
-            _logger.LogError("User ID claim (NameIdentifier) not found or invalid in token for an authorized request.");
-            throw new UnauthorizedAccessException(
-                "User ID (ClaimTypes.NameIdentifier) cannot be found or not in the token, despite the request is authenticated.");
-        }
-
-        return userId;
     }
 }

@@ -240,6 +240,59 @@ namespace ExamManager.Migrations
                     b.ToTable("Examiners");
                 });
 
+            modelBuilder.Entity("ExamManager.Models.FileHistory", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("Action")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("Category")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("ContentType")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<byte[]>("FileContent")
+                        .IsRequired()
+                        .HasColumnType("bytea");
+
+                    b.Property<string>("FileName")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)");
+
+                    b.Property<long>("FileSizeInBytes")
+                        .HasColumnType("bigint");
+
+                    b.Property<bool>("IsSuccessful")
+                        .HasColumnType("boolean");
+
+                    b.Property<int>("OperatorId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("ProcessingNotes")
+                        .HasColumnType("text");
+
+                    b.Property<int?>("RelatedEntityId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OperatorId");
+
+                    b.ToTable("FileHistory");
+                });
+
             modelBuilder.Entity("ExamManager.Models.Institution", b =>
                 {
                     b.Property<int>("Id")
@@ -495,6 +548,17 @@ namespace ExamManager.Migrations
                         .OnDelete(DeleteBehavior.Restrict);
 
                     b.Navigation("DeletedBy");
+                });
+
+            modelBuilder.Entity("ExamManager.Models.FileHistory", b =>
+                {
+                    b.HasOne("ExamManager.Models.Operator", "Operator")
+                        .WithMany()
+                        .HasForeignKey("OperatorId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Operator");
                 });
 
             modelBuilder.Entity("ExamManager.Models.Operator", b =>

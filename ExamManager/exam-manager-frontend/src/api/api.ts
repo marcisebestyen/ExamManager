@@ -1,15 +1,32 @@
+import { IBackupHistory } from '../interfaces/IBackup';
 import { ExamFormData, IExam } from '../interfaces/IExam';
 import { ExaminerFormData, IExaminer } from '../interfaces/IExaminer';
 import { ExamTypeFormData, IExamType } from '../interfaces/IExamType';
+import { IExamUpcoming } from '../interfaces/IExamUpcoming';
+import { IFileHistory } from '../interfaces/IFileHistory';
 import { IInstitution, InstitutionFormData } from '../interfaces/IInstitution';
+import { IOperator, OperatorCreateFormData } from '../interfaces/IOperator';
 import { IProfession, ProfessionFormData } from '../interfaces/IProfession';
 import axiosInstance from './axios.config';
+
 
 interface JsonPatchOperation {
   op: 'replace' | 'add' | 'remove' | 'copy' | 'move' | 'test';
   path: string;
   value?: any;
   from?: string;
+}
+
+const Backups = {
+  getHistory: () => {
+    return axiosInstance.get<IBackupHistory[]>(`backups/history`);
+  },
+  performManualBackup: () => {
+    return axiosInstance.post<boolean>(`backups/manual`);
+  },
+  restoreBackup: (id: number) => {
+    return axiosInstance.post<boolean>(`backups/restore/${id}`);
+  },
 }
 
 const Exams = {
@@ -22,6 +39,9 @@ const Exams = {
   },
   getAllExams: () => {
     return axiosInstance.get<IExam[]>(`/exams/get-all-exams`);
+  },
+  getUpcomingExams: (daysAhead: number = 3) => {
+    return axiosInstance.get<IExamUpcoming[]>(`/exams/upcoming-exams?daysAhead=${daysAhead}`);
   },
   createExam: async (examData: ExamFormData): Promise<IExam> => {
     const payload = {
@@ -41,6 +61,9 @@ const Exams = {
   deleteExam: async (id: number) => {
     return axiosInstance.delete(`/exams/delete-exam/${id}`);
   },
+  generateExamBoardReport: (id: number) => {
+    return axiosInstance.get(`/exams/generate-exam-board-report/${id}`, { responseType: 'blob' });
+  }
 };
 
 const ExamTypes = {
@@ -92,6 +115,91 @@ const Examiners = {
   },
   deleteExaminer: async (id: number) => {
     return axiosInstance.delete(`/examiners/delete-examiner/${id}`);
+  },
+};
+
+const Exports = {
+  exportExaminers: () => {
+    return axiosInstance.get(`/export/export-examiners`, { responseType: 'blob' });
+  },
+  exportExaminersFiltered: (ids: number[]) => {
+    return axiosInstance.post(`/export/export-examiners-filtered`, ids, { responseType: 'blob' });
+  },
+  exportProfessions: () => {
+    return axiosInstance.get(`/export/export-professions`, { responseType: 'blob' });
+  },
+  exportProfessionsFiltered: (ids: number[]) => {
+    return axiosInstance.post(`/export/export-professions-filtered`, ids, { responseType: 'blob' });
+  },
+  exportInstitutions: () => {
+    return axiosInstance.get(`/export/export-institutions`, { responseType: 'blob' });
+  },
+  exportInstitutionsFiltered: (ids: number[]) => {
+    return axiosInstance.post(`/export/export-institutions-filtered`, ids, { responseType: 'blob' });
+  },
+  exportExamTypes: () => {
+    return axiosInstance.get(`/export/export-exam-types`, { responseType: 'blob' });
+  },
+  exportExamTypesFiltered: (ids: number[]) => {
+    return axiosInstance.post(`/export/export-exam-types-filtered`, ids, { responseType: 'blob' });
+  },
+  exportExams: () => {
+    return axiosInstance.get(`/export/export-exams`, { responseType: 'blob' });
+  },
+  exportExamsFiltered: (ids: number[]) => {
+    return axiosInstance.post(`/export/export-exams-filtered`, ids, { responseType: 'blob' });
+  },
+};
+
+const FileHistory = {
+  getAll: () => {
+    return axiosInstance.get<IFileHistory[]>('/file-history/get-all');
+  },
+  downloadFile: (id: number) => {
+    return axiosInstance.get(`/file-history/download/${id}`, { responseType: 'blob' });
+  },
+};
+
+const Imports = {
+  downloadTemplateExams: () => {
+    return axiosInstance.get(`/import/template-exams`, { responseType: 'blob' });
+  },
+  importExams: (formData: FormData) => {
+    return axiosInstance.post(`/import/import-exams`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    })
+  },
+  downloadTemplateExaminers: () => {
+    return axiosInstance.get(`/import/template-examiners`, { responseType: 'blob' });
+  },
+  importExaminers: (formData: FormData) => {
+    return axiosInstance.post(`/import/import-examiners`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    })
+  },
+  downloadTemplateExamTypes: () => {
+    return axiosInstance.get(`/import/template-exam-types`, { responseType: 'blob' });
+  },
+  importExamTypes: (formData: FormData) => {
+    return axiosInstance.post(`/import/import-exam-types`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    })
+  },
+  downloadTemplateInstitutions: () => {
+    return axiosInstance.get(`/import/template-institutions`, { responseType: 'blob' });
+  },
+  importInstitutions: (formData: FormData) => {
+    return axiosInstance.post(`/import/import-institutions`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    })
+  },
+  downloadTemplateProfessions: () => {
+    return axiosInstance.get(`/import/template-professions`, { responseType: 'blob' });
+  },
+  importProfessions: (formData: FormData) => {
+    return axiosInstance.post(`/import/import-professions`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    })
   },
 };
 
@@ -150,6 +258,52 @@ const Professions = {
   },
 };
 
-const api = { Exams, ExamTypes, Examiners, Institutions, Professions };
+const Operators = {
+  getAllOperators: () => {
+    return axiosInstance.get<IOperator[]>('/operators/get-all-operators');
+  },
+  getOperatorById: (id: number) => {
+    return axiosInstance.get<IOperator>(`/operators/get-operator/${id}`);
+  },
+  getMyProfile: () => {
+    return axiosInstance.get<IOperator>('/operators/get-profile');
+  },
+  createOperator: async (operatorData: OperatorCreateFormData): Promise<IOperator> => {
+    const payload = {
+      ...operatorData,
+    };
+    const response = await axiosInstance.post<IOperator>('/operators/register', payload);
+    return response.data;
+  },
+  updateOperator: (id: number, patchDocument: JsonPatchOperation[]) => {
+    return axiosInstance.patch<void>(`/operators/update-profile/${id}`, patchDocument, {
+      headers: {
+        'Content-Type': 'application/json-patch+json',
+      },
+    });
+  },
+  deleteOperator: async (id: number) => {
+    return axiosInstance.delete(`/operators/delete-operator/${id}`);
+  },
+  restoreOperator: async (id: number) => {
+    return axiosInstance.post(`/operators/restore-operator/${id}`);
+  },
+  assignRole: async (id: number, newRole: string) => {
+    return axiosInstance.post(`/operators/assign-role/${id}?newRole=${newRole}`);
+  },
+};
+
+const api = {
+  Backups,
+  Exams,
+  ExamTypes,
+  Examiners,
+  Exports,
+  FileHistory,
+  Imports,
+  Institutions,
+  Professions,
+  Operators
+};
 
 export default api;

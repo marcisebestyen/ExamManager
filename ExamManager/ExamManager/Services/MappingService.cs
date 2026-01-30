@@ -4,6 +4,7 @@ using ExamManager.Dtos.BackupHistoryDtos;
 using ExamManager.Dtos.ExamBoardDtos;
 using ExamManager.Dtos.ExamDtos;
 using ExamManager.Dtos.ExaminerDtos;
+using ExamManager.Dtos.FileHistoryDtos;
 using ExamManager.Dtos.InstitutionDtos;
 using ExamManager.Dtos.OperatorDtos;
 using ExamManager.Dtos.PasswordResetDtos;
@@ -113,6 +114,14 @@ public class MappingService : Profile
                     src.ExamBoard.Where(eb => !eb.IsDeleted)));
         CreateMap<Exam, ExamCreateResponseDto>();
         CreateMap<ExamResponseDto, ExamUpdateDto>();
+        CreateMap<Exam, ExamUpcomingDto>();
+        
+        CreateMap<FileHistoryCreateDto, FileHistory>();
+        CreateMap<FileHistory, FileHistoryResponseDto>()
+            .ForMember(dest => dest.Action, opt => opt.MapFrom(src => src.Action.ToString()))
+            .ForMember(dest => dest.Category, opt => opt.MapFrom(src => src.Category.ToString()))
+            .ForMember(dest => dest.OperatorUserName,
+                opt => opt.MapFrom(src => src.Operator != null ? src.Operator.UserName : string.Empty));
 
         CreateMap<BackupHistoryCreateDto, BackupHistory>();
         CreateMap<BackupHistory, BackupHistoryResponseDto>()

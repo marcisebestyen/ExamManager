@@ -5,8 +5,11 @@ import { tokenKeyName } from '../constants/constants';
 const rootApiUrl = import.meta.env.VITE_REST_API_URL;
 const cleanRootApiUrl = rootApiUrl ? rootApiUrl.replace(/\/$/, '') : '';
 
+const baseURL = 'https://localhost:7195/api';
+
 const axiosInstance = axios.create({
   baseURL: `${cleanRootApiUrl}/api`,
+  // baseURL,
   withCredentials: true,
 });
 

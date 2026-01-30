@@ -1,6 +1,7 @@
 ﻿using System.Security.Claims;
 using AutoMapper;
 using ExamManager.Dtos.OperatorDtos;
+using ExamManager.Extensions;
 using ExamManager.Interfaces;
 using ExamManager.Models;
 using Microsoft.AspNetCore.Authorization;
@@ -11,7 +12,7 @@ namespace ExamManager.Controllers;
 
 [ApiController]
 [Route("api/operators")]
-[Authorize]
+[Authorize(Roles="Admin, Staff")]
 public class OperatorController : ControllerBase
 {
     private readonly IOperatorService _operatorService;
@@ -56,8 +57,8 @@ public class OperatorController : ControllerBase
         }
     }
 
+    [Authorize(Roles = "Admin")]
     [HttpPost("register")]
-    [AllowAnonymous]
     public async Task<IActionResult> Register([FromBody] OperatorCreateDto createRequest)
     {
         if (!ModelState.IsValid)
@@ -94,10 +95,11 @@ public class OperatorController : ControllerBase
         }
     }
 
+    [AllowAnonymous]
     [HttpGet("get-profile")]
     public async Task<IActionResult> GetMyProfile()
     {
-        var userId = GetCurrentUserIdFromToken();
+        var userId = User.GetId();
         var result = await _operatorService.GetOperatorByIdAsync(userId);
 
         if (result.Succeeded)
@@ -201,7 +203,6 @@ public class OperatorController : ControllerBase
     }
 
     [HttpGet("get-all-operators")]
-    [Authorize(Roles = "Admin, Staff")]
     public async Task<IActionResult> GetAllOperators()
     {
         var result = await _operatorService.GetAllOperatorsAsync();
@@ -240,7 +241,7 @@ public class OperatorController : ControllerBase
         int? deletedById = null;
         try
         {
-            deletedById = GetCurrentUserIdFromToken();
+            deletedById = User.GetId();
         }
         catch (UnauthorizedAccessException)
         {
@@ -324,7 +325,7 @@ public class OperatorController : ControllerBase
         int assignedById;
         try
         {
-            assignedById = GetCurrentUserIdFromToken();
+            assignedById = User.GetId();
         }
         catch (UnauthorizedAccessException ex)
         {
@@ -368,17 +369,13 @@ public class OperatorController : ControllerBase
         }
     }
 
-    private int GetCurrentUserIdFromToken()
+    [HttpGet("debug-claims")]
+    [AllowAnonymous]
+    public IActionResult DebugClaims()
     {
-        var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
-
-        if (string.IsNullOrEmpty(userIdClaim) || !int.TryParse(userIdClaim, out var userId))
-        {
-            _logger.LogError("User ID claim (NameIdentifier) not found or invalid in token for an authorized request.");
-            throw new UnauthorizedAccessException(
-                "User ID (ClaimTypes.NameIdentifier) cannot be found or not int the token, despite the request is authenticated.");
-        }
-
-        return userId;
+        var claims = User.Claims.Select(claim => new {claim.Type, claim.Value}).ToList();
+        var isAuthenticated = User.Identity?.IsAuthenticated ?? false;
+        
+        return Ok(new { isAuthenticated, claims });
     }
 }

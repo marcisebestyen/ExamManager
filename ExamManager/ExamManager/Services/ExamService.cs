@@ -1,12 +1,15 @@
 ﻿using AutoMapper;
+using ExamManager.Configurations;
 using ExamManager.Dtos.ExamBoardDtos;
 using ExamManager.Dtos.ExamDtos;
+using ExamManager.Dtos.FileHistoryDtos;
 using ExamManager.Interfaces;
 using ExamManager.Models;
 using ExamManager.Repositories;
 using ExamManager.Responses;
 using ExamManager.Responses.ExamResponses;
 using Microsoft.EntityFrameworkCore;
+using QuestPDF.Fluent;
 
 namespace ExamManager.Services;
 
@@ -15,12 +18,14 @@ public class ExamService : IExamService
     private readonly IUnitOfWork _unitOfWork;
     private readonly IMapper _mapper;
     private readonly ILogger<ExamService> _logger;
+    private readonly IFileHistoryService _fileHistoryService;
 
-    public ExamService(IUnitOfWork unitOfWork, IMapper mapper, ILogger<ExamService> logger)
+    public ExamService(IUnitOfWork unitOfWork, IMapper mapper, ILogger<ExamService> logger, IFileHistoryService fileHistoryService)
     {
         _unitOfWork = unitOfWork ?? throw new ArgumentNullException(nameof(unitOfWork));
         _mapper = mapper ?? throw new ArgumentNullException(nameof(mapper));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _fileHistoryService = fileHistoryService ?? throw new ArgumentNullException(nameof(fileHistoryService));
     }
 
     public async Task<BaseServiceResponse<ExamCreateResponseDto>> CreateExamAsync(ExamCreateDto createRequest,
@@ -155,7 +160,7 @@ public class ExamService : IExamService
             {
                 "Profession", "Institution", "ExamType", "Operator", "ExamBoard.Examiner"
             };
-            
+
             var examEntities = await _unitOfWork.ExamRepository.GetAllAsync(includeProperties);
 
             var examResponseDtos = _mapper.Map<IEnumerable<ExamResponseDto>>(examEntities);
@@ -209,8 +214,8 @@ public class ExamService : IExamService
             }
 
             if (updateRequest.ExamDate.HasValue &&
-                updateRequest.ExamDate != examEntity.ExamDate &&
-                updateRequest.ExamDate <= DateTime.Now)
+                updateRequest.ExamDate != examEntity.ExamDate
+               )
             {
                 changed = true;
                 examEntity.ExamDate = updateRequest.ExamDate.Value;
@@ -467,7 +472,7 @@ public class ExamService : IExamService
             examEntity.IsDeleted = false;
             examEntity.DeletedAt = null;
             examEntity.DeletedById = null;
-            
+
             var examBoardsToRestore = examEntity.ExamBoard.Where(eb => eb.IsDeleted).ToList();
 
             foreach (var examBoard in examBoardsToRestore)
@@ -483,7 +488,7 @@ public class ExamService : IExamService
             {
                 await _unitOfWork.ExamBoardRepository.UpdateRangeAsync(examBoardsToRestore);
             }
-            
+
             await _unitOfWork.SaveAsync();
 
             _logger.LogInformation("Restored exam with id: {Id}", examId);
@@ -508,6 +513,90 @@ public class ExamService : IExamService
             _logger.LogError(ex, "Unexpected error occurred while restoring exam with ID {ExamId}.",
                 examId);
             return BaseServiceResponse<string>.Failed($"Unexpected error: {ex.Message}", "UNEXPECTED_ERROR");
+        }
+    }
+
+    public async Task<BaseServiceResponse<IEnumerable<ExamUpcomingDto>>> GetUpcomingExamsAsync(int daysAhead = 3)
+    {
+        try
+        {
+            var startDate = DateTime.UtcNow;
+            var endDate = startDate.AddDays(daysAhead);
+            
+            var upcomingExamEntities = await _unitOfWork.ExamRepository.GetAsync(e =>
+                e.ExamDate >= startDate &&
+                e.ExamDate <= endDate &&
+                !e.IsDeleted);
+
+            var sortedExams = upcomingExamEntities.OrderBy(e => e.ExamDate).ToList();
+
+            var examDtos = _mapper.Map<IEnumerable<ExamUpcomingDto>>(sortedExams);
+
+            return BaseServiceResponse<IEnumerable<ExamUpcomingDto>>.Success(
+                examDtos,
+                $"Successfully retrieved the next {sortedExams.Count} exams.");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving upcoming exams.");
+            return BaseServiceResponse<IEnumerable<ExamUpcomingDto>>.Failed(
+                "An error occurred while retrieving upcoming exams.",
+                "UNEXPECTED_ERROR");
+        }
+    }
+    
+    public async Task<BaseServiceResponse<byte[]>> GenerateExamBoardReportAsync(int examId, int operatorId)
+    {
+        try
+        {
+            string[] includeProperties = new[]
+            {
+                "Profession", 
+                "Institution", 
+                "ExamType", 
+                "ExamBoard.Examiner"
+            };
+
+            var examEntity = (await _unitOfWork.ExamRepository.GetAsync(e => e.Id == examId, includeProperties))
+                .FirstOrDefault();
+
+            if (examEntity == null)
+            {
+                return BaseServiceResponse<byte[]>.Failed("Exam not found.", "EXAM_NOT_FOUND");
+            }
+        
+            if (!examEntity.ExamBoard.Any())
+            {
+                return BaseServiceResponse<byte[]>.Failed(
+                    "This exam has no examiners assigned yet.", "NO_EXAMINERS_FOUND");
+            }
+
+            var document = new ExamBoardDocument(examEntity);
+            var pdfBytes = document.GeneratePdf();
+            var fileName = $"{examEntity.ExamCode}_BoardReport.pdf";
+            
+            await _fileHistoryService.CreateFileHistoryAsync(new FileHistoryCreateDto
+            {
+                FileName = fileName,
+                ContentType = "application/pdf",
+                FileContent = pdfBytes,
+                Action = FileAction.GenerateReport,
+                Category = FileCategory.Exam,
+                OperatorId = operatorId,
+                IsSuccessful = true,
+                RelatedEntityId = examId,
+                ProcessingNotes = "Generated Board Report PDF"
+            });
+
+            _logger.LogInformation("Generated Exam Board PDF for Exam ID: {ExamId}", examId);
+
+            return BaseServiceResponse<byte[]>.Success(pdfBytes, "PDF generated successfully.");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error generating PDF for exam ID {examId}", examId);
+            return BaseServiceResponse<byte[]>.Failed(
+                $"An error occurred while generating the PDF: {ex.Message}", "PDF_GENERATION_ERROR");
         }
     }
 

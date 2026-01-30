@@ -2,9 +2,8 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Anchor,
-  Box,
   Button,
-  Center,
+  Container,
   Group,
   Paper,
   PasswordInput,
@@ -14,9 +13,8 @@ import {
   Title,
 } from '@mantine/core';
 import { useForm } from '@mantine/form';
-import useAuth from '../hooks/useAuth';
-import classes from './Login.page.module.css';
 import { Skeleton } from '../components/Skeleton';
+import useAuth from '../hooks/useAuth';
 
 function Login() {
   const { login } = useAuth();
@@ -30,8 +28,8 @@ function Login() {
       password: '',
     },
     validate: {
-      userName: (val, string) => (!val ? 'User name is required' : null),
-      password: (val, string) =>
+      userName: (val) => (!val ? 'User name is required' : null),
+      password: (val) =>
         !val
           ? 'User password is required'
           : val.length < 6
@@ -41,9 +39,7 @@ function Login() {
   });
 
   const handleSubmit = async (data: { userName: string; password: string }) => {
-    if (!form.isValid()) {
-      return;
-    }
+    if (!form.isValid()) {return;}
 
     setIsLoading(true);
     setLoginError(null);
@@ -60,85 +56,101 @@ function Login() {
   };
 
   return (
-    <Box className={classes.pageContainer}>
-      <Center>
-        <Paper
-          shadow="xl"
-          p="xl"
-          radius="lg"
-          withBorder
-          style={{ width: '100%', height: '450px' }}
-        >
-          <Stack>
-            <Title order={2} ta="center" mb="md" mt="xs">
-              <Text inherit component="span" >
-                Welcome back!
-              </Text>
-            </Title>
-            <form onSubmit={form.onSubmit(handleSubmit)}>
-              <Stack gap="md">
-                <TextInput
-                  required
-                  label="Username"
-                  placeholder="username"
-                  radius="md"
-                  size="md"
-                  disabled={isLoading}
-                  error={form.errors.userName}
-                  {...form.getInputProps('userName')}
-                  classNames={{ input: classes.input }}
-                />
-                <PasswordInput
-                  required
-                  label="Password"
-                  placeholder="your password"
-                  radius="md"
-                  size="md"
-                  disabled={isLoading}
-                  error={form.errors.password}
-                  {...form.getInputProps('password')}
-                  classNames={{ input: classes.input }}
-                />
-              </Stack>
+    <Container size={420} my={40}>
+      <Title
+        ta="center"
+        style={{
+          fontFamily: 'Greycliff CF, var(--mantine-font-family)',
+          fontWeight: 900,
+        }}
+      >
+        Welcome back!
+      </Title>
+      <Text c="dimmed" size="sm" ta="center" mt={5}>
+        Please login to manage exams
+      </Text>
 
-              {loginError && (
-                <Text size="sm" mt="md" fw={500} c="red">
-                  {loginError}
-                </Text>
-              )}
+      <Paper
+        withBorder
+        shadow="md"
+        p={30}
+        mt={30}
+        radius="md"
+        style={{
+          backgroundColor: 'var(--mantine-color-body)',
+        }}
+      >
+        <form onSubmit={form.onSubmit(handleSubmit)}>
+          <Stack gap="md">
+            <TextInput
+              required
+              label="Username"
+              placeholder="Your username"
+              radius="md"
+              size="md"
+              disabled={isLoading}
+              error={form.errors.userName}
+              {...form.getInputProps('userName')}
+            />
 
-              <Group justify="space-between" mt="xl">
-                <Anchor
-                  component="button"
-                  type="button"
-                  c="dimmed"
-                  onClick={() => navigate('/forgot')}
-                  disabled={isLoading}
-                >
-                  Forgot password?
-                </Anchor>
-                <Button
-                  type="submit"
-                  variant="outline"
-                  radius="md"
-                  size="md"
-                  loading={isLoading}
-                >
-                  Login
-                </Button>
-              </Group>
-            </form>
+            <PasswordInput
+              required
+              label="Password"
+              placeholder="Your password"
+              radius="md"
+              size="md"
+              disabled={isLoading}
+              error={form.errors.password}
+              {...form.getInputProps('password')}
+            />
           </Stack>
-        </Paper>
-      </Center>
-    </Box>
+
+          {loginError && (
+            <Text c="red" size="sm" mt="sm" fw={500} ta="center">
+              {loginError}
+            </Text>
+          )}
+
+          <Group justify="space-between" mt="xl">
+            <Anchor
+              component="button"
+              type="button"
+              c="dimmed"
+              size="xs"
+              onClick={() => navigate('/forgot')}
+              disabled={isLoading}
+            >
+              Forgot password?
+            </Anchor>
+            <Button
+              type="submit"
+              radius="md"
+              loading={isLoading}
+              variant="filled"
+              color="var(--mantine-primary-color-filled)"
+            >
+              Login
+            </Button>
+          </Group>
+        </form>
+      </Paper>
+    </Container>
   );
-};
+}
 
 export function LoginPage() {
   return (
     <Skeleton>
-      <Login />
+      <div
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'center',
+          minHeight: '80vh',
+        }}
+      >
+        <Login />
+      </div>
     </Skeleton>
-  )
+  );
 }

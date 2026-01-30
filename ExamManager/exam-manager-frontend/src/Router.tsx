@@ -1,13 +1,17 @@
 import { createBrowserRouter, RouterProvider } from 'react-router-dom';
-import { HomePage } from './pages/Home.page';
-import { LoginPage } from './pages/Login.page';
-import ExamTypePage from './pages/ExamType.page';
-import ProfessionPage from './pages/Profession.page';
-import InstitutionPage from './pages/Institution.page';
-import ExaminerPage from './pages/Examiner.page';
+import { DashboardPage } from './pages/Dashboard.page';
 import ExamPage from './pages/Exam.page';
-import { SettingsPage } from './pages/Settings.page';
+import ExaminerPage from './pages/Examiner.page';
+import ExamTypePage from './pages/ExamType.page';
 import ForgotPassword from './pages/ForgotPassword.page';
+import { HomePage } from './pages/Home.page';
+import InstitutionPage from './pages/Institution.page';
+import { LoginPage } from './pages/Login.page';
+import ProfessionPage from './pages/Profession.page';
+import OperatorPage from './pages/Operator.page';
+import { SettingsPage } from './pages/Settings.page';
+import BackupPage from './pages/Backup.page';
+import FileHistoryPage from './pages/FileHistory.page';
 
 const router = createBrowserRouter([
   {
@@ -15,39 +19,55 @@ const router = createBrowserRouter([
     element: <HomePage />,
   },
   {
-    path:'/login',
-    element: <LoginPage />
+    path: '/dashboard',
+    element: <DashboardPage />,
+  },
+  {
+    path: '/login',
+    element: <LoginPage />,
   },
   {
     path: '/forgot',
-    element: <ForgotPassword />
+    element: <ForgotPassword />,
   },
   {
     path: '/exams',
-    element: <ExamPage />
+    element: <ExamPage />,
   },
   {
     path: '/examiners',
-    element: <ExaminerPage />
+    element: <ExaminerPage />,
   },
   {
     path: '/exam-types',
-    element: <ExamTypePage />
+    element: <ExamTypePage />,
   },
   {
-    path:'/institutions',
-    element: <InstitutionPage />
+    path: '/institutions',
+    element: <InstitutionPage />,
   },
   {
     path: '/professions',
-    element: <ProfessionPage />
+    element: <ProfessionPage />,
+  },
+  {
+    path: '/operators',
+    element: <OperatorPage />,
+  },
+  {
+    path: '/backups',
+    element: <BackupPage />,
+  },
+  {
+    path: "/file-history",
+    element: <FileHistoryPage />,
   },
   {
     path: '/settings',
-    element: <SettingsPage />
-  }
+    element: <SettingsPage />,
+  },
 ]);
 
 export function Router() {
-  return <RouterProvider router={router} />
+  return <RouterProvider router={router} />;
 }
