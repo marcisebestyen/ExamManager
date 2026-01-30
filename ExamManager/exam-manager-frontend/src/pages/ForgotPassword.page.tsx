@@ -1,14 +1,27 @@
-import { useState, FormEvent } from "react";
+import { FormEvent, useState } from 'react';
+import { IconArrowLeft, IconCheck, IconInfoCircle } from '@tabler/icons-react';
 import { useNavigate } from 'react-router-dom';
-import { Stack, TextInput, PasswordInput, Button, Text, Alert, Paper, Container, Title } from "@mantine/core";
+import {
+  Alert,
+  Anchor,
+  Button,
+  Container,
+  Paper,
+  PasswordInput,
+  Stack,
+  Text,
+  TextInput,
+  Title,
+} from '@mantine/core';
 import axiosInstance from '../api/axios.config';
+import { Skeleton } from '../components/Skeleton';
 
 type ViewMode = 'enterUsername' | 'enterToken' | 'enterNewPassword' | 'success';
 
-const ForgotPassword = () => {
+const ForgotPasswordForm = () => {
   const navigate = useNavigate();
 
-  const [viewMode, setViewMode] = useState<ViewMode>("enterUsername");
+  const [viewMode, setViewMode] = useState<ViewMode>('enterUsername');
 
   const [username, setUsername] = useState<string>('');
   const [token, setToken] = useState<string>('');
@@ -27,7 +40,7 @@ const ForgotPassword = () => {
 
     try {
       const response = await axiosInstance.post('/password_reset/initiate', {
-        userName: username
+        userName: username,
       });
 
       if (response.status === 200) {
@@ -35,13 +48,11 @@ const ForgotPassword = () => {
         setViewMode('enterToken');
       }
     } catch (err: any) {
-      console.log('Full error object:', err);
-      console.log('Error response:', err.response);
-      console.log('Error response status:', err.response?.status);
-      console.log('Error response data:', err.response?.data);
-
       if (err.response?.status === 400) {
-        setError(err.response?.data?.message || 'No email belongs to this user. Please, contact your administrator.');
+        setError(
+          err.response?.data?.message ||
+            'No email belongs to this user. Please, contact your administrator.'
+        );
       } else {
         setError(err.response?.data?.message || 'Error occurred during token generating.');
       }
@@ -83,13 +94,12 @@ const ForgotPassword = () => {
     try {
       const response = await axiosInstance.post('/password_reset/reset', {
         token,
-        newPassword
+        newPassword,
       });
 
       if (response.status === 200) {
         setMessage(response.data.message || 'The password is not changed');
         setViewMode('success');
-        // Clear sensitive data
         setUsername('');
         setToken('');
         setNewPassword('');
@@ -114,53 +124,77 @@ const ForgotPassword = () => {
 
   return (
     <Container size={420} my={40}>
-      <Paper withBorder shadow="md" p={30} mt={30} radius="md">
-        <Title order={2} ta="center" mb="lg">
-          Forgot Password
-        </Title>
+      <Title
+        ta="center"
+        style={{
+          fontFamily: 'Greycliff CF, var(--mantine-font-family)',
+          fontWeight: 900,
+        }}
+      >
+        Forgot Password?
+      </Title>
+      <Text c="dimmed" size="sm" ta="center" mt={5}>
+        Follow the steps to reset your access
+      </Text>
 
+      <Paper
+        withBorder
+        shadow="md"
+        p={30}
+        mt={30}
+        radius="md"
+        style={{ backgroundColor: 'var(--mantine-color-body)' }}
+      >
         {viewMode === 'enterUsername' && (
           <form onSubmit={handleUsernameSubmit}>
             <Stack gap="md">
               <Text size="sm" c="dimmed">
-                Enter your username, if your account exists, we will send you a token to reset your password.
+                Enter your username. If an account exists, we will send a 6-digit token to your
+                email.
               </Text>
 
               <TextInput
                 label="Username"
-                placeholder="username"
+                placeholder="Enter your username"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 required
                 disabled={loading}
-                size="md"
+                radius="md"
               />
 
               {error && (
-                <Alert color="red" title="Error">
+                <Alert
+                  icon={<IconInfoCircle size={16} />}
+                  color="red"
+                  title="Error"
+                  variant="light"
+                >
                   {error}
                 </Alert>
               )}
 
               <Button
                 type="submit"
-                variant="outline"
-                radius='md'
+                variant="filled"
+                color="var(--mantine-primary-color-filled)"
+                radius="md"
                 loading={loading}
                 fullWidth
-                size="md"
               >
-                {loading ? 'Sending...' : 'Requesting token'}
+                {loading ? 'Sending...' : 'Request Reset Token'}
               </Button>
 
-              <Button
-                variant="subtle"
-                onClick={handleGoToLogin}
-                fullWidth
+              <Anchor
+                component="button"
+                type="button"
+                c="dimmed"
                 size="sm"
+                onClick={handleGoToLogin}
+                style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5 }}
               >
-                Back to login
-              </Button>
+                <IconArrowLeft size={14} /> Back to login
+              </Anchor>
             </Stack>
           </form>
         )}
@@ -169,50 +203,62 @@ const ForgotPassword = () => {
           <form onSubmit={handleTokenSubmit}>
             <Stack gap="md">
               {message && (
-                <Alert color="green" title="Token sent">
+                <Alert
+                  icon={<IconInfoCircle size={16} />}
+                  color="green"
+                  title="Check your email"
+                  variant="light"
+                >
                   {message}
                 </Alert>
               )}
 
               <Text size="sm" c="dimmed">
-                Check your email address and enter the 6 digits long token.
+                We sent a code to your email. Please enter the 6-digit token below.
               </Text>
 
               <TextInput
-                label="Token"
-                placeholder="123456"
+                label="Security Token"
+                placeholder="000000"
                 value={token}
                 onChange={(e) => setToken(e.target.value.replace(/\D/g, ''))}
                 required
                 maxLength={6}
                 disabled={loading}
-                size="md"
+                radius="md"
+                style={{ letterSpacing: '2px' }} // Makes typing codes look cool
               />
 
               {error && (
-                <Alert color="red" title="Error">
+                <Alert
+                  icon={<IconInfoCircle size={16} />}
+                  color="red"
+                  title="Invalid Token"
+                  variant="light"
+                >
                   {error}
                 </Alert>
               )}
 
               <Button
                 type="submit"
-                variant="outline"
-                radius='md'
+                variant="filled"
+                color="var(--mantine-primary-color-filled)"
+                radius="md"
                 loading={loading}
                 fullWidth
-                size="md"
               >
-                Forward
+                Verify Token
               </Button>
 
               <Button
                 variant="subtle"
+                color="gray"
                 onClick={handleBackToUsername}
                 fullWidth
                 size="sm"
               >
-                Back
+                Back to Username
               </Button>
             </Stack>
           </form>
@@ -221,70 +267,93 @@ const ForgotPassword = () => {
         {viewMode === 'enterNewPassword' && (
           <form onSubmit={handlePasswordReset}>
             <Stack gap="md">
-              {message && (
-                <Alert color="blue" title="Valid token">
-                  {message}
-                </Alert>
-              )}
+              <Alert
+                icon={<IconCheck size={16} />}
+                color="blue"
+                title="Token Verified"
+                variant="light"
+              >
+                Please create a new password.
+              </Alert>
 
               <PasswordInput
-                label="New password"
+                label="New Password"
                 placeholder="At least 6 characters"
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
                 required
                 disabled={loading}
-                size="md"
+                radius="md"
               />
 
               <PasswordInput
-                label="Confirm new password"
-                placeholder="At least 6 characters"
+                label="Confirm Password"
+                placeholder="Re-enter password"
                 value={confirmNewPassword}
                 onChange={(e) => setConfirmNewPassword(e.target.value)}
                 required
                 disabled={loading}
-                size="md"
+                radius="md"
               />
 
               {error && (
-                <Alert color="red" title="Hiba">
+                <Alert
+                  icon={<IconInfoCircle size={16} />}
+                  color="red"
+                  title="Error"
+                  variant="light"
+                >
                   {error}
                 </Alert>
               )}
 
               <Button
                 type="submit"
-                variant="outline"
-                radius='md'
+                variant="filled"
+                color="var(--mantine-primary-color-filled)"
+                radius="md"
                 loading={loading}
                 fullWidth
-                size="md"
               >
-                {loading ? 'Saving...' : 'Change password'}
+                {loading ? 'Saving...' : 'Set New Password'}
               </Button>
             </Stack>
           </form>
         )}
 
         {viewMode === 'success' && (
-          <Stack gap="md" align="center">
-            <Alert color="green" title="Sikeres jelszó módosítás!" w="100%">
-              {message || 'Password changed successfully!'}
-            </Alert>
+          <Stack gap="md" align="center" py="md">
+            <div
+              style={{
+                width: 60,
+                height: 60,
+                borderRadius: '50%',
+                backgroundColor: 'var(--mantine-color-green-1)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <IconCheck size={32} color="var(--mantine-color-green-6)" />
+            </div>
+
+            <Title order={3} ta="center">
+              Password Changed!
+            </Title>
 
             <Text size="sm" c="dimmed" ta="center">
-              You can log in with your new password.
+              Your password has been updated successfully. You can now log in.
             </Text>
 
             <Button
               onClick={handleGoToLogin}
-              variant="outline"
-              radius='md'
-              size="md"
+              variant="filled"
+              color="green"
+              radius="md"
               fullWidth
+              mt="sm"
             >
-              Login
+              Go to Login
             </Button>
           </Stack>
         )}
@@ -293,4 +362,19 @@ const ForgotPassword = () => {
   );
 };
 
-export default ForgotPassword;
+export default function ForgotPassword() {
+  return (
+    <Skeleton>
+      <div
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'center',
+          minHeight: '80vh',
+        }}
+      >
+        <ForgotPasswordForm />
+      </div>
+    </Skeleton>
+  );
+}

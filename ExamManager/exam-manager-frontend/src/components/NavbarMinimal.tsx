@@ -1,27 +1,29 @@
-import {
-  IconBriefcase2,
-  IconBuildings,
-  IconClipboardSearch,
-  IconDashboard,
-  IconDatabase,
-  IconDatabaseExport,
-  IconFileTime,
-  IconHome,
-  IconLogin,
-  IconLogout,
-  IconPencilQuestion,
-  IconSettings,
-  IconUserCog,
-  IconUserQuestion,
-} from '@tabler/icons-react';
+import { useState } from 'react';
+import { IconBriefcase2, IconBuildings, IconClipboardSearch, IconDashboard, IconDatabase, IconDatabaseExport, IconFileTime, IconHome, IconLogin, IconLogout, IconPencilQuestion, IconSettings, IconUserCog, IconUserQuestion } from '@tabler/icons-react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Stack, Text, Tooltip, UnstyledButton } from '@mantine/core';
+import { rem, Stack, Text, Tooltip, UnstyledButton } from '@mantine/core';
 import { modals } from '@mantine/modals';
 import { notifications } from '@mantine/notifications';
 import api from '../api/api';
 import useAuth from '../hooks/useAuth';
-import classes from './NavbarMinimal.module.css';
 
+
+const getLinkStyles = (isActive: boolean, isHovered: boolean) => ({
+  width: rem(50),
+  height: rem(50),
+  borderRadius: 'var(--mantine-radius-md)',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  backgroundColor: isActive
+    ? 'var(--mantine-primary-color-light)'
+    : isHovered
+      ? 'var(--mantine-color-gray-0)'
+      : 'transparent',
+  color: isActive ? 'var(--mantine-primary-color-filled)' : 'var(--mantine-color-gray-7)',
+  transition: 'all 200ms ease',
+  cursor: 'pointer',
+});
 
 interface NavbarLinkProps {
   icon: typeof IconHome;
@@ -33,20 +35,20 @@ interface NavbarLinkProps {
 
 function NavbarLink({ icon: Icon, label, path, active, onClick }: NavbarLinkProps) {
   const navigate = useNavigate();
+  const [hovered, setHovered] = useState(false);
 
   return (
     <Tooltip label={label} position="right" transitionProps={{ duration: 0 }}>
       <UnstyledButton
         onClick={() => {
-          if (onClick) {
-            onClick();
-          }
+          if (onClick) {onClick();}
           navigate(path);
         }}
-        className={classes.link}
-        data-active={active || undefined}
+        onMouseEnter={() => setHovered(true)}
+        onMouseLeave={() => setHovered(false)}
+        style={getLinkStyles(active || false, hovered)}
       >
-        <Icon size={20} stroke={1.5} />
+        <Icon style={{ width: rem(22), height: rem(22) }} stroke={1.5} />
       </UnstyledButton>
     </Tooltip>
   );
@@ -67,21 +69,19 @@ const mockData = [
 ];
 
 export function NavbarMinimal() {
-  const { logout, isAuthenticated, user } = useAuth(); // Add 'user' here
+  const { logout, isAuthenticated, user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
   const handleLogout = () => {
-    logout(() => {
-      navigate('/');
-    });
+    logout(() => navigate('/'));
   };
 
   const handleManualBackup = () => {
     modals.openConfirmModal({
       title: 'Manual System Backup',
       centered: true,
-      radius: "md",
+      radius: 'md',
       children: (
         <Text size="sm">
           Are you sure you want to trigger a manual backup immediately? This will dump the database
@@ -89,13 +89,13 @@ export function NavbarMinimal() {
         </Text>
       ),
       labels: { confirm: 'Start Backup', cancel: 'Cancel' },
-      confirmProps: { color: 'blue', variant: 'outline', radius: 'md' },
+      confirmProps: { color: 'blue', variant: 'filled', radius: 'md' },
       cancelProps: { radius: 'md', variant: 'subtle' },
       onConfirm: async () => {
         const id = notifications.show({
           loading: true,
           title: 'Backup in progress',
-          message: 'Please wait while the system is backing up...',
+          message: 'Please wait...',
           autoClose: false,
           withCloseButton: false,
         });
@@ -126,22 +126,13 @@ export function NavbarMinimal() {
   };
 
   const filteredData = mockData.filter((link) => {
-    if (!isAuthenticated) {
-      return link.path === '/';
-    }
-
-    if (user?.role === 'Staff') {
-      const staffPaths = ['/', '/settings', '/operators', '/file-history'];
-      return staffPaths.includes(link.path);
-    }
-
-    if (user?.role === 'Admin') {
-      const adminPaths = ['/', '/settings', '/operators', '/backups'];
-      return adminPaths.includes(link.path);
-    }
-
-    if (user?.role === 'Operator') {
-      const operatorPaths = [
+    if (!isAuthenticated) {return link.path === '/';}
+    if (user?.role === 'Staff')
+      {return ['/', '/settings', '/operators', '/file-history'].includes(link.path);}
+    if (user?.role === 'Admin')
+      {return ['/', '/settings', '/operators', '/backups'].includes(link.path);}
+    if (user?.role === 'Operator')
+      {return [
         '/',
         '/settings',
         '/dashboard',
@@ -150,10 +141,7 @@ export function NavbarMinimal() {
         '/exam-types',
         '/institutions',
         '/professions',
-      ];
-      return operatorPaths.includes(link.path);
-    }
-
+      ].includes(link.path);}
     return link.path === '/';
   });
 
@@ -162,19 +150,56 @@ export function NavbarMinimal() {
   ));
 
   return (
-    <nav className={classes.navbar}>
-      <div className={classes.navbarMain}>
-        <Stack justify="center" gap={0}>
+    <nav
+      style={{
+        width: rem(80),
+        height: '100vh',
+        display: 'flex',
+        flexDirection: 'column',
+        backgroundColor: 'var(--mantine-color-body)',
+        borderRight: '1px solid var(--mantine-color-gray-2)',
+        padding: 'var(--mantine-spacing-md)',
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        zIndex: 100,
+      }}
+    >
+
+      <div
+        style={{
+          flex: 1,
+          overflowY: 'auto',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          gap: 'var(--mantine-spacing-sm)',
+        }}
+      >
+        <Stack gap="xs" align="center">
           {links}
         </Stack>
       </div>
 
-      <Stack justify="center" gap={0}>
+      <Stack gap="xs" align="center" mt="md">
         {!isAuthenticated && <NavbarLink icon={IconLogin} label="Login" path="/login" />}
 
         {isAuthenticated && (
           <>
-            <NavbarLink icon={IconDatabaseExport} label="Trigger Manual Backup" path="#" onClick={handleManualBackup} />
+            <div
+              style={{
+                width: '50%',
+                height: 1,
+                backgroundColor: 'var(--mantine-color-gray-2)',
+                margin: 'var(--mantine-spacing-sm) 0',
+              }}
+            />
+            <NavbarLink
+              icon={IconDatabaseExport}
+              label="Trigger Manual Backup"
+              path="#"
+              onClick={handleManualBackup}
+            />
             <NavbarLink icon={IconLogout} label="Logout" path="/" onClick={handleLogout} />
           </>
         )}

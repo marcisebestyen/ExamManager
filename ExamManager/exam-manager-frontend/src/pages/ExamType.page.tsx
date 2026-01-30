@@ -1,13 +1,8 @@
-import '@mantine/core/styles.css';
-import '@mantine/dates/styles.css';
-import 'mantine-react-table/styles.css';
-import '@mantine/notifications/styles.css';
-
 import { useMemo, useState } from 'react';
-import { IconDownload, IconEdit, IconTrash, IconUpload } from '@tabler/icons-react';
-import { QueryClient, QueryClientProvider, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { MantineReactTable, useMantineReactTable, type MRT_ColumnDef, type MRT_Row } from 'mantine-react-table';
-import { ActionIcon, Button, Flex, Stack, Text, Textarea, TextInput, Title, Tooltip } from '@mantine/core';
+import { IconCategory, IconDownload, IconEdit, IconPlus, IconTrash, IconUpload } from '@tabler/icons-react';
+import { keepPreviousData, QueryClient, QueryClientProvider, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { MantineReactTable, MRT_ColumnDef, MRT_Row, useMantineReactTable } from 'mantine-react-table';
+import { ActionIcon, Button, Flex, MantineProvider, Stack, Text, Textarea, TextInput, Title, Tooltip } from '@mantine/core';
 import { useForm } from '@mantine/form';
 import { useDisclosure } from '@mantine/hooks';
 import { modals, ModalsProvider } from '@mantine/modals';
@@ -17,11 +12,11 @@ import { ImportModal } from '../components/ImportModal';
 import { Skeleton } from '../components/Skeleton';
 import { ExamTypeFormData, IExamType } from '../interfaces/IExamType';
 
+
 interface JsonPatchOperation {
-  op: 'replace' | 'add' | 'remove' | 'copy' | 'move' | 'test';
+  op: 'replace';
   path: string;
   value?: any;
-  from?: string;
 }
 
 const generatePatchDocument = (oldData: IExamType, newData: IExamType): JsonPatchOperation[] => {
@@ -38,15 +33,22 @@ const generatePatchDocument = (oldData: IExamType, newData: IExamType): JsonPatc
   return patch;
 };
 
+const validateRequired = (value: string) => !!value.trim().length;
+
+function validateExamType(examType: ExamTypeFormData) {
+  const errors: { typeName?: string } = {};
+  if (!validateRequired(examType.typeName)) {
+    errors.typeName = 'Exam Type Name is required';
+  }
+  return errors;
+}
+
 const CreateExamTypeForm = () => {
   const { data: fetchedExamTypes = [] } = useGetExamTypes();
   const { mutateAsync: createExamType } = useCreateExamType();
 
   const form = useForm<ExamTypeFormData>({
-    initialValues: {
-      typeName: '',
-      description: '',
-    },
+    initialValues: { typeName: '', description: '' },
     validate: validateExamType,
     validateInputOnBlur: true,
   });
@@ -66,11 +68,26 @@ const CreateExamTypeForm = () => {
   return (
     <form onSubmit={handleSubmit}>
       <Stack>
-        <TextInput label="Exam Type Name" {...form.getInputProps('typeName')} required />
-        <Textarea label="Description" {...form.getInputProps('description')} minRows={3} autosize />
+        <TextInput
+          label="Exam Type Name"
+          description="E.g., Written, Oral, Practical"
+          leftSection={<IconCategory size={16} />}
+          {...form.getInputProps('typeName')}
+          required
+        />
+        <Textarea
+          label="Description"
+          description="Additional details"
+          {...form.getInputProps('description')}
+          minRows={3}
+          autosize
+        />
         <Flex justify="flex-end" mt="xl">
-          <Button type="submit" variant="outline" radius="md" mr="xs">
-            Create
+          <Button type="button" variant="subtle" onClick={() => modals.closeAll()} mr="xs">
+            Cancel
+          </Button>
+          <Button type="submit" variant="filled" radius="md">
+            Create Type
           </Button>
         </Flex>
       </Stack>
@@ -109,11 +126,19 @@ const EditExamTypeForm = ({ initialExamType }: { initialExamType: IExamType }) =
   return (
     <form onSubmit={handleSubmit}>
       <Stack>
-        <TextInput label="Exam Type Name" {...form.getInputProps('typeName')} required />
+        <TextInput
+          label="Exam Type Name"
+          leftSection={<IconCategory size={16} />}
+          {...form.getInputProps('typeName')}
+          required
+        />
         <Textarea label="Description" {...form.getInputProps('description')} minRows={3} autosize />
         <Flex justify="flex-end" mt="xl">
-          <Button type="submit" variant="outline" radius="md" mr="xs">
-            Save
+          <Button type="button" variant="subtle" onClick={() => modals.closeAll()} mr="xs">
+            Cancel
+          </Button>
+          <Button type="submit" variant="filled" radius="md">
+            Save Changes
           </Button>
         </Flex>
       </Stack>
@@ -131,12 +156,15 @@ const DeleteExamTypeModal = ({ examType }: { examType: IExamType }) => {
 
   return (
     <Stack>
-      <Text>
-        Are you sure you want to delete "{examType.typeName}"? This action cannot be undone.
+      <Text size="sm">
+        Are you sure you want to delete <b>{examType.typeName}</b>? This action cannot be undone.
       </Text>
       <Flex justify="flex-end" mt="xl">
-        <Button color="red" variant="outline" radius="md" mr="xs" onClick={handleDelete}>
-          Delete
+        <Button variant="default" onClick={() => modals.closeAll()} mr="xs">
+          Cancel
+        </Button>
+        <Button color="red" variant="filled" onClick={handleDelete}>
+          Delete Type
         </Button>
       </Flex>
     </Stack>
@@ -152,19 +180,27 @@ const ExamTypeTable = () => {
     isFetching: isFetchingExamTypes,
     isLoading: isLoadingExamTypes,
   } = useGetExamTypes();
-  const { mutateAsync: deleteExamType, isPending: isDeletingExamType } = useDeleteExamType();
+  const { isPending: isDeletingExamType } = useDeleteExamType();
   const [isExporting, setIsExporting] = useState(false);
   const [isImportOpen, { open: openImport, close: closeImport }] = useDisclosure(false);
+
+  const [pagination, setPagination] = useState({
+    pageIndex: 0,
+    pageSize: 10,
+  });
 
   const columns = useMemo<MRT_ColumnDef<IExamType>[]>(
     () => [
       {
         accessorKey: 'typeName',
         header: 'Exam Type Name',
+        size: 200,
+        enableClickToCopy: true,
       },
       {
         accessorKey: 'description',
         header: 'Description',
+        size: 400,
       },
     ],
     []
@@ -173,21 +209,25 @@ const ExamTypeTable = () => {
   const openCreateModal = () =>
     modals.open({
       id: 'create-exam-type',
-      title: <Title order={3}>Create New Exam Type</Title>,
+      title: <Text fw={700}>Create New Exam Type</Text>,
       children: <CreateExamTypeForm />,
     });
 
   const openEditModal = (examType: IExamType) =>
     modals.open({
       id: 'edit-exam-type',
-      title: <Title order={3}>Edit Exam Type</Title>,
+      title: <Text fw={700}>Edit Exam Type</Text>,
       children: <EditExamTypeForm initialExamType={examType} />,
     });
 
   const openDeleteConfirmModal = (row: MRT_Row<IExamType>) =>
     modals.open({
       id: 'delete-exam-type',
-      title: <Title order={3}>Delete Exam Type</Title>,
+      title: (
+        <Text fw={700} c="red">
+          Delete Exam Type
+        </Text>
+      ),
       children: <DeleteExamTypeModal examType={row.original} />,
     });
 
@@ -198,12 +238,15 @@ const ExamTypeTable = () => {
       const ids = filteredRows.map((row: any) => row.original.id);
 
       if (ids.length === 0) {
-        notifications.show({ title: 'Info', message: 'No data to export', color: 'blue' });
+        notifications.show({
+          title: 'Info',
+          message: 'No data to export',
+          color: 'blue',
+        });
         return;
       }
 
       const response = await api.Exports.exportExamTypesFiltered(ids);
-
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement('a');
       link.href = url;
@@ -216,7 +259,11 @@ const ExamTypeTable = () => {
       link.parentNode?.removeChild(link);
     } catch (error) {
       console.error(error);
-      notifications.show({ title: 'Error', message: 'Export failed', color: 'red' });
+      notifications.show({
+        title: 'Error',
+        message: 'Export failed',
+        color: 'red',
+      });
     } finally {
       setIsExporting(false);
     }
@@ -228,50 +275,63 @@ const ExamTypeTable = () => {
     enableEditing: false,
     enableRowActions: true,
     getRowId: (row) => String(row.id),
+
+    autoResetPageIndex: false,
+    autoResetAll: false,
+    onPaginationChange: setPagination,
+
+    state: {
+      isLoading: isLoadingExamTypes,
+      isSaving: isDeletingExamType,
+      showAlertBanner: isLoadingExamTypesError,
+      showProgressBars: isFetchingExamTypes,
+      pagination,
+    },
+
+    mantinePaperProps: {
+      shadow: 'sm',
+      radius: 'md',
+      withBorder: true,
+    },
     mantineToolbarAlertBannerProps: isLoadingExamTypesError
-      ? {
-          color: 'red',
-          children: 'Error loading data',
-        }
+      ? { color: 'red', children: 'Error loading data' }
       : undefined,
     mantineTableContainerProps: {
-      style: {
-        minHeight: '500px',
-      },
+      style: { minHeight: '500px' },
     },
+    enableDensityToggle: false,
+    enableFullScreenToggle: false,
     positionActionsColumn: 'first',
+    initialState: {
+      showGlobalFilter: true,
+      density: 'xs',
+    },
     renderRowActions: ({ row }) => (
-      <Flex gap="md">
+      <Flex gap="sm">
         <Tooltip label="Edit">
-          <ActionIcon
-            color="blue"
-            variant="outline"
-            radius="md"
-            onClick={() => openEditModal(row.original)}
-          >
-            <IconEdit />
+          <ActionIcon color="blue" variant="subtle" onClick={() => openEditModal(row.original)}>
+            <IconEdit size={18} />
           </ActionIcon>
         </Tooltip>
         <Tooltip label="Delete">
-          <ActionIcon
-            color="red"
-            variant="outline"
-            radius="md"
-            onClick={() => openDeleteConfirmModal(row)}
-          >
-            <IconTrash />
+          <ActionIcon color="red" variant="subtle" onClick={() => openDeleteConfirmModal(row)}>
+            <IconTrash size={18} />
           </ActionIcon>
         </Tooltip>
       </Flex>
     ),
-    renderTopToolbarCustomActions: () => (
-      <Flex gap="md">
-        <Button variant="outline" radius="md" onClick={openCreateModal}>
-          Create New Entry
-        </Button>
-
+    renderTopToolbarCustomActions: ({ table }) => (
+      <Flex gap="sm">
         <Button
-          variant="outline"
+          variant="filled"
+          radius="md"
+          leftSection={<IconPlus size={16} />}
+          onClick={openCreateModal}
+        >
+          Create Entry
+        </Button>
+        <Button
+          variant="filled"
           color="violet"
           radius="md"
           leftSection={<IconUpload size={16} />}
@@ -279,30 +339,23 @@ const ExamTypeTable = () => {
         >
           Import
         </Button>
-
         <Button
-          variant="outline"
+          variant="filled"
           color="green"
           radius="md"
           leftSection={<IconDownload size={16} />}
           loading={isExporting}
           onClick={() => handleExportData(table)}
         >
-          Export Filtered
+          Export
         </Button>
       </Flex>
     ),
-    state: {
-      isLoading: isLoadingExamTypes,
-      isSaving: isDeletingExamType,
-      showAlertBanner: isLoadingExamTypesError,
-      showProgressBars: isFetchingExamTypes,
-    },
   });
 
   return (
     <>
-      <MantineReactTable table={table} />;
+      <MantineReactTable table={table} />
       <ImportModal
         opened={isImportOpen}
         onClose={closeImport}
@@ -310,7 +363,7 @@ const ExamTypeTable = () => {
         onDownloadTemplate={api.Imports.downloadTemplateExamTypes}
         onImport={api.Imports.importExamTypes}
         onSuccess={() => queryClient.invalidateQueries({ queryKey: ['examTypes'] })}
-      />;
+      />
     </>
   );
 };
@@ -344,6 +397,7 @@ function useGetExamTypes() {
       const response = await api.ExamTypes.getAllExamTypes();
       return response.data;
     },
+    placeholderData: keepPreviousData,
     refetchOnWindowFocus: false,
   });
 }
@@ -409,26 +463,22 @@ const queryClient = new QueryClient();
 
 const ExamTypePage = () => {
   return (
-    <QueryClientProvider client={queryClient}>
-      <ModalsProvider>
-        <Notifications />
-        <Skeleton>
-          <Title order={2}>Exam Types</Title>
-          <ExamTypeTable />
-        </Skeleton>
-      </ModalsProvider>
-    </QueryClientProvider>
+    <MantineProvider>
+      <QueryClientProvider client={queryClient}>
+        <ModalsProvider>
+          <Notifications />
+          <Skeleton>
+            <Stack mb="lg">
+              <Title order={2} style={{ fontFamily: 'Greycliff CF, var(--mantine-font-family)' }}>
+                Exam Types
+              </Title>
+            </Stack>
+            <ExamTypeTable />
+          </Skeleton>
+        </ModalsProvider>
+      </QueryClientProvider>
+    </MantineProvider>
   );
 };
 
 export default ExamTypePage;
-
-const validateRequired = (value: string) => !!value.trim().length;
-
-function validateExamType(examType: ExamTypeFormData) {
-  const errors: { typeName?: string } = {};
-  if (!validateRequired(examType.typeName)) {
-    errors.typeName = 'Exam Type Name is required';
-  }
-  return errors;
-}
