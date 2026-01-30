@@ -4,9 +4,7 @@ import useAuth from '../hooks/useAuth';
 import { NavbarMinimal } from './NavbarMinimal';
 
 function getInitials(fullName: string | null | undefined) {
-  if (!fullName) {
-    return '';
-  }
+  if (!fullName) {return '';}
   const parts = fullName.trim().split(/\s+/);
   const firstInitial = parts[0][0]?.toUpperCase() || '';
   const lastInitial = parts.length > 1 ? parts[parts.length - 1][0]?.toUpperCase() || '' : '';
@@ -16,32 +14,76 @@ function getInitials(fullName: string | null | undefined) {
 export function Skeleton({ children }: { children: React.ReactNode }) {
   const [opened, { toggle }] = useDisclosure();
   const { user, isAuthenticated } = useAuth();
-
   const userInitials = getInitials(`${user?.firstName} ${user?.lastName}`);
 
   return (
-    <AppShell header={{ height: 60 }} navbar={{ width: 80, breakpoint: '' }} padding="md">
-      <AppShell.Header>
+    <AppShell
+      layout="alt"
+      header={{ height: 60 }}
+      navbar={{
+        width: 80,
+        breakpoint: 'sm',
+        collapsed: { mobile: !opened },
+      }}
+      padding="md"
+    >
+      <AppShell.Header
+        style={{
+          backgroundColor: 'var(--mantine-color-body)',
+          borderBottom: '1px solid var(--mantine-color-gray-3)',
+        }}
+      >
         <Group h="100%" px="md" justify="space-between">
-          {' '}
           <Group>
             <Burger opened={opened} onClick={toggle} hiddenFrom="sm" size="sm" />
-            <Text fw={700}>Exam Manager</Text>
-          </Group>
-          {isAuthenticated && user && (
-            <Avatar
-              color="initials"
-              size="md"
-              radius="xl"
+
+            <Text
+              size="xl"
+              fw={800}
+              style={{
+                letterSpacing: '-0.5px',
+                background: `linear-gradient(45deg, var(--mantine-primary-color-filled), var(--mantine-color-cyan-5))`,
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+              }}
             >
-              {userInitials}
-            </Avatar>
+              Exam Manager
+            </Text>
+          </Group>
+
+          {isAuthenticated && user && (
+            <Group gap="xs">
+              <div style={{ textAlign: 'right', marginRight: 8 }} className="hidden sm:block">
+                <Text size="sm" fw={500} style={{ lineHeight: 1 }}>
+                  {user.firstName} {user.lastName}
+                </Text>
+                <Text size="xs" c="dimmed" style={{ lineHeight: 1, marginTop: 4 }}>
+                  {user.role}
+                </Text>
+              </div>
+
+              <Avatar
+                src={null}
+                alt={userInitials}
+                color="initials"
+                radius="xl"
+                size="md"
+                style={{
+                  boxShadow: '0 0 0 1px var(--mantine-color-gray-3)',
+                  cursor: 'pointer',
+                }}
+              >
+                {userInitials}
+              </Avatar>
+            </Group>
           )}
         </Group>
       </AppShell.Header>
-      <AppShell.Navbar>
+
+      <AppShell.Navbar style={{ borderRight: 'none' }}>
         <NavbarMinimal />
       </AppShell.Navbar>
+
       <AppShell.Main>{children}</AppShell.Main>
     </AppShell>
   );

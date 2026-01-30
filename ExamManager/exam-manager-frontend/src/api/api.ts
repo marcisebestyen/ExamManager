@@ -265,6 +265,9 @@ const Operators = {
   getOperatorById: (id: number) => {
     return axiosInstance.get<IOperator>(`/operators/get-operator/${id}`);
   },
+  getMyProfile: () => {
+    return axiosInstance.get<IOperator>('/operators/get-profile');
+  },
   createOperator: async (operatorData: OperatorCreateFormData): Promise<IOperator> => {
     const payload = {
       ...operatorData,

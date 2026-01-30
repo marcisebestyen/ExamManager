@@ -5,9 +5,27 @@ import '@mantine/notifications/styles.css';
 
 import { useMemo } from 'react';
 import { IconCheck, IconHistory, IconRefresh, IconX } from '@tabler/icons-react';
-import { QueryClient, QueryClientProvider, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import {
+  keepPreviousData,
+  QueryClient,
+  QueryClientProvider,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from '@tanstack/react-query';
 import { MantineReactTable, useMantineReactTable, type MRT_ColumnDef } from 'mantine-react-table';
-import { ActionIcon, Badge, Button, Flex, Text as MantineText, Stack, ThemeIcon, Title, Tooltip } from '@mantine/core';
+import {
+  ActionIcon,
+  Badge,
+  Button,
+  Flex,
+  MantineProvider,
+  Stack,
+  Text,
+  ThemeIcon,
+  Title,
+  Tooltip,
+} from '@mantine/core';
 import { modals, ModalsProvider } from '@mantine/modals';
 import { notifications, Notifications } from '@mantine/notifications';
 import api from '../api/api';
@@ -15,37 +33,39 @@ import { Skeleton } from '../components/Skeleton';
 import { ActivityType, IBackupHistory } from '../interfaces/IBackup';
 
 const BackupTable = () => {
-  const {
-    data: fetchedBackups = [],
-    isError: isLoadingError,
-    isFetching,
-    isLoading,
-    refetch,
-  } = useGetBackups();
+  const queryClient = useQueryClient();
+  const { data: fetchedBackups = [], isError, isFetching, isLoading, refetch } = useGetBackups();
 
   const { mutate: restoreBackup } = useRestoreBackup();
 
   const handleRestoreClick = (row: IBackupHistory) => {
     modals.openConfirmModal({
-      title: 'DANGER: Database Restore',
+      id: 'restore-confirm',
+      title: (
+        <Text fw={700} c="red">
+          DANGER: Database Restore
+        </Text>
+      ),
       centered: true,
       children: (
-        <Stack>
-          <MantineText size="sm">Are you sure you want to restore the database to the version from:</MantineText>
-          <MantineText fw={700} c="blue">
+        <Stack gap="md">
+          <Text size="sm">Are you sure you want to restore the database to the version from:</Text>
+          <Text fw={700} c="blue" ta="center" size="lg">
             {new Date(row.backupDate).toLocaleString()}
-          </MantineText>
-          <MantineText c="red" fw={700} size="sm">
+          </Text>
+          <Text c="red" fw={700} size="sm">
             WARNING: This will overwrite the CURRENT database! Any data created after this backup
             date will be permanently lost.
-          </MantineText>
+          </Text>
         </Stack>
       ),
-      labels: { confirm: 'YES, RESTORE DATABASE', cancel: 'Cancel' },
-      confirmProps: { color: 'red', variant: 'outline', radius: 'md' },
-      cancelProps: { radius: 'md', variant: 'subtle' },
+      labels: { confirm: 'Restore Database', cancel: 'Cancel' },
+      confirmProps: { color: 'red', variant: 'filled', radius: 'md' },
+      cancelProps: { variant: 'subtle', radius: 'md' },
       onConfirm: async () => {
-        const id = notifications.show({
+        const notificationId = 'restore-loading';
+        notifications.show({
+          id: notificationId,
           loading: true,
           title: 'Restoring Database',
           message: 'Please wait. Do not close this window...',
@@ -53,12 +73,9 @@ const BackupTable = () => {
           withCloseButton: false,
         });
 
-        try {
-          restoreBackup(row.id);
-          notifications.hide(id);
-        } catch (e) {
-          notifications.hide(id);
-        }
+        restoreBackup(row.id, {
+          onSettled: () => notifications.hide(notificationId),
+        });
       },
     });
   };
@@ -82,39 +99,34 @@ const BackupTable = () => {
         size: 100,
         Cell: ({ cell }) => {
           const val = cell.getValue<ActivityType>();
-          if (val === ActivityType.Auto) {
-            return (
+          if (val === ActivityType.Auto)
+            {return (
               <Badge color="blue" variant="light">
                 Automatic
               </Badge>
-            );
-          } else if (val === ActivityType.Manual) {
-            return (
+            );}
+          if (val === ActivityType.Manual)
+            {return (
               <Badge color="orange" variant="light">
                 Manual
               </Badge>
-            );
-          } else {
-            return (
-              <Badge color="grape" variant="filled">
-                Restore
-              </Badge>
-            );
-          }
+            );}
+          return (
+            <Badge color="grape" variant="filled">
+              Restore
+            </Badge>
+          );
         },
       },
       {
         accessorKey: 'operatorUserName',
         header: 'Initiated By',
         size: 150,
-        Cell: ({ cell, row }) => {
-          const isAuto = row.original.activityType === ActivityType.Auto;
-          return (
-            <span style={{ fontWeight: isAuto ? 'bold' : 'normal' }}>
-              {cell.getValue<string>() || 'System'}
-            </span>
-          );
-        },
+        Cell: ({ cell, row }) => (
+          <Text size="sm" fw={row.original.activityType === ActivityType.Auto ? 700 : 400}>
+            {cell.getValue<string>() || 'System'}
+          </Text>
+        ),
       },
       {
         accessorKey: 'isSuccessful',
@@ -122,16 +134,10 @@ const BackupTable = () => {
         size: 100,
         Cell: ({ cell }) => {
           const success = cell.getValue<boolean>();
-          return success ? (
-            <Tooltip label="Success">
-              <ThemeIcon color="teal" variant="light" size="sm" radius="xl">
-                <IconCheck size={14} />
-              </ThemeIcon>
-            </Tooltip>
-          ) : (
-            <Tooltip label="Failed">
-              <ThemeIcon color="red" variant="light" size="sm" radius="xl">
-                <IconX size={14} />
+          return (
+            <Tooltip label={success ? 'Success' : 'Failed'}>
+              <ThemeIcon color={success ? 'teal' : 'red'} variant="light" size="sm" radius="xl">
+                {success ? <IconCheck size={14} /> : <IconX size={14} />}
               </ThemeIcon>
             </Tooltip>
           );
@@ -142,7 +148,15 @@ const BackupTable = () => {
         header: 'Error Details',
         Cell: ({ cell }) => {
           const msg = cell.getValue<string>();
-          return msg ? <span style={{ color: 'red' }}>{msg}</span> : <span>-</span>;
+          return msg ? (
+            <Text size="xs" c="red">
+              {msg}
+            </Text>
+          ) : (
+            <Text size="xs" c="dimmed">
+              -
+            </Text>
+          );
         },
       },
     ],
@@ -152,9 +166,23 @@ const BackupTable = () => {
   const table = useMantineReactTable({
     columns,
     data: fetchedBackups,
-    enableEditing: false,
     enableRowActions: true,
     enableDensityToggle: false,
+    enableFullScreenToggle: false,
+    getRowId: (row) => String(row.id),
+    initialState: {
+      sorting: [{ id: 'backupDate', desc: true }],
+      density: 'xs',
+      showGlobalFilter: true,
+    },
+    state: {
+      isLoading,
+      showAlertBanner: isError,
+      showProgressBars: isFetching,
+    },
+    mantinePaperProps: { shadow: 'sm', radius: 'md', withBorder: true },
+    mantineTableContainerProps: { style: { minHeight: '500px' } },
+    positionActionsColumn: 'first',
     renderRowActions: ({ row }) => {
       const type = row.original.activityType;
       const isRestorable = type === ActivityType.Manual || type === ActivityType.Auto;
@@ -162,43 +190,24 @@ const BackupTable = () => {
 
       if (!isRestorable || !isSuccess) {
         return (
-          <Tooltip label="Cannot restore from this entry">
-            <Badge color="gray" variant="outline" size="xs" style={{ textTransform: 'none' }}>
-              N/A
-            </Badge>
-          </Tooltip>
+          <Badge color="gray" variant="outline" size="xs" style={{ textTransform: 'none' }}>
+            N/A
+          </Badge>
         );
       }
 
       return (
         <Tooltip label="Restore this version">
           <ActionIcon color="red" variant="subtle" onClick={() => handleRestoreClick(row.original)}>
-            <IconHistory size={20} />
+            <IconHistory size={18} />
           </ActionIcon>
         </Tooltip>
       );
     },
-    initialState: {
-      sorting: [{ id: 'backupDate', desc: true }],
-      density: 'xs',
-    },
-    getRowId: (row) => String(row.id),
-    mantineToolbarAlertBannerProps: isLoadingError
-      ? {
-          color: 'red',
-          children: 'Error loading backup history',
-        }
-      : undefined,
-    state: {
-      isLoading,
-      showAlertBanner: isLoadingError,
-      showProgressBars: isFetching,
-    },
-    positionActionsColumn: 'first',
     renderTopToolbarCustomActions: () => (
-      <Flex gap="md">
+      <Flex gap="sm">
         <Button
-          variant="outline"
+          variant="filled"
           radius="md"
           leftSection={<IconRefresh size={16} />}
           onClick={() => refetch()}
@@ -216,10 +225,8 @@ const BackupTable = () => {
 function useGetBackups() {
   return useQuery<IBackupHistory[]>({
     queryKey: ['backupHistory'],
-    queryFn: async () => {
-      const response = await api.Backups.getHistory();
-      return response.data;
-    },
+    queryFn: () => api.Backups.getHistory().then((r) => r.data),
+    placeholderData: keepPreviousData,
     refetchOnWindowFocus: false,
   });
 }
@@ -230,11 +237,10 @@ function useRestoreBackup() {
     mutationFn: (id: number) => api.Backups.restoreBackup(id),
     onSuccess: () => {
       notifications.show({
-        title: 'System Restored Successfully',
-        message: 'The database has been reverted. You may need to log in again.',
+        title: 'Success',
+        message: 'The database has been reverted successfully.',
         color: 'teal',
-        autoClose: false,
-        withCloseButton: true,
+        autoClose: 5000,
       });
       queryClient.invalidateQueries({ queryKey: ['backupHistory'] });
     },
@@ -249,22 +255,22 @@ function useRestoreBackup() {
   });
 }
 
-const queryClient = new QueryClient();
-
-const BackupPage = () => {
-  return (
-    <QueryClientProvider client={queryClient}>
+const BackupPage = () => (
+  <MantineProvider>
+    <QueryClientProvider client={new QueryClient()}>
       <ModalsProvider>
         <Notifications />
         <Skeleton>
-          <Title order={2} mb="md">
-            Backup History
-          </Title>
+          <Stack mb="lg">
+            <Title order={2} style={{ fontFamily: 'Greycliff CF, var(--mantine-font-family)' }}>
+              Backup History
+            </Title>
+          </Stack>
           <BackupTable />
         </Skeleton>
       </ModalsProvider>
     </QueryClientProvider>
-  );
-};
+  </MantineProvider>
+);
 
 export default BackupPage;

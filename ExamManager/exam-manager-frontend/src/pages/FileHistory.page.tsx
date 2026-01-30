@@ -4,10 +4,35 @@ import 'mantine-react-table/styles.css';
 import '@mantine/notifications/styles.css';
 
 import { useMemo } from 'react';
-import { IconCheck, IconDownload, IconFileSpreadsheet, IconFileTypePdf, IconRefresh, IconX } from '@tabler/icons-react';
-import { QueryClient, QueryClientProvider, useMutation, useQuery } from '@tanstack/react-query';
+import {
+  IconCheck,
+  IconDownload,
+  IconFileSpreadsheet,
+  IconFileTypePdf,
+  IconRefresh,
+  IconX,
+} from '@tabler/icons-react';
+import {
+  keepPreviousData,
+  QueryClient,
+  QueryClientProvider,
+  useMutation,
+  useQuery,
+} from '@tanstack/react-query';
 import { MantineReactTable, useMantineReactTable, type MRT_ColumnDef } from 'mantine-react-table';
-import { ActionIcon, Badge, Button, Flex, Group, Stack, Text, ThemeIcon, Title, Tooltip } from '@mantine/core';
+import {
+  ActionIcon,
+  Badge,
+  Button,
+  Flex,
+  Group,
+  MantineProvider,
+  Stack,
+  Text,
+  ThemeIcon,
+  Title,
+  Tooltip,
+} from '@mantine/core';
 import { ModalsProvider } from '@mantine/modals';
 import { Notifications, notifications } from '@mantine/notifications';
 import api from '../api/api';
@@ -15,17 +40,16 @@ import { Skeleton } from '../components/Skeleton';
 import { IFileHistory } from '../interfaces/IFileHistory';
 
 const formatBytes = (bytes: number, decimals = 2) => {
-  if (!+bytes) {return '0 Bytes';}
+  if (!+bytes) return '0 Bytes';
   const k = 1024;
   const dm = decimals < 0 ? 0 : decimals;
   const sizes = ['Bytes', 'KB', 'MB', 'GB'];
   const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return `${parseFloat((bytes / k**i).toFixed(dm))} ${sizes[i]}`;
+  return `${parseFloat((bytes / k ** i).toFixed(dm))} ${sizes[i]}`;
 };
 
 const FileHistoryTable = () => {
   const { data: historyData = [], isError, isFetching, isLoading, refetch } = useGetFileHistory();
-
   const { mutate: downloadFile, isPending: isDownloading } = useDownloadFile();
 
   const columns = useMemo<MRT_ColumnDef<IFileHistory>[]>(
@@ -43,9 +67,9 @@ const FileHistoryTable = () => {
         Cell: ({ row }) => (
           <Group gap="xs">
             {row.original.contentType.includes('pdf') ? (
-              <IconFileTypePdf size={20} color="red" />
+              <IconFileTypePdf size={18} color="var(--mantine-color-red-6)" />
             ) : (
-              <IconFileSpreadsheet size={20} color="green" />
+              <IconFileSpreadsheet size={18} color="var(--mantine-color-green-6)" />
             )}
             <Text size="sm">{row.original.fileName}</Text>
           </Group>
@@ -63,14 +87,14 @@ const FileHistoryTable = () => {
         size: 120,
         Cell: ({ cell }) => {
           const action = cell.getValue<string>();
-          let color = 'gray';
-          if (action === 'Import') {color = 'blue';}
-          if (action === 'Export') {color = 'teal';}
-          if (action === 'GenerateReport') {color = 'grape';}
-          if (action === 'DownloadTemplate') {color = 'cyan';}
-
+          const colors: Record<string, string> = {
+            Import: 'blue',
+            Export: 'teal',
+            GenerateReport: 'grape',
+            DownloadTemplate: 'cyan',
+          };
           return (
-            <Badge color={color} variant="light">
+            <Badge color={colors[action] || 'gray'} variant="light">
               {action}
             </Badge>
           );
@@ -82,15 +106,14 @@ const FileHistoryTable = () => {
         size: 120,
         Cell: ({ cell }) => {
           const cat = cell.getValue<string>();
-          // Dynamic Colors for Categories
-          let color = 'gray';
-          if (cat === 'Exam') {color = 'violet';}
-          if (cat === 'Examiner') {color = 'indigo';}
-          if (cat === 'Institution') {color = 'orange';}
-          if (cat === 'Profession') {color = 'pink';}
-
+          const colors: Record<string, string> = {
+            Exam: 'violet',
+            Examiner: 'indigo',
+            Institution: 'orange',
+            Profession: 'pink',
+          };
           return (
-            <Badge color={color} variant="dot">
+            <Badge color={colors[cat] || 'gray'} variant="dot">
               {cat}
             </Badge>
           );
@@ -112,16 +135,10 @@ const FileHistoryTable = () => {
         size: 100,
         Cell: ({ cell }) => {
           const success = cell.getValue<boolean>();
-          return success ? (
-            <Tooltip label="Operation Successful">
-              <ThemeIcon color="teal" variant="light" size="sm" radius="xl">
-                <IconCheck size={14} />
-              </ThemeIcon>
-            </Tooltip>
-          ) : (
-            <Tooltip label="Operation Failed">
-              <ThemeIcon color="red" variant="light" size="sm" radius="xl">
-                <IconX size={14} />
+          return (
+            <Tooltip label={success ? 'Success' : 'Failed'}>
+              <ThemeIcon color={success ? 'teal' : 'red'} variant="light" size="sm" radius="xl">
+                {success ? <IconCheck size={14} /> : <IconX size={14} />}
               </ThemeIcon>
             </Tooltip>
           );
@@ -132,8 +149,8 @@ const FileHistoryTable = () => {
         header: 'Notes',
         size: 200,
         Cell: ({ cell }) => (
-          <Text size="xs" c="dimmed" truncate>
-            {cell.getValue<string>()}
+          <Text size="xs" c="dimmed" truncate="end">
+            {cell.getValue<string>() || '-'}
           </Text>
         ),
       },
@@ -144,25 +161,22 @@ const FileHistoryTable = () => {
   const table = useMantineReactTable({
     columns,
     data: historyData,
-    enableEditing: false,
     enableRowActions: true,
     enableDensityToggle: false,
+    enableFullScreenToggle: false,
+    getRowId: (row) => String(row.id),
     initialState: {
       sorting: [{ id: 'createdAt', desc: true }],
       density: 'xs',
+      showGlobalFilter: true,
     },
-    getRowId: (row) => String(row.id),
-    mantineToolbarAlertBannerProps: isError
-      ? {
-          color: 'red',
-          children: 'Error loading file history log.',
-        }
-      : undefined,
     state: {
       isLoading,
       showAlertBanner: isError,
       showProgressBars: isFetching,
     },
+    mantinePaperProps: { shadow: 'sm', radius: 'md', withBorder: true },
+    mantineTableContainerProps: { style: { minHeight: '500px' } },
     positionActionsColumn: 'first',
     renderRowActions: ({ row }) => (
       <Tooltip label="Download Archived File">
@@ -172,14 +186,14 @@ const FileHistoryTable = () => {
           onClick={() => downloadFile(row.original)}
           loading={isDownloading}
         >
-          <IconDownload size={20} />
+          <IconDownload size={18} />
         </ActionIcon>
       </Tooltip>
     ),
     renderTopToolbarCustomActions: () => (
-      <Flex gap="md">
+      <Flex gap="sm">
         <Button
-          variant="outline"
+          variant="filled"
           radius="md"
           leftSection={<IconRefresh size={16} />}
           onClick={() => refetch()}
@@ -197,10 +211,8 @@ const FileHistoryTable = () => {
 function useGetFileHistory() {
   return useQuery<IFileHistory[]>({
     queryKey: ['fileHistory'],
-    queryFn: async () => {
-      const response = await api.FileHistory.getAll();
-      return response.data;
-    },
+    queryFn: () => api.FileHistory.getAll().then((r) => r.data),
+    placeholderData: keepPreviousData,
     refetchOnWindowFocus: false,
   });
 }
@@ -218,13 +230,11 @@ function useDownloadFile() {
     onSuccess: ({ data, fileName, contentType }) => {
       const blob = new Blob([data], { type: contentType });
       const url = window.URL.createObjectURL(blob);
-
       const link = document.createElement('a');
       link.href = url;
       link.setAttribute('download', fileName);
       document.body.appendChild(link);
       link.click();
-
       link.parentNode?.removeChild(link);
       window.URL.revokeObjectURL(url);
 
@@ -244,22 +254,24 @@ function useDownloadFile() {
   });
 }
 
-const queryClient = new QueryClient();
+const rootQueryClient = new QueryClient();
 
-const FileHistoryPage = () => {
-  return (
-    <QueryClientProvider client={queryClient}>
+const FileHistoryPage = () => (
+  <MantineProvider>
+    <QueryClientProvider client={rootQueryClient}>
       <ModalsProvider>
         <Notifications />
         <Skeleton>
-          <Stack gap="xs">
-            <Title order={2}>File Archive & Audit Log</Title>
-            <FileHistoryTable />
+          <Stack mb="lg">
+            <Title order={2} style={{ fontFamily: 'Greycliff CF, var(--mantine-font-family)' }}>
+              File Archive & Audit Log
+            </Title>
           </Stack>
+          <FileHistoryTable />
         </Skeleton>
       </ModalsProvider>
     </QueryClientProvider>
-  );
-};
+  </MantineProvider>
+);
 
 export default FileHistoryPage;

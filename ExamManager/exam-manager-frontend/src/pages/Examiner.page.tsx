@@ -4,10 +4,43 @@ import 'mantine-react-table/styles.css';
 import '@mantine/notifications/styles.css';
 
 import { useMemo, useState } from 'react';
-import { IconDownload, IconEdit, IconTrash, IconUpload } from '@tabler/icons-react';
-import { QueryClient, QueryClientProvider, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { MantineReactTable, useMantineReactTable, type MRT_ColumnDef, type MRT_Row } from 'mantine-react-table';
-import { ActionIcon, Button, Flex, Stack, Text, TextInput, Title, Tooltip } from '@mantine/core';
+import {
+  IconCalendar,
+  IconDownload,
+  IconEdit,
+  IconId,
+  IconMail,
+  IconPhone,
+  IconPlus,
+  IconTrash,
+  IconUpload,
+  IconUser,
+} from '@tabler/icons-react';
+import {
+  keepPreviousData,
+  QueryClient,
+  QueryClientProvider,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from '@tanstack/react-query';
+import {
+  MantineReactTable,
+  MRT_ColumnDef,
+  MRT_Row,
+  useMantineReactTable,
+} from 'mantine-react-table';
+import {
+  ActionIcon,
+  Button,
+  Flex,
+  MantineProvider,
+  Stack,
+  Text,
+  TextInput,
+  Title,
+  Tooltip,
+} from '@mantine/core';
 import { DateInput } from '@mantine/dates';
 import { useForm } from '@mantine/form';
 import { useDisclosure } from '@mantine/hooks';
@@ -43,6 +76,42 @@ const generatePatchDocument = (oldData: IExaminer, newData: IExaminer): JsonPatc
   return patch;
 };
 
+const validateRequired = (value: string) => !!value?.trim().length;
+
+const validateDate = (dateString: string) => {
+  if (!dateString) {return false;}
+  const date = new Date(dateString);
+  return !isNaN(date.getTime());
+};
+
+const validateDateRange = (dateString: string) => {
+  if (!validateDate(dateString)) {return false;}
+  const date = new Date(dateString);
+  const now = new Date();
+  const minAge = new Date(now.getFullYear() - 120, now.getMonth(), now.getDate());
+  return date >= minAge && date < now;
+};
+
+function validateExaminer(examiner: ExaminerFormData) {
+  const errors: Record<string, string> = {};
+  if (!validateRequired(examiner.firstName)) {errors.firstName = 'First name is required';}
+  if (!validateRequired(examiner.lastName)) {errors.lastName = 'Last name is required';}
+  if (!validateRequired(examiner.dateOfBirth)) {
+    errors.dateOfBirth = 'Date of birth is required';
+  } else if (!validateDateRange(examiner.dateOfBirth)) {
+    errors.dateOfBirth = 'Date must be a valid past date';
+  }
+  if (!validateRequired(examiner.email)) {
+    errors.email = 'Email is required';
+  } else if (!/^\S+@\S+\.\S+$/.test(examiner.email)) {
+    errors.email = 'Invalid email address';
+  }
+  if (!validateRequired(examiner.phone)) {errors.phone = 'Phone is required';}
+  if (!validateRequired(examiner.identityCardNumber))
+    {errors.identityCardNumber = 'ID card number is required';}
+  return errors;
+}
+
 const CreateExaminerForm = () => {
   const { data: fetchedExaminers = [] } = useGetExaminers();
   const { mutateAsync: createExaminer } = useCreateExaminer();
@@ -62,8 +131,7 @@ const CreateExaminerForm = () => {
 
   const handleSubmit = form.onSubmit(async (values) => {
     const isDuplicate = fetchedExaminers.some(
-      (examiner) =>
-        examiner.identityCardNumber.toLowerCase() === values.identityCardNumber.toLowerCase()
+      (ex) => ex.identityCardNumber.toLowerCase() === values.identityCardNumber.toLowerCase()
     );
     if (isDuplicate) {
       form.setFieldError(
@@ -79,20 +147,51 @@ const CreateExaminerForm = () => {
   return (
     <form onSubmit={handleSubmit}>
       <Stack>
-        <TextInput label="First Name" {...form.getInputProps('firstName')} required />
-        <TextInput label="Last Name" {...form.getInputProps('lastName')} required />
+        <TextInput
+          label="First Name"
+          leftSection={<IconUser size={16} />}
+          {...form.getInputProps('firstName')}
+          required
+        />
+        <TextInput
+          label="Last Name"
+          leftSection={<IconUser size={16} />}
+          {...form.getInputProps('lastName')}
+          required
+        />
         <DateInput
           label="Date of Birth"
+          leftSection={<IconCalendar size={16} />}
           valueFormat="YYYY-MM-DD"
           {...form.getInputProps('dateOfBirth')}
           required
         />
-        <TextInput label="Email" type="email" {...form.getInputProps('email')} required />
-        <TextInput label="Phone" type="tel" {...form.getInputProps('phone')} required />
-        <TextInput label="ID Card Number" {...form.getInputProps('identityCardNumber')} required />
+        <TextInput
+          label="Email"
+          type="email"
+          leftSection={<IconMail size={16} />}
+          {...form.getInputProps('email')}
+          required
+        />
+        <TextInput
+          label="Phone"
+          type="tel"
+          leftSection={<IconPhone size={16} />}
+          {...form.getInputProps('phone')}
+          required
+        />
+        <TextInput
+          label="ID Card Number"
+          leftSection={<IconId size={16} />}
+          {...form.getInputProps('identityCardNumber')}
+          required
+        />
         <Flex justify="flex-end" mt="xl">
-          <Button type="submit" variant="outline" radius="md" mr="xs">
-            Create
+          <Button type="button" variant="subtle" onClick={() => modals.closeAll()} mr="xs">
+            Cancel
+          </Button>
+          <Button type="submit" variant="filled" radius="md">
+            Create Examiner
           </Button>
         </Flex>
       </Stack>
@@ -119,9 +218,9 @@ const EditExaminerForm = ({ initialExaminer }: { initialExaminer: IExaminer }) =
 
   const handleSubmit = form.onSubmit(async (values) => {
     const isDuplicate = fetchedExaminers.some(
-      (examiner) =>
-        examiner.id !== initialExaminer.id &&
-        examiner.identityCardNumber.toLowerCase() === values.identityCardNumber.toLowerCase()
+      (ex) =>
+        ex.id !== initialExaminer.id &&
+        ex.identityCardNumber.toLowerCase() === values.identityCardNumber.toLowerCase()
     );
     if (isDuplicate) {
       form.setFieldError(
@@ -138,20 +237,51 @@ const EditExaminerForm = ({ initialExaminer }: { initialExaminer: IExaminer }) =
   return (
     <form onSubmit={handleSubmit}>
       <Stack>
-        <TextInput label="First Name" {...form.getInputProps('firstName')} required />
-        <TextInput label="Last Name" {...form.getInputProps('lastName')} required />
+        <TextInput
+          label="First Name"
+          leftSection={<IconUser size={16} />}
+          {...form.getInputProps('firstName')}
+          required
+        />
+        <TextInput
+          label="Last Name"
+          leftSection={<IconUser size={16} />}
+          {...form.getInputProps('lastName')}
+          required
+        />
         <DateInput
           label="Date of Birth"
+          leftSection={<IconCalendar size={16} />}
           valueFormat="YYYY-MM-DD"
           {...form.getInputProps('dateOfBirth')}
           required
         />
-        <TextInput label="Email" type="email" {...form.getInputProps('email')} required />
-        <TextInput label="Phone" type="tel" {...form.getInputProps('phone')} required />
-        <TextInput label="ID Card Number" {...form.getInputProps('identityCardNumber')} required />
+        <TextInput
+          label="Email"
+          type="email"
+          leftSection={<IconMail size={16} />}
+          {...form.getInputProps('email')}
+          required
+        />
+        <TextInput
+          label="Phone"
+          type="tel"
+          leftSection={<IconPhone size={16} />}
+          {...form.getInputProps('phone')}
+          required
+        />
+        <TextInput
+          label="ID Card Number"
+          leftSection={<IconId size={16} />}
+          {...form.getInputProps('identityCardNumber')}
+          required
+        />
         <Flex justify="flex-end" mt="xl">
-          <Button type="submit" variant="outline" radius="md" mr="xs">
-            Save
+          <Button type="button" variant="subtle" onClick={() => modals.closeAll()} mr="xs">
+            Cancel
+          </Button>
+          <Button type="submit" variant="filled" radius="md">
+            Save Changes
           </Button>
         </Flex>
       </Stack>
@@ -169,13 +299,19 @@ const DeleteExaminerModal = ({ examiner }: { examiner: IExaminer }) => {
 
   return (
     <Stack>
-      <Text>
-        Are you sure you want to delete {examiner.firstName} {examiner.lastName}? This action cannot
-        be undone.
+      <Text size="sm">
+        Are you sure you want to delete{' '}
+        <b>
+          {examiner.firstName} {examiner.lastName}
+        </b>
+        ? This action cannot be undone.
       </Text>
       <Flex justify="flex-end" mt="xl">
-        <Button color="red" variant="outline" radius="md" mr="xs" onClick={handleDelete}>
-          Delete
+        <Button variant="default" onClick={() => modals.closeAll()} mr="xs">
+          Cancel
+        </Button>
+        <Button color="red" variant="filled" onClick={handleDelete}>
+          Delete Examiner
         </Button>
       </Flex>
     </Stack>
@@ -184,6 +320,9 @@ const DeleteExaminerModal = ({ examiner }: { examiner: IExaminer }) => {
 
 const ExaminerTable = () => {
   const queryClient = useQueryClient();
+  const [isExporting, setIsExporting] = useState(false);
+  const [isImportOpen, { open: openImport, close: closeImport }] = useDisclosure(false);
+  const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 10 });
 
   const {
     data: fetchedExaminers = [],
@@ -191,37 +330,20 @@ const ExaminerTable = () => {
     isFetching: isFetchingExaminers,
     isLoading: isLoadingExaminers,
   } = useGetExaminers();
-  const { mutateAsync: deleteExaminer, isPending: isDeletingExaminer } = useDeleteExaminer();
-  const [isExporting, setIsExporting] = useState(false);
-  const [isImportOpen, { open: openImport, close: closeImport }] = useDisclosure(false);
+  const { isPending: isDeletingExaminer } = useDeleteExaminer();
 
   const columns = useMemo<MRT_ColumnDef<IExaminer>[]>(
     () => [
-      {
-        accessorKey: 'firstName',
-        header: 'First Name',
-      },
-      {
-        accessorKey: 'lastName',
-        header: 'Last Name',
-      },
+      { accessorKey: 'firstName', header: 'First Name' },
+      { accessorKey: 'lastName', header: 'Last Name' },
       {
         accessorKey: 'dateOfBirth',
         header: 'Date of Birth',
         Cell: ({ cell }) => new Date(cell.getValue<string>()).toLocaleDateString('en-CA'),
       },
-      {
-        accessorKey: 'email',
-        header: 'Email',
-      },
-      {
-        accessorKey: 'phone',
-        header: 'Phone',
-      },
-      {
-        accessorKey: 'identityCardNumber',
-        header: 'ID Card Number',
-      },
+      { accessorKey: 'email', header: 'Email' },
+      { accessorKey: 'phone', header: 'Phone' },
+      { accessorKey: 'identityCardNumber', header: 'ID Card Number' },
     ],
     []
   );
@@ -229,21 +351,25 @@ const ExaminerTable = () => {
   const openCreateModal = () =>
     modals.open({
       id: 'create-examiner',
-      title: <Title order={3}>Create New Examiner</Title>,
+      title: <Text fw={700}>Create New Examiner</Text>,
       children: <CreateExaminerForm />,
     });
 
   const openEditModal = (examiner: IExaminer) =>
     modals.open({
       id: 'edit-examiner',
-      title: <Title order={3}>Edit Examiner</Title>,
+      title: <Text fw={700}>Edit Examiner</Text>,
       children: <EditExaminerForm initialExaminer={examiner} />,
     });
 
   const openDeleteConfirmModal = (row: MRT_Row<IExaminer>) =>
     modals.open({
       id: 'delete-examiner',
-      title: <Title order={3}>Delete Examiner</Title>,
+      title: (
+        <Text fw={700} c="red">
+          Delete Examiner
+        </Text>
+      ),
       children: <DeleteExaminerModal examiner={row.original} />,
     });
 
@@ -252,14 +378,11 @@ const ExaminerTable = () => {
     try {
       const filteredRows = table.getPrePaginationRowModel().rows;
       const ids = filteredRows.map((row: any) => row.original.id);
-
       if (ids.length === 0) {
         notifications.show({ title: 'Info', message: 'No data to export', color: 'blue' });
         return;
       }
-
       const response = await api.Exports.exportExaminersFiltered(ids);
-
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement('a');
       link.href = url;
@@ -271,7 +394,6 @@ const ExaminerTable = () => {
       link.click();
       link.parentNode?.removeChild(link);
     } catch (error) {
-      console.error(error);
       notifications.show({ title: 'Error', message: 'Export failed', color: 'red' });
     } finally {
       setIsExporting(false);
@@ -284,50 +406,50 @@ const ExaminerTable = () => {
     enableEditing: false,
     enableRowActions: true,
     getRowId: (row) => String(row.id),
-    mantineToolbarAlertBannerProps: isLoadingExaminersError
-      ? {
-          color: 'red',
-          children: 'Error loading data',
-        }
-      : undefined,
-    mantineTableContainerProps: {
-      style: {
-        minHeight: '500px',
-      },
+    autoResetPageIndex: false,
+    onPaginationChange: setPagination,
+    state: {
+      isLoading: isLoadingExaminers,
+      isSaving: isDeletingExaminer,
+      showAlertBanner: isLoadingExaminersError,
+      showProgressBars: isFetchingExaminers,
+      pagination,
     },
+    mantinePaperProps: { shadow: 'sm', radius: 'md', withBorder: true },
+    mantineToolbarAlertBannerProps: isLoadingExaminersError
+      ? { color: 'red', children: 'Error loading data' }
+      : undefined,
+    mantineTableContainerProps: { style: { minHeight: '500px' } },
+    enableDensityToggle: false,
+    enableFullScreenToggle: false,
     positionActionsColumn: 'first',
+    initialState: { showGlobalFilter: true, density: 'xs' },
     renderRowActions: ({ row }) => (
-      <Flex gap="md">
+      <Flex gap="sm">
         <Tooltip label="Edit">
-          <ActionIcon
-            color="blue"
-            variant="outline"
-            radius="md"
-            onClick={() => openEditModal(row.original)}
-          >
-            <IconEdit />
+          <ActionIcon color="blue" variant="subtle" onClick={() => openEditModal(row.original)}>
+            <IconEdit size={18} />
           </ActionIcon>
         </Tooltip>
         <Tooltip label="Delete">
-          <ActionIcon
-            color="red"
-            variant="outline"
-            radius="md"
-            onClick={() => openDeleteConfirmModal(row)}
-          >
-            <IconTrash />
+          <ActionIcon color="red" variant="subtle" onClick={() => openDeleteConfirmModal(row)}>
+            <IconTrash size={18} />
           </ActionIcon>
         </Tooltip>
       </Flex>
     ),
-    renderTopToolbarCustomActions: () => (
-      <Flex gap="md">
-        <Button variant="outline" radius="md" onClick={openCreateModal}>
-          Create New Entry
-        </Button>
-
+    renderTopToolbarCustomActions: ({ table }) => (
+      <Flex gap="sm">
         <Button
-          variant="outline"
+          variant="filled"
+          radius="md"
+          leftSection={<IconPlus size={16} />}
+          onClick={openCreateModal}
+        >
+          Create Entry
+        </Button>
+        <Button
+          variant="filled"
           color="violet"
           radius="md"
           leftSection={<IconUpload size={16} />}
@@ -335,30 +457,23 @@ const ExaminerTable = () => {
         >
           Import
         </Button>
-
         <Button
-          variant="outline"
+          variant="filled"
           color="green"
           radius="md"
           leftSection={<IconDownload size={16} />}
           loading={isExporting}
           onClick={() => handleExportData(table)}
         >
-          Export Filtered
+          Export
         </Button>
       </Flex>
     ),
-    state: {
-      isLoading: isLoadingExaminers,
-      isSaving: isDeletingExaminer,
-      showAlertBanner: isLoadingExaminersError,
-      showProgressBars: isFetchingExaminers,
-    },
   });
 
   return (
     <>
-      <MantineReactTable table={table} />;
+      <MantineReactTable table={table} />
       <ImportModal
         opened={isImportOpen}
         onClose={closeImport}
@@ -366,7 +481,7 @@ const ExaminerTable = () => {
         onDownloadTemplate={api.Imports.downloadTemplateExaminers}
         onImport={api.Imports.importExaminers}
         onSuccess={() => queryClient.invalidateQueries({ queryKey: ['examiners'] })}
-      />;
+      />
     </>
   );
 };
@@ -374,22 +489,19 @@ const ExaminerTable = () => {
 function useCreateExaminer() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (examinerData: ExaminerFormData) => api.Examiners.createExaminer(examinerData),
-    onSuccess: (createExaminer) => {
+    mutationFn: (data: ExaminerFormData) => api.Examiners.createExaminer(data),
+    onSuccess: (created) => {
       notifications.show({
         title: 'Success!',
-        message: `Examiner "${createExaminer.firstName} ${createExaminer.lastName}" created successfully.`,
+        message: `Examiner "${created.firstName} ${created.lastName}" created.`,
         color: 'teal',
       });
-      queryClient.setQueryData(['examiners'], (prevExaminers: IExaminer[] = []) => [
-        ...prevExaminers,
-        createExaminer,
-      ]);
+      queryClient.invalidateQueries({ queryKey: ['examiners'] });
     },
     onError: (error: any) => {
       notifications.show({
         title: 'Creation Failed',
-        message: error.response?.data?.message || 'Failed to create examiner. Please try again.',
+        message: error.response?.data?.message || 'Failed to create examiner.',
         color: 'red',
       });
     },
@@ -399,10 +511,8 @@ function useCreateExaminer() {
 function useGetExaminers() {
   return useQuery<IExaminer[]>({
     queryKey: ['examiners'],
-    queryFn: async () => {
-      const response = await api.Examiners.getAllExaminers();
-      return response.data;
-    },
+    queryFn: () => api.Examiners.getAllExaminers().then((res) => res.data),
+    placeholderData: keepPreviousData,
     refetchOnWindowFocus: false,
   });
 }
@@ -423,36 +533,19 @@ function useUpdateExaminer() {
       }
       return newValues;
     },
-    onMutate: async (updatedExaminerInfo) => {
-      await queryClient.cancelQueries({ queryKey: ['examiners'] });
-      const previousExaminers = queryClient.getQueryData<IExaminer[]>(['examiners']);
-      queryClient.setQueryData(['examiners'], (prevExaminers: IExaminer[] = []) =>
-        prevExaminers.map((examiner) =>
-          examiner.id === updatedExaminerInfo.newValues.id
-            ? updatedExaminerInfo.newValues
-            : examiner
-        )
-      );
-      return { previousExaminers };
-    },
-    onError: (_err, _updatedExaminerInfo, context) => {
-      notifications.show({
-        title: 'Update Failed',
-        message: 'Could not update examiner. Please try again.',
-        color: 'red',
-      });
-      if (context?.previousExaminers) {
-        queryClient.setQueryData(['examiners'], context.previousExaminers);
-      }
-    },
-    onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ['examiners'] });
-    },
-    onSuccess: (updatedExaminer) => {
+    onSuccess: (updated) => {
       notifications.show({
         title: 'Success!',
-        message: `Examiner "${updatedExaminer.firstName} ${updatedExaminer.lastName}" updated successfully.`,
+        message: `Examiner "${updated.firstName}" updated.`,
         color: 'teal',
+      });
+      queryClient.invalidateQueries({ queryKey: ['examiners'] });
+    },
+    onError: () => {
+      notifications.show({
+        title: 'Update Failed',
+        message: 'Could not update examiner.',
+        color: 'red',
       });
     },
   });
@@ -461,35 +554,21 @@ function useUpdateExaminer() {
 function useDeleteExaminer() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (examinerId: number) =>
-      api.Examiners.deleteExaminer(examinerId).then(() => examinerId),
-    onMutate: async (examinerId: number) => {
-      await queryClient.cancelQueries({ queryKey: ['examiners'] });
-      const previousExaminers = queryClient.getQueryData<IExaminer[]>(['examiners']);
-      queryClient.setQueryData(['examiners'], (prevExaminers: IExaminer[] = []) =>
-        prevExaminers.filter((examiner) => examiner.id !== examinerId)
-      );
-      return { previousExaminers };
-    },
+    mutationFn: (id: number) => api.Examiners.deleteExaminer(id).then(() => id),
     onSuccess: () => {
       notifications.show({
         title: 'Success!',
         message: `Examiner successfully deleted.`,
         color: 'teal',
       });
+      queryClient.invalidateQueries({ queryKey: ['examiners'] });
     },
-    onError: (_err, _examinerId, context) => {
+    onError: () => {
       notifications.show({
         title: 'Deletion Failed',
-        message: 'Could not delete examiner. Please try again.',
+        message: 'Could not delete examiner.',
         color: 'red',
       });
-      if (context?.previousExaminers) {
-        queryClient.setQueryData(['examiners'], context.previousExaminers);
-      }
-    },
-    onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ['examiners'] });
     },
   });
 }
@@ -497,66 +576,21 @@ function useDeleteExaminer() {
 const queryClient = new QueryClient();
 
 const ExaminerPage = () => (
-  <QueryClientProvider client={queryClient}>
-    <ModalsProvider>
-      <Notifications />
-      <Skeleton>
-        <Title order={2}>Examiners</Title>
-        <ExaminerTable />
-      </Skeleton>
-    </ModalsProvider>
-  </QueryClientProvider>
+  <MantineProvider>
+    <QueryClientProvider client={queryClient}>
+      <ModalsProvider>
+        <Notifications />
+        <Skeleton>
+          <Stack mb="lg">
+            <Title order={2} style={{ fontFamily: 'Greycliff CF, var(--mantine-font-family)' }}>
+              Examiners
+            </Title>
+          </Stack>
+          <ExaminerTable />
+        </Skeleton>
+      </ModalsProvider>
+    </QueryClientProvider>
+  </MantineProvider>
 );
 
 export default ExaminerPage;
-
-const validateRequired = (value: string) => !!value.trim().length;
-
-const validateDate = (dateString: string) => {
-  if (!dateString) {
-    return false;
-  }
-  const date = new Date(dateString);
-  return !isNaN(date.getTime()) && date.toString() !== 'Invalid Date';
-};
-
-const validateDateRange = (dateString: string) => {
-  if (!validateDate(dateString)) {
-    return false;
-  }
-  const date = new Date(dateString);
-  const now = new Date();
-  const minAge = new Date(now.getFullYear() - 120, now.getMonth(), now.getDate());
-  return date >= minAge && date < now;
-};
-
-function validateExaminer(examiner: ExaminerFormData) {
-  const errors: Record<string, string> = {};
-
-  if (!validateRequired(examiner.firstName)) {
-    errors.firstName = 'First name is required';
-  }
-  if (!validateRequired(examiner.lastName)) {
-    errors.lastName = 'Last name is required';
-  }
-  if (!validateRequired(examiner.dateOfBirth)) {
-    errors.dateOfBirth = 'Date of birth is required';
-  } else if (!validateDate(examiner.dateOfBirth)) {
-    errors.dateOfBirth = 'Invalid date format';
-  } else if (!validateDateRange(examiner.dateOfBirth)) {
-    errors.dateOfBirth = 'Date must be a valid past date';
-  }
-  if (!validateRequired(examiner.email)) {
-    errors.email = 'Email is required';
-  } else if (!/^\S+@\S+\.\S+$/.test(examiner.email)) {
-    errors.email = 'Invalid email address';
-  }
-  if (!validateRequired(examiner.phone)) {
-    errors.phone = 'Phone is required';
-  }
-  if (!validateRequired(examiner.identityCardNumber)) {
-    errors.identityCardNumber = 'ID card number is required';
-  }
-
-  return errors;
-}
