@@ -15,4 +15,5 @@ public class Operator : SoftDeletableEntity
     public string FirstName { get; set; } = string.Empty;
     public string LastName { get; set; } = string.Empty;
     public Role Role { get; set; } = Role.Operator;
+    public bool MustChangePassword { get; set; } = false;
 }

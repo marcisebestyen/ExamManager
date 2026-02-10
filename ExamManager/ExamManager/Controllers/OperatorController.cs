@@ -4,6 +4,7 @@ using ExamManager.Dtos.OperatorDtos;
 using ExamManager.Extensions;
 using ExamManager.Interfaces;
 using ExamManager.Models;
+using ExamManager.Responses;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.AspNetCore.Mvc;
@@ -93,6 +94,20 @@ public class OperatorController : ControllerBase
                         message = result.Errors.FirstOrDefault() ?? "An unexpected error occurred during registration."
                     });
         }
+    }
+
+    [AllowAnonymous]
+    [HttpPost("change-my-password")]
+    public async Task<IActionResult> ChangeMyPassword([FromBody] ChangePasswordDto request)
+    {
+        if (!ModelState.IsValid) return BadRequest(ModelState);
+
+        var userId = User.GetId();
+        var result = await _operatorService.ChangeMyPasswordAsync(userId, request.NewPassword);
+        
+        if (result.Succeeded) return Ok(new { message = result.Message });
+        
+        return StatusCode(500, new { message = result.Errors.FirstOrDefault() ?? "An unexpected error occurred." });
     }
 
     [AllowAnonymous]

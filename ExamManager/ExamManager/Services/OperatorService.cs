@@ -99,6 +99,7 @@ public class OperatorService : IOperatorService
 
             var operatorEntity = _mapper.Map<Operator>(createRequest);
             operatorEntity.Password = BCrypt.Net.BCrypt.HashPassword(createRequest.Password);
+            operatorEntity.MustChangePassword = true;
 
             await _unitOfWork.OperatorRepository.InsertAsync(operatorEntity);
             await _unitOfWork.SaveAsync();
@@ -120,6 +121,34 @@ public class OperatorService : IOperatorService
             _logger.LogError(ex, "Error during registration for user: {UserName}", createRequest.UserName);
             return BaseServiceResponse<OperatorRegisterResponseDto>.Failed(
                 "An unexpected error occurred during registration.", "UNEXPECTED_ERROR");
+        }
+    }
+
+    public async Task<BaseServiceResponse<bool>> ChangeMyPasswordAsync(int operatorId, string newPassword)
+    {
+        try
+        {
+            var operatorEntity = await _unitOfWork.OperatorRepository.GetByIdAsync(new object[] { operatorId });
+
+            if (operatorEntity == null)
+            {
+                return BaseServiceResponse<bool>.Failed("Operator not found.", "OPERATOR_NOT_FOUND");
+            }
+
+            operatorEntity.Password = BCrypt.Net.BCrypt.HashPassword(newPassword);
+            operatorEntity.MustChangePassword = false;
+
+            await _unitOfWork.OperatorRepository.UpdateAsync(operatorEntity);
+            await _unitOfWork.SaveAsync();
+
+            _logger.LogInformation("Password changed successfully for: {UserName}", operatorEntity.UserName);
+            return BaseServiceResponse<bool>.Success(true, "Password changed successfully.");
+        }
+
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Unexpected error occurred during password change for user ID: {Id}.",  operatorId);
+            return BaseServiceResponse<bool>.Failed("Unexpected error during  password change.", "UNEXPECTED_ERROR");
         }
     }
 
