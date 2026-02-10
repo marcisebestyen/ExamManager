@@ -12,6 +12,7 @@ import OperatorPage from './pages/Operator.page';
 import { SettingsPage } from './pages/Settings.page';
 import BackupPage from './pages/Backup.page';
 import FileHistoryPage from './pages/FileHistory.page';
+import { ForcePasswordChangePage } from './pages/ForcePasswordChange.page';
 
 const router = createBrowserRouter([
   {
@@ -29,6 +30,10 @@ const router = createBrowserRouter([
   {
     path: '/forgot',
     element: <ForgotPassword />,
+  },
+  {
+    path: '/setup-password',
+    element: <ForcePasswordChangePage />
   },
   {
     path: '/exams',

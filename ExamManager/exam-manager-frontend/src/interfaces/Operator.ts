@@ -10,4 +10,5 @@ export interface Operator {
   lastName: string;
   role: string;
   token: string;
+  mustChangePassword?: boolean;
 }

@@ -10,4 +10,5 @@ public class OperatorLoginResponseDto
     public string LastName { get; set; }
     public Role Role { get; set; }
     public string Token { get; set; }
+    public bool MustChangePassword { get; set; } 
 }

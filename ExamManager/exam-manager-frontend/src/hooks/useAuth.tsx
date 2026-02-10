@@ -18,7 +18,7 @@ const useAuth = () => {
 
     if (token && storedUser) {
       try {
-        axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+        axios.defaults.headers.common.Authorization = `Bearer ${token}`;
         return JSON.parse(storedUser);
       } catch (error) {
         console.error('Token or user parse error: ', error);
@@ -31,12 +31,13 @@ const useAuth = () => {
     return null;
   });
 
-  const login = async (userName: string, password: string): Promise<void> => {
+  const login = async (userName: string, password: string): Promise<Operator> => {
     try {
       const response = await axiosInstance.post<{
         firstName: string;
         lastName: string;
         token: string;
+        mustChangePassword: boolean;
       }>('/operators/login', {
         userName,
         password,
@@ -58,18 +59,21 @@ const useAuth = () => {
             firstName: response.data.firstName || '',
             lastName: response.data.lastName || '',
             token: response.data.token || '',
+            mustChangePassword: response.data.mustChangePassword,
           };
 
           if (mappedOperator.id !== 'defaultIdOnError') {
             localStorage.setItem('user', JSON.stringify(mappedOperator));
             setUser(mappedOperator);
-          } else {
-            throw new Error('User data incomplete in token.');
+
+            return mappedOperator;
           }
+
+          throw new Error('User data incomplete in token.');
         } catch (error) {
           console.error('Token decode issue: ', error);
           localStorage.removeItem('token');
-          delete axios.defaults.headers.common['Authorization'];
+          delete axios.defaults.headers.common.Authorization;
           setUser(null);
           throw new Error('Successful login but decoding the token failed.');
         }
@@ -89,13 +93,15 @@ const useAuth = () => {
       } else {
         throw new Error('Unrecognized error during login.');
       }
+
+      throw error;
     }
   };
 
   const logout = (onLogout?: () => void) => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
-    delete axios.defaults.headers.common['Authorization'];
+    delete axios.defaults.headers.common.Authorization;
     setUser(null);
 
     if (onLogout) {

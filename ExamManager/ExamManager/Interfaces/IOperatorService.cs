@@ -8,6 +8,7 @@ public interface IOperatorService
 {
     Task<BaseServiceResponse<OperatorLoginResponseDto>> LoginAsync(OperatorLoginRequestDto loginRequest);
     Task<BaseServiceResponse<OperatorRegisterResponseDto>> RegisterAsync(OperatorCreateDto createRequest);
+    Task<BaseServiceResponse<bool>> ChangeMyPasswordAsync(int operatorId, string newPassword);
     Task<BaseServiceResponse<OperatorResponseDto>> GetOperatorByIdAsync(int operatorId);
     Task<BaseServiceResponse<IEnumerable<OperatorResponseDto>>> GetAllOperatorsAsync();
     Task<BaseServiceResponse<bool>> UpdateOperatorAsync(int operatorId, OperatorUpdateDto updateRequest);

@@ -45,8 +45,13 @@ function Login() {
     setLoginError(null);
 
     try {
-      await login(data.userName, data.password);
-      navigate('/');
+      const userResponse = await login(data.userName, data.password);
+
+      if (userResponse.mustChangePassword) {
+        navigate('/setup-password');
+      } else {
+        navigate('/');
+      }
     } catch (error: any) {
       setLoginError(error.message || 'Login error. Please try again.');
       console.error('Login error: ', error);
