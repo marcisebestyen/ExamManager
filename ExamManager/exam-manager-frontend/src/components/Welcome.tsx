@@ -1,6 +1,9 @@
+import { useTranslation } from 'react-i18next';
 import { Container, rem, Stack, Text, Title } from '@mantine/core';
 
 export function Welcome() {
+  const { t } = useTranslation();
+
   return (
     <Container size="md" py={rem(80)}>
       <Stack align="center" gap="xl">
@@ -15,7 +18,7 @@ export function Welcome() {
             color: 'var(--mantine-color-text)',
           }}
         >
-          Welcome to{' '}
+          {t('welcome.title')}{' '}
           <Text
             component="span"
             inherit
@@ -26,17 +29,16 @@ export function Welcome() {
               deg: 45,
             }}
           >
-            Exam Manager
+            {t('common.appTitle')}
           </Text>
         </Title>
 
         <Text c="dimmed" ta="center" size="xl" maw={600} style={{ lineHeight: 1.6 }}>
-          Designed to streamline your exam creation and management process with ease. Everything you
-          need in one secure place.
+          {t('welcome.description')}
         </Text>
 
         <Text c="dimmed" size="xs" mt="xl">
-          Designed by:{' '}
+          {t('welcome.designedBy')}:{' '}
           <Text span fw={500} c="var(--mantine-color-text)">
             Marcell Achilles Sebestyén
           </Text>

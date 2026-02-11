@@ -1,13 +1,14 @@
 import { useState } from 'react';
 import { IconInfoCircle } from '@tabler/icons-react';
+import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { Alert, Button, Container, Paper, PasswordInput, Stack, Text, Title } from '@mantine/core';
 import { useForm } from '@mantine/form';
 import axiosInstance from '../api/axios.config';
 import { Skeleton } from '../components/Skeleton';
 
-
 function ForceChangeForm() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -18,9 +19,10 @@ function ForceChangeForm() {
       confirmPassword: '',
     },
     validate: {
-      newPassword: (val) => (val.length < 6 ? 'Password must be at least 6 characters' : null),
-      confirmPassword: (val, values) => (val !== values.newPassword ? 'Passwords do not match' : null),
-    }
+      newPassword: (val) => (val.length < 6 ? t('auth.login.validation.passMin') : null),
+      confirmPassword: (val, values) =>
+        val !== values.newPassword ? t('auth.forgot.errors.mismatch') : null,
+    },
   });
 
   const handleSubmit = async (values: typeof form.values) => {
@@ -34,7 +36,7 @@ function ForceChangeForm() {
 
       navigate('/');
     } catch (error: any) {
-      setError(error.response?.data?.message || 'Failed to update password.');
+      setError(error.response?.data?.message || t('forceChange.error'));
     } finally {
       setLoading(false);
     }
@@ -43,10 +45,10 @@ function ForceChangeForm() {
   return (
     <Container size={420} my={40}>
       <Title ta="center" fw={900}>
-        Setup Password
+        {t('forceChange.title')}
       </Title>
       <Text c="dimmed" size="sm" ta="center" mt={5}>
-        For security, you must set a new password before continuing.
+        {t('forceChange.subtitle')}
       </Text>
 
       <Paper withBorder shadow="md" p={30} mt={30} radius="md">
@@ -54,36 +56,36 @@ function ForceChangeForm() {
           <Stack gap="md">
             <Alert
               icon={<IconInfoCircle size={16} />}
-              title="Action Required"
+              title={t('forceChange.alertTitle')}
               color="blue"
               variant="light"
             >
-              This is your first login. Please choose a secure password.
+              {t('forceChange.alertMsg')}
             </Alert>
 
             <PasswordInput
-              label="New Password"
-              placeholder="New password"
+              label={t('auth.forgot.step3.newPass')}
+              placeholder={t('auth.forgot.step3.newPass')}
               required
               disabled={loading}
               {...form.getInputProps('newPassword')}
             />
             <PasswordInput
-              label="Confirm Password"
-              placeholder="Confirm password"
+              label={t('auth.forgot.step3.confirmPass')}
+              placeholder={t('auth.forgot.step3.confirmPass')}
               required
               disabled={loading}
               {...form.getInputProps('confirmPassword')}
             />
 
             {error && (
-              <Text c='red' size='sm' ta='center' fw={500}>
+              <Text c="red" size="sm" ta="center" fw={500}>
                 {error}
               </Text>
             )}
 
-            <Button fullWidth mt='xl' type='submit' loading={loading}>
-              Update Password & Continue.
+            <Button fullWidth mt="xl" type="submit" loading={loading}>
+              {t('forceChange.submit')}
             </Button>
           </Stack>
         </form>
@@ -95,7 +97,14 @@ function ForceChangeForm() {
 export function ForcePasswordChangePage() {
   return (
     <Skeleton>
-      <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', minHeight: '80vh' }}>
+      <div
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'center',
+          minHeight: '80vh',
+        }}
+      >
         <ForceChangeForm />
       </div>
     </Skeleton>

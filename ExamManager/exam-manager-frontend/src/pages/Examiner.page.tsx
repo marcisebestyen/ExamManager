@@ -3,7 +3,7 @@ import '@mantine/dates/styles.css';
 import 'mantine-react-table/styles.css';
 import '@mantine/notifications/styles.css';
 
-import { useMemo, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   IconCalendar,
   IconDownload,
@@ -27,9 +27,9 @@ import {
 import {
   MantineReactTable,
   MRT_ColumnDef,
-  MRT_Row,
   useMantineReactTable,
 } from 'mantine-react-table';
+import { useTranslation } from 'react-i18next';
 import {
   ActionIcon,
   Button,
@@ -66,11 +66,7 @@ const generatePatchDocument = (oldData: IExaminer, newData: IExaminer): JsonPatc
       if (key === 'dateOfBirth' && val) {
         val = new Date(val).toISOString();
       }
-      patch.push({
-        op: 'replace',
-        path: `/${key}`,
-        value: val,
-      });
+      patch.push({ op: 'replace', path: `/${key}`, value: val });
     }
   }
   return patch;
@@ -78,41 +74,36 @@ const generatePatchDocument = (oldData: IExaminer, newData: IExaminer): JsonPatc
 
 const validateRequired = (value: string) => !!value?.trim().length;
 
-const validateDate = (dateString: string) => {
-  if (!dateString) {return false;}
-  const date = new Date(dateString);
-  return !isNaN(date.getTime());
-};
-
 const validateDateRange = (dateString: string) => {
-  if (!validateDate(dateString)) {return false;}
+  if (!dateString) {return false;}
   const date = new Date(dateString);
   const now = new Date();
   const minAge = new Date(now.getFullYear() - 120, now.getMonth(), now.getDate());
   return date >= minAge && date < now;
 };
 
-function validateExaminer(examiner: ExaminerFormData) {
+function validateExaminer(examiner: ExaminerFormData, t: any) {
   const errors: Record<string, string> = {};
-  if (!validateRequired(examiner.firstName)) {errors.firstName = 'First name is required';}
-  if (!validateRequired(examiner.lastName)) {errors.lastName = 'Last name is required';}
+  if (!validateRequired(examiner.firstName)) {errors.firstName = t('examiners.validation.firstName');}
+  if (!validateRequired(examiner.lastName)) {errors.lastName = t('examiners.validation.lastName');}
   if (!validateRequired(examiner.dateOfBirth)) {
-    errors.dateOfBirth = 'Date of birth is required';
+    errors.dateOfBirth = t('examiners.validation.dobRequired');
   } else if (!validateDateRange(examiner.dateOfBirth)) {
-    errors.dateOfBirth = 'Date must be a valid past date';
+    errors.dateOfBirth = t('examiners.validation.dobInvalid');
   }
   if (!validateRequired(examiner.email)) {
-    errors.email = 'Email is required';
+    errors.email = t('examiners.validation.emailRequired');
   } else if (!/^\S+@\S+\.\S+$/.test(examiner.email)) {
-    errors.email = 'Invalid email address';
+    errors.email = t('examiners.validation.emailInvalid');
   }
-  if (!validateRequired(examiner.phone)) {errors.phone = 'Phone is required';}
+  if (!validateRequired(examiner.phone)) {errors.phone = t('examiners.validation.phone');}
   if (!validateRequired(examiner.identityCardNumber))
-    {errors.identityCardNumber = 'ID card number is required';}
+    {errors.identityCardNumber = t('examiners.validation.idCard');}
   return errors;
 }
 
 const CreateExaminerForm = () => {
+  const { t } = useTranslation();
   const { data: fetchedExaminers = [] } = useGetExaminers();
   const { mutateAsync: createExaminer } = useCreateExaminer();
 
@@ -125,7 +116,7 @@ const CreateExaminerForm = () => {
       phone: '',
       identityCardNumber: '',
     },
-    validate: validateExaminer,
+    validate: (values) => validateExaminer(values, t),
     validateInputOnBlur: true,
   });
 
@@ -134,10 +125,7 @@ const CreateExaminerForm = () => {
       (ex) => ex.identityCardNumber.toLowerCase() === values.identityCardNumber.toLowerCase()
     );
     if (isDuplicate) {
-      form.setFieldError(
-        'identityCardNumber',
-        'An examiner with this ID card number already exists.'
-      );
+      form.setFieldError('identityCardNumber', t('examiners.form.duplicateId'));
       return;
     }
     await createExaminer(values);
@@ -148,50 +136,50 @@ const CreateExaminerForm = () => {
     <form onSubmit={handleSubmit}>
       <Stack>
         <TextInput
-          label="First Name"
+          label={t('examiners.table.firstName')}
           leftSection={<IconUser size={16} />}
           {...form.getInputProps('firstName')}
           required
         />
         <TextInput
-          label="Last Name"
+          label={t('examiners.table.lastName')}
           leftSection={<IconUser size={16} />}
           {...form.getInputProps('lastName')}
           required
         />
         <DateInput
-          label="Date of Birth"
+          label={t('examiners.table.dob')}
           leftSection={<IconCalendar size={16} />}
           valueFormat="YYYY-MM-DD"
           {...form.getInputProps('dateOfBirth')}
           required
         />
         <TextInput
-          label="Email"
+          label={t('examiners.table.email')}
           type="email"
           leftSection={<IconMail size={16} />}
           {...form.getInputProps('email')}
           required
         />
         <TextInput
-          label="Phone"
+          label={t('examiners.table.phone')}
           type="tel"
           leftSection={<IconPhone size={16} />}
           {...form.getInputProps('phone')}
           required
         />
         <TextInput
-          label="ID Card Number"
+          label={t('examiners.table.idCard')}
           leftSection={<IconId size={16} />}
           {...form.getInputProps('identityCardNumber')}
           required
         />
         <Flex justify="flex-end" mt="xl">
           <Button type="button" variant="subtle" onClick={() => modals.closeAll()} mr="xs">
-            Cancel
+            {t('exams.actions.cancel')}
           </Button>
           <Button type="submit" variant="filled" radius="md">
-            Create Examiner
+            {t('exams.actions.create')}
           </Button>
         </Flex>
       </Stack>
@@ -200,6 +188,7 @@ const CreateExaminerForm = () => {
 };
 
 const EditExaminerForm = ({ initialExaminer }: { initialExaminer: IExaminer }) => {
+  const { t } = useTranslation();
   const { data: fetchedExaminers = [] } = useGetExaminers();
   const { mutateAsync: updateExaminer } = useUpdateExaminer();
 
@@ -212,7 +201,7 @@ const EditExaminerForm = ({ initialExaminer }: { initialExaminer: IExaminer }) =
       phone: initialExaminer.phone,
       identityCardNumber: initialExaminer.identityCardNumber,
     },
-    validate: validateExaminer,
+    validate: (values) => validateExaminer(values, t),
     validateInputOnBlur: true,
   });
 
@@ -223,10 +212,7 @@ const EditExaminerForm = ({ initialExaminer }: { initialExaminer: IExaminer }) =
         ex.identityCardNumber.toLowerCase() === values.identityCardNumber.toLowerCase()
     );
     if (isDuplicate) {
-      form.setFieldError(
-        'identityCardNumber',
-        'An examiner with this ID card number already exists.'
-      );
+      form.setFieldError('identityCardNumber', t('examiners.form.duplicateId'));
       return;
     }
     const newValues: IExaminer = { ...initialExaminer, ...values };
@@ -238,50 +224,50 @@ const EditExaminerForm = ({ initialExaminer }: { initialExaminer: IExaminer }) =
     <form onSubmit={handleSubmit}>
       <Stack>
         <TextInput
-          label="First Name"
+          label={t('examiners.table.firstName')}
           leftSection={<IconUser size={16} />}
           {...form.getInputProps('firstName')}
           required
         />
         <TextInput
-          label="Last Name"
+          label={t('examiners.table.lastName')}
           leftSection={<IconUser size={16} />}
           {...form.getInputProps('lastName')}
           required
         />
         <DateInput
-          label="Date of Birth"
+          label={t('examiners.table.dob')}
           leftSection={<IconCalendar size={16} />}
           valueFormat="YYYY-MM-DD"
           {...form.getInputProps('dateOfBirth')}
           required
         />
         <TextInput
-          label="Email"
+          label={t('examiners.table.email')}
           type="email"
           leftSection={<IconMail size={16} />}
           {...form.getInputProps('email')}
           required
         />
         <TextInput
-          label="Phone"
+          label={t('examiners.table.phone')}
           type="tel"
           leftSection={<IconPhone size={16} />}
           {...form.getInputProps('phone')}
           required
         />
         <TextInput
-          label="ID Card Number"
+          label={t('examiners.table.idCard')}
           leftSection={<IconId size={16} />}
           {...form.getInputProps('identityCardNumber')}
           required
         />
         <Flex justify="flex-end" mt="xl">
           <Button type="button" variant="subtle" onClick={() => modals.closeAll()} mr="xs">
-            Cancel
+            {t('exams.actions.cancel')}
           </Button>
           <Button type="submit" variant="filled" radius="md">
-            Save Changes
+            {t('exams.actions.save')}
           </Button>
         </Flex>
       </Stack>
@@ -290,28 +276,27 @@ const EditExaminerForm = ({ initialExaminer }: { initialExaminer: IExaminer }) =
 };
 
 const DeleteExaminerModal = ({ examiner }: { examiner: IExaminer }) => {
+  const { t } = useTranslation();
   const { mutateAsync: deleteExaminer } = useDeleteExaminer();
-
-  const handleDelete = async () => {
-    await deleteExaminer(examiner.id);
-    modals.close('delete-examiner');
-  };
 
   return (
     <Stack>
       <Text size="sm">
-        Are you sure you want to delete{' '}
-        <b>
-          {examiner.firstName} {examiner.lastName}
-        </b>
-        ? This action cannot be undone.
+        {t('exams.deleteConfirm', { name: `${examiner.firstName} ${examiner.lastName}` })}
       </Text>
       <Flex justify="flex-end" mt="xl">
         <Button variant="default" onClick={() => modals.closeAll()} mr="xs">
-          Cancel
+          {t('exams.actions.cancel')}
         </Button>
-        <Button color="red" variant="filled" onClick={handleDelete}>
-          Delete Examiner
+        <Button
+          color="red"
+          variant="filled"
+          onClick={async () => {
+            await deleteExaminer(examiner.id);
+            modals.close('delete-examiner');
+          }}
+        >
+          {t('exams.actions.delete')}
         </Button>
       </Flex>
     </Stack>
@@ -319,6 +304,7 @@ const DeleteExaminerModal = ({ examiner }: { examiner: IExaminer }) => {
 };
 
 const ExaminerTable = () => {
+  const { t, i18n } = useTranslation();
   const queryClient = useQueryClient();
   const [isExporting, setIsExporting] = useState(false);
   const [isImportOpen, { open: openImport, close: closeImport }] = useDisclosure(false);
@@ -334,80 +320,40 @@ const ExaminerTable = () => {
 
   const columns = useMemo<MRT_ColumnDef<IExaminer>[]>(
     () => [
-      { accessorKey: 'firstName', header: 'First Name' },
-      { accessorKey: 'lastName', header: 'Last Name' },
+      { accessorKey: 'firstName', header: t('examiners.table.firstName') },
+      { accessorKey: 'lastName', header: t('examiners.table.lastName') },
       {
         accessorKey: 'dateOfBirth',
-        header: 'Date of Birth',
-        Cell: ({ cell }) => new Date(cell.getValue<string>()).toLocaleDateString('en-CA'),
+        header: t('examiners.table.dob'),
+        Cell: ({ cell }) =>
+          new Date(cell.getValue<string>()).toLocaleDateString(
+            i18n.language === 'hu' ? 'hu-HU' : 'en-CA'
+          ),
       },
-      { accessorKey: 'email', header: 'Email' },
-      { accessorKey: 'phone', header: 'Phone' },
-      { accessorKey: 'identityCardNumber', header: 'ID Card Number' },
+      { accessorKey: 'email', header: t('examiners.table.email') },
+      { accessorKey: 'phone', header: t('examiners.table.phone') },
+      { accessorKey: 'identityCardNumber', header: t('examiners.table.idCard') },
     ],
-    []
+    [t, i18n.language]
   );
-
-  const openCreateModal = () =>
-    modals.open({
-      id: 'create-examiner',
-      title: <Text fw={700}>Create New Examiner</Text>,
-      children: <CreateExaminerForm />,
-    });
-
-  const openEditModal = (examiner: IExaminer) =>
-    modals.open({
-      id: 'edit-examiner',
-      title: <Text fw={700}>Edit Examiner</Text>,
-      children: <EditExaminerForm initialExaminer={examiner} />,
-    });
-
-  const openDeleteConfirmModal = (row: MRT_Row<IExaminer>) =>
-    modals.open({
-      id: 'delete-examiner',
-      title: (
-        <Text fw={700} c="red">
-          Delete Examiner
-        </Text>
-      ),
-      children: <DeleteExaminerModal examiner={row.original} />,
-    });
-
-  const handleExportData = async (table: any) => {
-    setIsExporting(true);
-    try {
-      const filteredRows = table.getPrePaginationRowModel().rows;
-      const ids = filteredRows.map((row: any) => row.original.id);
-      if (ids.length === 0) {
-        notifications.show({ title: 'Info', message: 'No data to export', color: 'blue' });
-        return;
-      }
-      const response = await api.Exports.exportExaminersFiltered(ids);
-      const url = window.URL.createObjectURL(new Blob([response.data]));
-      const link = document.createElement('a');
-      link.href = url;
-      link.setAttribute(
-        'download',
-        `Examiners_Filtered_${new Date().toISOString().slice(0, 10)}.xlsx`
-      );
-      document.body.appendChild(link);
-      link.click();
-      link.parentNode?.removeChild(link);
-    } catch (error) {
-      notifications.show({ title: 'Error', message: 'Export failed', color: 'red' });
-    } finally {
-      setIsExporting(false);
-    }
-  };
 
   const table = useMantineReactTable({
     columns,
     data: fetchedExaminers,
-    enableEditing: false,
     enableRowActions: true,
     getRowId: (row) => String(row.id),
     autoResetPageIndex: false,
     onPaginationChange: setPagination,
+    localization: {
+      actions: t('exams.mrt.actions'),
+      showHideFilters: t('exams.mrt.showHideFilters'),
+      showHideColumns: t('exams.mrt.showHideColumns'),
+      clearFilter: t('exams.mrt.clearFilter'),
+      clearSearch: t('exams.mrt.clearSearch'),
+      search: t('exams.mrt.search'),
+      rowsPerPage: t('exams.mrt.rowsPerPage'),
+      of: t('exams.mrt.of'),
+    },
     state: {
       isLoading: isLoadingExaminers,
       isSaving: isDeletingExaminer,
@@ -416,9 +362,6 @@ const ExaminerTable = () => {
       pagination,
     },
     mantinePaperProps: { shadow: 'sm', radius: 'md', withBorder: true },
-    mantineToolbarAlertBannerProps: isLoadingExaminersError
-      ? { color: 'red', children: 'Error loading data' }
-      : undefined,
     mantineTableContainerProps: { style: { minHeight: '500px' } },
     enableDensityToggle: false,
     enableFullScreenToggle: false,
@@ -426,13 +369,37 @@ const ExaminerTable = () => {
     initialState: { showGlobalFilter: true, density: 'xs' },
     renderRowActions: ({ row }) => (
       <Flex gap="sm">
-        <Tooltip label="Edit">
-          <ActionIcon color="blue" variant="subtle" onClick={() => openEditModal(row.original)}>
+        <Tooltip label={t('exams.actions.edit')}>
+          <ActionIcon
+            color="blue"
+            variant="subtle"
+            onClick={() =>
+              modals.open({
+                id: 'edit-examiner',
+                title: <Text fw={700}>{t('examiners.form.editTitle')}</Text>,
+                children: <EditExaminerForm initialExaminer={row.original} />,
+              })
+            }
+          >
             <IconEdit size={18} />
           </ActionIcon>
         </Tooltip>
-        <Tooltip label="Delete">
-          <ActionIcon color="red" variant="subtle" onClick={() => openDeleteConfirmModal(row)}>
+        <Tooltip label={t('exams.actions.delete')}>
+          <ActionIcon
+            color="red"
+            variant="subtle"
+            onClick={() =>
+              modals.open({
+                id: 'delete-examiner',
+                title: (
+                  <Text fw={700} c="red">
+                    {t('examiners.form.deleteTitle')}
+                  </Text>
+                ),
+                children: <DeleteExaminerModal examiner={row.original} />,
+              })
+            }
+          >
             <IconTrash size={18} />
           </ActionIcon>
         </Tooltip>
@@ -444,9 +411,15 @@ const ExaminerTable = () => {
           variant="filled"
           radius="md"
           leftSection={<IconPlus size={16} />}
-          onClick={openCreateModal}
+          onClick={() =>
+            modals.open({
+              id: 'create-examiner',
+              title: <Text fw={700}>{t('examiners.form.createTitle')}</Text>,
+              children: <CreateExaminerForm />,
+            })
+          }
         >
-          Create Entry
+          {t('exams.actions.create')}
         </Button>
         <Button
           variant="filled"
@@ -455,7 +428,7 @@ const ExaminerTable = () => {
           leftSection={<IconUpload size={16} />}
           onClick={openImport}
         >
-          Import
+          {t('exams.actions.import')}
         </Button>
         <Button
           variant="filled"
@@ -463,9 +436,41 @@ const ExaminerTable = () => {
           radius="md"
           leftSection={<IconDownload size={16} />}
           loading={isExporting}
-          onClick={() => handleExportData(table)}
+          onClick={async () => {
+            setIsExporting(true);
+            try {
+              const ids = table.getPrePaginationRowModel().rows.map((row: any) => row.original.id);
+              if (ids.length === 0) {
+                notifications.show({
+                  title: 'Info',
+                  message: t('examiners.notifications.exportNoData'),
+                  color: 'blue',
+                });
+                return;
+              }
+              const response = await api.Exports.exportExaminersFiltered(ids);
+              const url = window.URL.createObjectURL(new Blob([response.data]));
+              const link = document.createElement('a');
+              link.href = url;
+              link.setAttribute(
+                'download',
+                `Examiners_${new Date().toISOString().slice(0, 10)}.xlsx`
+              );
+              document.body.appendChild(link);
+              link.click();
+              link.parentNode?.removeChild(link);
+            } catch (error) {
+              notifications.show({
+                title: t('common.error'),
+                message: t('exams.notifications.exportFailed'),
+                color: 'red',
+              });
+            } finally {
+              setIsExporting(false);
+            }
+          }}
         >
-          Export
+          {t('exams.actions.export')}
         </Button>
       </Flex>
     ),
@@ -477,7 +482,7 @@ const ExaminerTable = () => {
       <ImportModal
         opened={isImportOpen}
         onClose={closeImport}
-        entityName="Examiners"
+        entityName={t('examiners.title')}
         onDownloadTemplate={api.Imports.downloadTemplateExaminers}
         onImport={api.Imports.importExaminers}
         onSuccess={() => queryClient.invalidateQueries({ queryKey: ['examiners'] })}
@@ -487,21 +492,24 @@ const ExaminerTable = () => {
 };
 
 function useCreateExaminer() {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (data: ExaminerFormData) => api.Examiners.createExaminer(data),
     onSuccess: (created) => {
       notifications.show({
-        title: 'Success!',
-        message: `Examiner "${created.firstName} ${created.lastName}" created.`,
+        title: t('common.success'),
+        message: t('examiners.notifications.createSuccess', {
+          name: `${created.firstName} ${created.lastName}`,
+        }),
         color: 'teal',
       });
       queryClient.invalidateQueries({ queryKey: ['examiners'] });
     },
     onError: (error: any) => {
       notifications.show({
-        title: 'Creation Failed',
-        message: error.response?.data?.message || 'Failed to create examiner.',
+        title: t('common.error'),
+        message: error.response?.data?.message || t('common.error'),
         color: 'red',
       });
     },
@@ -518,6 +526,7 @@ function useGetExaminers() {
 }
 
 function useUpdateExaminer() {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async ({
@@ -535,16 +544,16 @@ function useUpdateExaminer() {
     },
     onSuccess: (updated) => {
       notifications.show({
-        title: 'Success!',
-        message: `Examiner "${updated.firstName}" updated.`,
+        title: t('common.success'),
+        message: t('examiners.notifications.updateSuccess', { name: updated.firstName }),
         color: 'teal',
       });
       queryClient.invalidateQueries({ queryKey: ['examiners'] });
     },
     onError: () => {
       notifications.show({
-        title: 'Update Failed',
-        message: 'Could not update examiner.',
+        title: t('common.error'),
+        message: t('common.error'),
         color: 'red',
       });
     },
@@ -552,45 +561,49 @@ function useUpdateExaminer() {
 }
 
 function useDeleteExaminer() {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (id: number) => api.Examiners.deleteExaminer(id).then(() => id),
     onSuccess: () => {
       notifications.show({
-        title: 'Success!',
-        message: `Examiner successfully deleted.`,
+        title: t('common.success'),
+        message: t('examiners.notifications.deleteSuccess'),
         color: 'teal',
       });
       queryClient.invalidateQueries({ queryKey: ['examiners'] });
     },
     onError: () => {
       notifications.show({
-        title: 'Deletion Failed',
-        message: 'Could not delete examiner.',
+        title: t('common.error'),
+        message: t('common.error'),
         color: 'red',
       });
     },
   });
 }
 
-const queryClient = new QueryClient();
+const rootQueryClient = new QueryClient();
 
-const ExaminerPage = () => (
-  <MantineProvider>
-    <QueryClientProvider client={queryClient}>
-      <ModalsProvider>
-        <Notifications />
-        <Skeleton>
-          <Stack mb="lg">
-            <Title order={2} style={{ fontFamily: 'Greycliff CF, var(--mantine-font-family)' }}>
-              Examiners
-            </Title>
-          </Stack>
-          <ExaminerTable />
-        </Skeleton>
-      </ModalsProvider>
-    </QueryClientProvider>
-  </MantineProvider>
-);
+const ExaminerPage = () => {
+  const { t } = useTranslation();
+  return (
+    <MantineProvider>
+      <QueryClientProvider client={rootQueryClient}>
+        <ModalsProvider>
+          <Notifications />
+          <Skeleton>
+            <Stack mb="lg">
+              <Title order={2} style={{ fontFamily: 'Greycliff CF, var(--mantine-font-family)' }}>
+                {t('examiners.title')}
+              </Title>
+            </Stack>
+            <ExaminerTable />
+          </Skeleton>
+        </ModalsProvider>
+      </QueryClientProvider>
+    </MantineProvider>
+  );
+};
 
 export default ExaminerPage;

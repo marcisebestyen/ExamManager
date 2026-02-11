@@ -8,6 +8,7 @@ import {
   IconUpload,
   IconX,
 } from '@tabler/icons-react';
+import { useTranslation } from 'react-i18next';
 import {
   Alert,
   Button,
@@ -21,7 +22,6 @@ import {
   Stack,
   Text,
   Timeline,
-  useMantineTheme,
 } from '@mantine/core';
 import { Dropzone, MIME_TYPES } from '@mantine/dropzone';
 import { notifications } from '@mantine/notifications';
@@ -43,7 +43,7 @@ export const ImportModal = ({
   onImport,
   onSuccess,
 }: ImportModalProps) => {
-  const theme = useMantineTheme();
+  const { t } = useTranslation();
   const [loading, setLoading] = useState(false);
   const [importResult, setImportResult] = useState<{
     success: number;
@@ -62,8 +62,8 @@ export const ImportModal = ({
       link.parentNode?.removeChild(link);
     } catch (error) {
       notifications.show({
-        title: 'Download Failed',
-        message: 'Could not download the template. Please try again later.',
+        title: t('common.error'),
+        message: t('importModal.notifications.downloadFailed'),
         color: 'red',
         icon: <IconX size={16} />,
       });
@@ -71,7 +71,7 @@ export const ImportModal = ({
   };
 
   const handleUpload = async (files: File[]) => {
-    if (files.length === 0) {return;}
+    if (files.length === 0) return;
 
     setLoading(true);
     setImportResult(null);
@@ -93,29 +93,32 @@ export const ImportModal = ({
 
       if (successCount > 0) {
         notifications.show({
-          title: 'Import Complete',
-          message: `Imported ${successCount} ${entityName} successfully.`,
+          title: t('importModal.notifications.importComplete'),
+          message: t('importModal.notifications.importCompleteMsg', {
+            count: successCount,
+            entity: entityName,
+          }),
           color: 'teal',
           icon: <IconCheck size={16} />,
         });
         onSuccess();
       } else if (safeErrors.length > 0) {
         notifications.show({
-          title: 'No Data Added',
-          message: 'Check the error log for details.',
+          title: t('importModal.result.noDataTitle'),
+          message: t('importModal.result.noDataMsg'),
           color: 'yellow',
           icon: <IconAlertCircle size={16} />,
         });
       }
     } catch (error: any) {
       const serverErrors = error.response?.data?.details;
-      const serverMessage = error.response?.data?.message || 'Server error or invalid file format.';
+      const serverMessage = error.response?.data?.message || t('common.error');
       const errorList = Array.isArray(serverErrors) ? serverErrors : [serverMessage];
 
       setImportResult({ success: 0, errors: errorList });
       notifications.show({
-        title: 'Import Failed',
-        message: 'See details below.',
+        title: t('importModal.notifications.importFailed'),
+        message: t('common.error'),
         color: 'red',
         icon: <IconX size={16} />,
       });
@@ -133,18 +136,17 @@ export const ImportModal = ({
     <Modal
       opened={opened}
       onClose={reset}
-      title={<Text fw={700}>Import {entityName}</Text>}
+      title={<Text fw={700}>{t('importModal.title', { entity: entityName })}</Text>}
       size="lg"
       centered
       radius="md"
       overlayProps={{ opacity: 0.5, blur: 4 }}
     >
       <Stack gap="xl">
-        {/* Step 1: Template */}
         <Timeline active={1} bulletSize={24} lineWidth={2}>
-          <Timeline.Item bullet={<IconDownload size={12} />} title="Download Template">
+          <Timeline.Item bullet={<IconDownload size={12} />} title={t('importModal.step1.title')}>
             <Text c="dimmed" size="sm" mb="sm">
-              Get the formatted Excel file to ensure your data matches the system requirements.
+              {t('importModal.step1.desc')}
             </Text>
             <Button
               variant="default"
@@ -152,13 +154,17 @@ export const ImportModal = ({
               leftSection={<IconFileTypeXls size={14} color="green" />}
               onClick={handleDownload}
             >
-              Download .xlsx Template
+              {t('importModal.step1.button')}
             </Button>
           </Timeline.Item>
 
-          <Timeline.Item bullet={<IconUpload size={12} />} title="Upload Data" lineVariant="dashed">
+          <Timeline.Item
+            bullet={<IconUpload size={12} />}
+            title={t('importModal.step2.title')}
+            lineVariant="dashed"
+          >
             <Text c="dimmed" size="sm" mb="sm">
-              Drag and drop your filled template below.
+              {t('importModal.step2.desc')}
             </Text>
 
             {!importResult ? (
@@ -166,7 +172,7 @@ export const ImportModal = ({
                 onDrop={handleUpload}
                 onReject={() =>
                   notifications.show({
-                    message: 'File type not supported',
+                    message: t('importModal.step2.rejected'),
                     color: 'red',
                   })
                 }
@@ -174,7 +180,6 @@ export const ImportModal = ({
                 accept={[MIME_TYPES.xlsx, MIME_TYPES.xls]}
                 loading={loading}
                 radius="md"
-                // UPDATED STYLES HERE
                 style={{
                   border: '1px dashed var(--mantine-color-default-border)',
                   backgroundColor: 'transparent',
@@ -215,10 +220,10 @@ export const ImportModal = ({
 
                   <div>
                     <Text size="lg" inline>
-                      Drag .xlsx file here
+                      {t('importModal.step2.dropzone')}
                     </Text>
                     <Text size="sm" c="dimmed" inline mt={7}>
-                      or click to select from computer
+                      {t('importModal.step2.dropzoneSub')}
                     </Text>
                   </div>
                 </Group>
@@ -256,17 +261,17 @@ export const ImportModal = ({
                   />
                   <div style={{ flex: 1 }}>
                     <Text fw={700} size="sm">
-                      Processing Complete
+                      {t('importModal.result.title')}
                     </Text>
                     <Text size="xs" c="dimmed">
-                      {importResult.success} records imported successfully.
+                      {t('importModal.result.success', { count: importResult.success })}
                     </Text>
 
                     {importResult.errors && importResult.errors.length > 0 && (
                       <Alert
                         variant="light"
                         color="red"
-                        title="Issues Found"
+                        title={t('importModal.result.issues')}
                         mt="xs"
                         icon={<IconAlertCircle size={16} />}
                       >
@@ -286,7 +291,7 @@ export const ImportModal = ({
                       mt="xs"
                       onClick={() => setImportResult(null)}
                     >
-                      Upload another file
+                      {t('importModal.result.another')}
                     </Button>
                   </div>
                 </Group>

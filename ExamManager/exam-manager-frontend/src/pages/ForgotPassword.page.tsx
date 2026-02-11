@@ -1,5 +1,6 @@
 import { FormEvent, useState } from 'react';
 import { IconArrowLeft, IconCheck, IconInfoCircle } from '@tabler/icons-react';
+import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import {
   Alert,
@@ -19,6 +20,7 @@ import { Skeleton } from '../components/Skeleton';
 type ViewMode = 'enterUsername' | 'enterToken' | 'enterNewPassword' | 'success';
 
 const ForgotPasswordForm = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
 
   const [viewMode, setViewMode] = useState<ViewMode>('enterUsername');
@@ -44,17 +46,14 @@ const ForgotPasswordForm = () => {
       });
 
       if (response.status === 200) {
-        setMessage(response.data.message || 'If the user exists, we will send a token.');
+        setMessage(response.data.message || t('auth.forgot.step2.title'));
         setViewMode('enterToken');
       }
     } catch (err: any) {
       if (err.response?.status === 400) {
-        setError(
-          err.response?.data?.message ||
-            'No email belongs to this user. Please, contact your administrator.'
-        );
+        setError(err.response?.data?.message || t('auth.forgot.errors.noEmail'));
       } else {
-        setError(err.response?.data?.message || 'Error occurred during token generating.');
+        setError(err.response?.data?.message || t('auth.forgot.errors.tokenGen'));
       }
     } finally {
       setLoading(false);
@@ -65,11 +64,11 @@ const ForgotPasswordForm = () => {
     event.preventDefault();
 
     if (token.length !== 6) {
-      setError('The token must be 6 digits.');
+      setError(t('auth.forgot.errors.tokenLength'));
       return;
     }
 
-    setMessage('Token accepted, enter your password, please.');
+    setMessage(t('auth.forgot.step3.instruction'));
     setError('');
     setViewMode('enterNewPassword');
   };
@@ -78,12 +77,12 @@ const ForgotPasswordForm = () => {
     event.preventDefault();
 
     if (newPassword !== confirmNewPassword) {
-      setError('The passwords do not match.');
+      setError(t('auth.forgot.errors.mismatch'));
       return;
     }
 
     if (newPassword.length < 6) {
-      setError('The password must be at least 6 characters long.');
+      setError(t('auth.forgot.errors.passLength'));
       return;
     }
 
@@ -98,15 +97,10 @@ const ForgotPasswordForm = () => {
       });
 
       if (response.status === 200) {
-        setMessage(response.data.message || 'The password is not changed');
         setViewMode('success');
-        setUsername('');
-        setToken('');
-        setNewPassword('');
-        setConfirmNewPassword('');
       }
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Error during password change.');
+      setError(err.response?.data?.message || t('auth.forgot.errors.general'));
     } finally {
       setLoading(false);
     }
@@ -131,10 +125,10 @@ const ForgotPasswordForm = () => {
           fontWeight: 900,
         }}
       >
-        Forgot Password?
+        {t('auth.forgot.title')}
       </Title>
       <Text c="dimmed" size="sm" ta="center" mt={5}>
-        Follow the steps to reset your access
+        {t('auth.forgot.subtitle')}
       </Text>
 
       <Paper
@@ -149,13 +143,12 @@ const ForgotPasswordForm = () => {
           <form onSubmit={handleUsernameSubmit}>
             <Stack gap="md">
               <Text size="sm" c="dimmed">
-                Enter your username. If an account exists, we will send a 6-digit token to your
-                email.
+                {t('auth.forgot.step1.desc')}
               </Text>
 
               <TextInput
-                label="Username"
-                placeholder="Enter your username"
+                label={t('auth.login.username')}
+                placeholder={t('auth.login.usernamePlaceholder')}
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 required
@@ -167,7 +160,7 @@ const ForgotPasswordForm = () => {
                 <Alert
                   icon={<IconInfoCircle size={16} />}
                   color="red"
-                  title="Error"
+                  title={t('common.error')}
                   variant="light"
                 >
                   {error}
@@ -182,7 +175,7 @@ const ForgotPasswordForm = () => {
                 loading={loading}
                 fullWidth
               >
-                {loading ? 'Sending...' : 'Request Reset Token'}
+                {loading ? t('auth.forgot.step1.sending') : t('auth.forgot.step1.button')}
               </Button>
 
               <Anchor
@@ -193,7 +186,7 @@ const ForgotPasswordForm = () => {
                 onClick={handleGoToLogin}
                 style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5 }}
               >
-                <IconArrowLeft size={14} /> Back to login
+                <IconArrowLeft size={14} /> {t('auth.forgot.step1.back')}
               </Anchor>
             </Stack>
           </form>
@@ -206,7 +199,7 @@ const ForgotPasswordForm = () => {
                 <Alert
                   icon={<IconInfoCircle size={16} />}
                   color="green"
-                  title="Check your email"
+                  title={t('auth.forgot.step2.title')}
                   variant="light"
                 >
                   {message}
@@ -214,11 +207,11 @@ const ForgotPasswordForm = () => {
               )}
 
               <Text size="sm" c="dimmed">
-                We sent a code to your email. Please enter the 6-digit token below.
+                {t('auth.forgot.step2.desc')}
               </Text>
 
               <TextInput
-                label="Security Token"
+                label={t('auth.forgot.step2.tokenLabel')}
                 placeholder="000000"
                 value={token}
                 onChange={(e) => setToken(e.target.value.replace(/\D/g, ''))}
@@ -226,14 +219,14 @@ const ForgotPasswordForm = () => {
                 maxLength={6}
                 disabled={loading}
                 radius="md"
-                style={{ letterSpacing: '2px' }} // Makes typing codes look cool
+                style={{ letterSpacing: '2px' }}
               />
 
               {error && (
                 <Alert
                   icon={<IconInfoCircle size={16} />}
                   color="red"
-                  title="Invalid Token"
+                  title={t('common.error')}
                   variant="light"
                 >
                   {error}
@@ -248,7 +241,7 @@ const ForgotPasswordForm = () => {
                 loading={loading}
                 fullWidth
               >
-                Verify Token
+                {t('auth.forgot.step2.verify')}
               </Button>
 
               <Button
@@ -258,7 +251,7 @@ const ForgotPasswordForm = () => {
                 fullWidth
                 size="sm"
               >
-                Back to Username
+                {t('auth.forgot.step2.backUser')}
               </Button>
             </Stack>
           </form>
@@ -270,15 +263,15 @@ const ForgotPasswordForm = () => {
               <Alert
                 icon={<IconCheck size={16} />}
                 color="blue"
-                title="Token Verified"
+                title={t('auth.forgot.step3.verified')}
                 variant="light"
               >
-                Please create a new password.
+                {t('auth.forgot.step3.instruction')}
               </Alert>
 
               <PasswordInput
-                label="New Password"
-                placeholder="At least 6 characters"
+                label={t('auth.forgot.step3.newPass')}
+                placeholder={t('auth.login.passwordPlaceholder')}
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
                 required
@@ -287,8 +280,8 @@ const ForgotPasswordForm = () => {
               />
 
               <PasswordInput
-                label="Confirm Password"
-                placeholder="Re-enter password"
+                label={t('auth.forgot.step3.confirmPass')}
+                placeholder={t('auth.login.passwordPlaceholder')}
                 value={confirmNewPassword}
                 onChange={(e) => setConfirmNewPassword(e.target.value)}
                 required
@@ -300,7 +293,7 @@ const ForgotPasswordForm = () => {
                 <Alert
                   icon={<IconInfoCircle size={16} />}
                   color="red"
-                  title="Error"
+                  title={t('common.error')}
                   variant="light"
                 >
                   {error}
@@ -315,7 +308,7 @@ const ForgotPasswordForm = () => {
                 loading={loading}
                 fullWidth
               >
-                {loading ? 'Saving...' : 'Set New Password'}
+                {loading ? t('auth.forgot.step3.saving') : t('auth.forgot.step3.submit')}
               </Button>
             </Stack>
           </form>
@@ -338,11 +331,11 @@ const ForgotPasswordForm = () => {
             </div>
 
             <Title order={3} ta="center">
-              Password Changed!
+              {t('auth.forgot.success.title')}
             </Title>
 
             <Text size="sm" c="dimmed" ta="center">
-              Your password has been updated successfully. You can now log in.
+              {t('auth.forgot.success.desc')}
             </Text>
 
             <Button
@@ -353,7 +346,7 @@ const ForgotPasswordForm = () => {
               fullWidth
               mt="sm"
             >
-              Go to Login
+              {t('auth.forgot.success.button')}
             </Button>
           </Stack>
         )}

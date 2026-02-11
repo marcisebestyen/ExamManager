@@ -1,8 +1,46 @@
 import { useMemo, useState } from 'react';
-import { IconBuildingCommunity, IconCircleKey, IconDownload, IconEdit, IconHash, IconId, IconMapPin, IconNumber123, IconPlus, IconRoad, IconStairs, IconTrash, IconUpload } from '@tabler/icons-react';
-import { keepPreviousData, QueryClient, QueryClientProvider, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { MantineReactTable, MRT_ColumnDef, MRT_Row, useMantineReactTable } from 'mantine-react-table';
-import { ActionIcon, Button, Flex, Group, MantineProvider, Stack, Text, TextInput, Title, Tooltip } from '@mantine/core';
+import {
+  IconBuildingCommunity,
+  IconCircleKey,
+  IconDownload,
+  IconEdit,
+  IconHash,
+  IconId,
+  IconMapPin,
+  IconNumber123,
+  IconPlus,
+  IconRoad,
+  IconStairs,
+  IconTrash,
+  IconUpload,
+} from '@tabler/icons-react';
+import {
+  keepPreviousData,
+  QueryClient,
+  QueryClientProvider,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from '@tanstack/react-query';
+import {
+  MantineReactTable,
+  MRT_ColumnDef,
+  MRT_Row,
+  useMantineReactTable,
+} from 'mantine-react-table';
+import { useTranslation } from 'react-i18next';
+import {
+  ActionIcon,
+  Button,
+  Flex,
+  Group,
+  MantineProvider,
+  Stack,
+  Text,
+  TextInput,
+  Title,
+  Tooltip,
+} from '@mantine/core';
 import { useForm } from '@mantine/form';
 import { useDisclosure } from '@mantine/hooks';
 import { modals, ModalsProvider } from '@mantine/modals';
@@ -11,7 +49,6 @@ import { IInstitution, InstitutionFormData } from '@/interfaces/IInstitution';
 import api from '../api/api';
 import { ImportModal } from '../components/ImportModal';
 import { Skeleton } from '../components/Skeleton';
-
 
 interface JsonPatchOperation {
   op: 'replace' | 'add' | 'remove' | 'copy' | 'move' | 'test';
@@ -43,39 +80,40 @@ const generatePatchDocument = (
 };
 
 const validateRequired = (value: string | number) => {
-  if (typeof value === 'string') {return !!value.trim().length;}
-  if (typeof value === 'number') {return value > 0;}
+  if (typeof value === 'string') {
+    return !!value.trim().length;
+  }
+  if (typeof value === 'number') {
+    return value > 0;
+  }
   return false;
 };
 
-function validateInstitution(institution: InstitutionFormData) {
+function validateInstitution(institution: InstitutionFormData, t: any) {
   const errors: Record<string, string> = {};
-  if (!validateRequired(institution.name)) {errors.name = 'Name is required';}
-  if (!validateRequired(institution.educationalId))
-    {errors.educationalId = 'Educational ID is required';}
-  if (!validateRequired(institution.zipCode)) {errors.zipCode = 'Zip Code is required';}
-  if (!validateRequired(institution.town)) {errors.town = 'Town is required';}
-  if (!validateRequired(institution.street)) {errors.street = 'Street is required';}
-  if (!validateRequired(institution.number)) {errors.number = 'Number is required';}
+  if (!validateRequired(institution.name)) {
+    errors.name = t('institutions.validation.name');
+  }
+  if (!validateRequired(institution.educationalId)) {
+    errors.educationalId = t('institutions.validation.educationalId');
+  }
+  if (!validateRequired(institution.zipCode)) {
+    errors.zipCode = t('institutions.validation.zipCode');
+  }
+  if (!validateRequired(institution.town)) {
+    errors.town = t('institutions.validation.town');
+  }
+  if (!validateRequired(institution.street)) {
+    errors.street = t('institutions.validation.street');
+  }
+  if (!validateRequired(institution.number)) {
+    errors.number = t('institutions.validation.number');
+  }
   return errors;
 }
 
-function IconDoorEnter(props: {
-  label: string;
-  leftSection: React.JSX.Element;
-  onChange: any;
-  value: any;
-  defaultValue: any;
-  checked: any;
-  defaultChecked: any;
-  error: any;
-  onFocus: any;
-  onBlur: any;
-}) {
-  return null;
-}
-
 const CreateInstitutionForm = () => {
+  const { t } = useTranslation();
   const { data: fetchedInstitutions = [] } = useGetInstitutions();
   const { mutateAsync: createInstitution } = useCreateInstitution();
 
@@ -90,7 +128,7 @@ const CreateInstitutionForm = () => {
       floor: '',
       door: '',
     },
-    validate: validateInstitution,
+    validate: (values) => validateInstitution(values, t),
     validateInputOnBlur: true,
   });
 
@@ -99,10 +137,7 @@ const CreateInstitutionForm = () => {
       (inst) => inst.educationalId.toLowerCase() === values.educationalId.toLowerCase()
     );
     if (isDuplicate) {
-      form.setFieldError(
-        'educationalId',
-        'An institution with this educational ID already exists.'
-      );
+      form.setFieldError('educationalId', t('institutions.form.duplicateId'));
       return;
     }
     await createInstitution(values);
@@ -113,27 +148,27 @@ const CreateInstitutionForm = () => {
     <form onSubmit={handleSubmit}>
       <Stack>
         <TextInput
-          label="Name"
+          label={t('institutions.table.name')}
           leftSection={<IconBuildingCommunity size={16} />}
           {...form.getInputProps('name')}
           required
         />
         <TextInput
-          label="Educational ID"
+          label={t('institutions.table.educationalId')}
           leftSection={<IconId size={16} />}
           {...form.getInputProps('educationalId')}
           required
         />
         <Group grow>
           <TextInput
-            label="Zip Code"
+            label={t('institutions.table.zipCode')}
             type="number"
             leftSection={<IconHash size={16} />}
             {...form.getInputProps('zipCode')}
             required
           />
           <TextInput
-            label="Town"
+            label={t('institutions.table.town')}
             leftSection={<IconMapPin size={16} />}
             {...form.getInputProps('town')}
             required
@@ -141,12 +176,13 @@ const CreateInstitutionForm = () => {
         </Group>
         <Group grow>
           <TextInput
-            label="Street"
+            label={t('institutions.table.street')}
             leftSection={<IconRoad size={16} />}
             {...form.getInputProps('street')}
-            required />
+            required
+          />
           <TextInput
-            label="Number"
+            label={t('institutions.table.number')}
             leftSection={<IconNumber123 size={16} />}
             {...form.getInputProps('number')}
             required
@@ -154,22 +190,22 @@ const CreateInstitutionForm = () => {
         </Group>
         <Group grow>
           <TextInput
-            label="Floor"
+            label={t('institutions.form.floor')}
             leftSection={<IconStairs size={16} />}
             {...form.getInputProps('floor')}
           />
           <TextInput
-            label="Door"
+            label={t('institutions.form.door')}
             leftSection={<IconCircleKey size={16} />}
             {...form.getInputProps('door')}
           />
         </Group>
         <Flex justify="flex-end" mt="xl">
           <Button type="button" variant="subtle" onClick={() => modals.closeAll()} mr="xs">
-            Cancel
+            {t('exams.actions.cancel')}
           </Button>
           <Button type="submit" variant="filled" radius="md">
-            Create Institution
+            {t('exams.actions.create')}
           </Button>
         </Flex>
       </Stack>
@@ -178,6 +214,7 @@ const CreateInstitutionForm = () => {
 };
 
 const EditInstitutionForm = ({ initialInstitution }: { initialInstitution: IInstitution }) => {
+  const { t } = useTranslation();
   const { data: fetchedInstitutions = [] } = useGetInstitutions();
   const { mutateAsync: updateInstitution } = useUpdateInstitution();
 
@@ -192,7 +229,7 @@ const EditInstitutionForm = ({ initialInstitution }: { initialInstitution: IInst
       floor: initialInstitution.floor || '',
       door: initialInstitution.door || '',
     },
-    validate: validateInstitution,
+    validate: (values) => validateInstitution(values, t),
     validateInputOnBlur: true,
   });
 
@@ -203,10 +240,7 @@ const EditInstitutionForm = ({ initialInstitution }: { initialInstitution: IInst
         inst.educationalId.toLowerCase() === values.educationalId.toLowerCase()
     );
     if (isDuplicate) {
-      form.setFieldError(
-        'educationalId',
-        'An institution with this educational ID already exists.'
-      );
+      form.setFieldError('educationalId', t('institutions.form.duplicateId'));
       return;
     }
     const newValues: IInstitution = {
@@ -222,27 +256,27 @@ const EditInstitutionForm = ({ initialInstitution }: { initialInstitution: IInst
     <form onSubmit={handleSubmit}>
       <Stack>
         <TextInput
-          label="Name"
+          label={t('institutions.table.name')}
           leftSection={<IconBuildingCommunity size={16} />}
           {...form.getInputProps('name')}
           required
         />
         <TextInput
-          label="Educational ID"
+          label={t('institutions.table.educationalId')}
           leftSection={<IconId size={16} />}
           {...form.getInputProps('educationalId')}
           required
         />
         <Group grow>
           <TextInput
-            label="Zip Code"
+            label={t('institutions.table.zipCode')}
             type="number"
             leftSection={<IconHash size={16} />}
             {...form.getInputProps('zipCode')}
             required
           />
           <TextInput
-            label="Town"
+            label={t('institutions.table.town')}
             leftSection={<IconMapPin size={16} />}
             {...form.getInputProps('town')}
             required
@@ -250,13 +284,13 @@ const EditInstitutionForm = ({ initialInstitution }: { initialInstitution: IInst
         </Group>
         <Group grow>
           <TextInput
-            label="Street"
+            label={t('institutions.table.street')}
             leftSection={<IconRoad size={16} />}
             {...form.getInputProps('street')}
             required
           />
           <TextInput
-            label="Number"
+            label={t('institutions.table.number')}
             leftSection={<IconNumber123 size={16} />}
             {...form.getInputProps('number')}
             required
@@ -264,22 +298,22 @@ const EditInstitutionForm = ({ initialInstitution }: { initialInstitution: IInst
         </Group>
         <Group grow>
           <TextInput
-            label="Floor"
+            label={t('institutions.form.floor')}
             leftSection={<IconStairs size={16} />}
             {...form.getInputProps('floor')}
           />
           <TextInput
-            label="Door"
+            label={t('institutions.form.door')}
             leftSection={<IconCircleKey size={16} />}
             {...form.getInputProps('door')}
           />
         </Group>
         <Flex justify="flex-end" mt="xl">
           <Button type="button" variant="subtle" onClick={() => modals.closeAll()} mr="xs">
-            Cancel
+            {t('exams.actions.cancel')}
           </Button>
           <Button type="submit" variant="filled" radius="md">
-            Save Changes
+            {t('exams.actions.save')}
           </Button>
         </Flex>
       </Stack>
@@ -288,6 +322,7 @@ const EditInstitutionForm = ({ initialInstitution }: { initialInstitution: IInst
 };
 
 const DeleteInstitutionModal = ({ institution }: { institution: IInstitution }) => {
+  const { t } = useTranslation();
   const { mutateAsync: deleteInstitution } = useDeleteInstitution();
 
   const handleDelete = async () => {
@@ -297,15 +332,13 @@ const DeleteInstitutionModal = ({ institution }: { institution: IInstitution }) 
 
   return (
     <Stack>
-      <Text size="sm">
-        Are you sure you want to delete <b>{institution.name}</b>? This action cannot be undone.
-      </Text>
+      <Text size="sm">{t('exams.deleteConfirm', { name: institution.name })}</Text>
       <Flex justify="flex-end" mt="xl">
         <Button variant="default" onClick={() => modals.closeAll()} mr="xs">
-          Cancel
+          {t('exams.actions.cancel')}
         </Button>
         <Button color="red" variant="filled" onClick={handleDelete}>
-          Delete Institution
+          {t('exams.actions.delete')}
         </Button>
       </Flex>
     </Stack>
@@ -313,6 +346,7 @@ const DeleteInstitutionModal = ({ institution }: { institution: IInstitution }) 
 };
 
 const InstitutionTable = () => {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [isExporting, setIsExporting] = useState(false);
   const [isImportOpen, { open: openImport, close: closeImport }] = useDisclosure(false);
@@ -329,27 +363,29 @@ const InstitutionTable = () => {
 
   const columns = useMemo<MRT_ColumnDef<IInstitution>[]>(
     () => [
-      { accessorKey: 'name', header: 'Name', size: 250 },
-      { accessorKey: 'educationalId', header: 'Educational ID', size: 150 },
-      { accessorKey: 'zipCode', header: 'Zip Code', size: 100 },
-      { accessorKey: 'town', header: 'Town', size: 150 },
-      { accessorKey: 'street', header: 'Street', size: 150 },
-      { accessorKey: 'number', header: 'Number', size: 80 },
+      { accessorKey: 'name', header: t('institutions.table.name'), size: 250 },
+      { accessorKey: 'educationalId', header: t('institutions.table.educationalId'), size: 150 },
+      { accessorKey: 'zipCode', header: t('institutions.table.zipCode'), size: 100 },
+      { accessorKey: 'town', header: t('institutions.table.town'), size: 150 },
+      { accessorKey: 'street', header: t('institutions.table.street'), size: 150 },
+      { accessorKey: 'number', header: t('institutions.table.number'), size: 80 },
+      { accessorKey: 'floor', header: t('institutions.table.floor'), size: 40 },
+      { accessorKey: 'door', header: t('institutions.table.door'), size: 40 },
     ],
-    []
+    [t]
   );
 
   const openCreateModal = () =>
     modals.open({
       id: 'create-institution',
-      title: <Text fw={700}>Create New Institution</Text>,
+      title: <Text fw={700}>{t('institutions.form.createTitle')}</Text>,
       children: <CreateInstitutionForm />,
     });
 
   const openEditModal = (institution: IInstitution) =>
     modals.open({
       id: 'edit-institution',
-      title: <Text fw={700}>Edit Institution</Text>,
+      title: <Text fw={700}>{t('institutions.form.editTitle')}</Text>,
       children: <EditInstitutionForm initialInstitution={institution} />,
     });
 
@@ -358,7 +394,7 @@ const InstitutionTable = () => {
       id: 'delete-institution',
       title: (
         <Text fw={700} c="red">
-          Delete Institution
+          {t('institutions.form.deleteTitle')}
         </Text>
       ),
       children: <DeleteInstitutionModal institution={row.original} />,
@@ -370,7 +406,11 @@ const InstitutionTable = () => {
       const filteredRows = table.getPrePaginationRowModel().rows;
       const ids = filteredRows.map((row: any) => row.original.id);
       if (ids.length === 0) {
-        notifications.show({ title: 'Info', message: 'No data to export', color: 'blue' });
+        notifications.show({
+          title: 'Info',
+          message: t('examiners.notifications.exportNoData'),
+          color: 'blue',
+        });
         return;
       }
       const response = await api.Exports.exportInstitutionsFiltered(ids);
@@ -385,7 +425,11 @@ const InstitutionTable = () => {
       link.click();
       link.parentNode?.removeChild(link);
     } catch (error) {
-      notifications.show({ title: 'Error', message: 'Export failed', color: 'red' });
+      notifications.show({
+        title: t('common.error'),
+        message: t('exams.notifications.exportFailed'),
+        color: 'red',
+      });
     } finally {
       setIsExporting(false);
     }
@@ -399,6 +443,16 @@ const InstitutionTable = () => {
     getRowId: (row) => String(row.id),
     autoResetPageIndex: false,
     onPaginationChange: setPagination,
+    localization: {
+      actions: t('exams.mrt.actions'),
+      showHideFilters: t('exams.mrt.showHideFilters'),
+      showHideColumns: t('exams.mrt.showHideColumns'),
+      clearFilter: t('exams.mrt.clearFilter'),
+      clearSearch: t('exams.mrt.clearSearch'),
+      search: t('exams.mrt.search'),
+      rowsPerPage: t('exams.mrt.rowsPerPage'),
+      of: t('exams.mrt.of'),
+    },
     state: {
       isLoading: isLoadingInstitutions,
       isSaving: isDeletingInstitution,
@@ -417,12 +471,12 @@ const InstitutionTable = () => {
     initialState: { showGlobalFilter: true, density: 'xs' },
     renderRowActions: ({ row }) => (
       <Flex gap="sm">
-        <Tooltip label="Edit">
+        <Tooltip label={t('exams.actions.edit')}>
           <ActionIcon color="blue" variant="subtle" onClick={() => openEditModal(row.original)}>
             <IconEdit size={18} />
           </ActionIcon>
         </Tooltip>
-        <Tooltip label="Delete">
+        <Tooltip label={t('exams.actions.delete')}>
           <ActionIcon color="red" variant="subtle" onClick={() => openDeleteConfirmModal(row)}>
             <IconTrash size={18} />
           </ActionIcon>
@@ -437,7 +491,7 @@ const InstitutionTable = () => {
           leftSection={<IconPlus size={16} />}
           onClick={openCreateModal}
         >
-          Create Entry
+          {t('exams.actions.create')}
         </Button>
         <Button
           variant="filled"
@@ -446,7 +500,7 @@ const InstitutionTable = () => {
           leftSection={<IconUpload size={16} />}
           onClick={openImport}
         >
-          Import
+          {t('exams.actions.import')}
         </Button>
         <Button
           variant="filled"
@@ -456,7 +510,7 @@ const InstitutionTable = () => {
           loading={isExporting}
           onClick={() => handleExportData(table)}
         >
-          Export
+          {t('exams.actions.export')}
         </Button>
       </Flex>
     ),
@@ -468,7 +522,7 @@ const InstitutionTable = () => {
       <ImportModal
         opened={isImportOpen}
         onClose={closeImport}
-        entityName="Institutions"
+        entityName={t('institutions.title')}
         onDownloadTemplate={api.Imports.downloadTemplateInstitutions}
         onImport={api.Imports.importInstitutions}
         onSuccess={() => queryClient.invalidateQueries({ queryKey: ['institutions'] })}
@@ -478,22 +532,23 @@ const InstitutionTable = () => {
 };
 
 function useCreateInstitution() {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (institutionData: InstitutionFormData) =>
       api.Institutions.createInstitution(institutionData),
     onSuccess: (created) => {
       notifications.show({
-        title: 'Success!',
-        message: `Institution "${created.name}" created successfully.`,
+        title: t('common.success'),
+        message: t('institutions.notifications.createSuccess', { name: created.name }),
         color: 'teal',
       });
       queryClient.invalidateQueries({ queryKey: ['institutions'] });
     },
     onError: (error: any) => {
       notifications.show({
-        title: 'Creation Failed',
-        message: error.response?.data?.message || 'Failed to create institution.',
+        title: t('common.error'),
+        message: error.response?.data?.message || t('common.error'),
         color: 'red',
       });
     },
@@ -510,6 +565,7 @@ function useGetInstitutions() {
 }
 
 function useUpdateInstitution() {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async ({
@@ -527,16 +583,16 @@ function useUpdateInstitution() {
     },
     onSuccess: (updated) => {
       notifications.show({
-        title: 'Success!',
-        message: `Institution "${updated.name}" updated successfully.`,
+        title: t('common.success'),
+        message: t('institutions.notifications.updateSuccess', { name: updated.name }),
         color: 'teal',
       });
       queryClient.invalidateQueries({ queryKey: ['institutions'] });
     },
     onError: () => {
       notifications.show({
-        title: 'Update Failed',
-        message: 'Could not update institution. Please try again.',
+        title: t('common.error'),
+        message: t('common.error'),
         color: 'red',
       });
     },
@@ -544,45 +600,49 @@ function useUpdateInstitution() {
 }
 
 function useDeleteInstitution() {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (id: number) => api.Institutions.deleteInstitution(id).then(() => id),
     onSuccess: () => {
       notifications.show({
-        title: 'Success!',
-        message: `Institution successfully deleted.`,
+        title: t('common.success'),
+        message: t('institutions.notifications.deleteSuccess'),
         color: 'teal',
       });
       queryClient.invalidateQueries({ queryKey: ['institutions'] });
     },
     onError: () => {
       notifications.show({
-        title: 'Deletion Failed',
-        message: 'Could not delete institution. Please try again.',
+        title: t('common.error'),
+        message: t('common.error'),
         color: 'red',
       });
     },
   });
 }
 
-const queryClient = new QueryClient();
+const rootQueryClient = new QueryClient();
 
-const InstitutionPage = () => (
-  <MantineProvider>
-    <QueryClientProvider client={queryClient}>
-      <ModalsProvider>
-        <Notifications />
-        <Skeleton>
-          <Stack mb="lg">
-            <Title order={2} style={{ fontFamily: 'Greycliff CF, var(--mantine-font-family)' }}>
-              Institutions
-            </Title>
-          </Stack>
-          <InstitutionTable />
-        </Skeleton>
-      </ModalsProvider>
-    </QueryClientProvider>
-  </MantineProvider>
-);
+const InstitutionPage = () => {
+  const { t } = useTranslation();
+  return (
+    <MantineProvider>
+      <QueryClientProvider client={rootQueryClient}>
+        <ModalsProvider>
+          <Notifications />
+          <Skeleton>
+            <Stack mb="lg">
+              <Title order={2} style={{ fontFamily: 'Greycliff CF, var(--mantine-font-family)' }}>
+                {t('institutions.title')}
+              </Title>
+            </Stack>
+            <InstitutionTable />
+          </Skeleton>
+        </ModalsProvider>
+      </QueryClientProvider>
+    </MantineProvider>
+  );
+};
 
 export default InstitutionPage;
