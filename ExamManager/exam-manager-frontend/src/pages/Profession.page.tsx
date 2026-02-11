@@ -1,3 +1,7 @@
+import '@mantine/core/styles.css';
+import 'mantine-react-table/styles.css';
+import '@mantine/notifications/styles.css';
+
 import { useMemo, useState } from 'react';
 import {
   IconBriefcase,
@@ -19,9 +23,9 @@ import {
 import {
   MantineReactTable,
   MRT_ColumnDef,
-  MRT_Row,
   useMantineReactTable,
 } from 'mantine-react-table';
+import { useTranslation } from 'react-i18next';
 import {
   ActionIcon,
   Button,
@@ -67,24 +71,25 @@ const generatePatchDocument = (
 
 const validateRequired = (value: string) => !!value.trim().length;
 
-function validateProfession(profession: ProfessionFormData) {
+function validateProfession(profession: ProfessionFormData, t: any) {
   const errors: { keorId?: string; professionName?: string } = {};
   if (!validateRequired(profession.keorId)) {
-    errors.keorId = 'Keor ID is required';
+    errors.keorId = t('professions.validation.keorRequired');
   }
   if (!validateRequired(profession.professionName)) {
-    errors.professionName = 'Profession Name is required';
+    errors.professionName = t('professions.validation.nameRequired');
   }
   return errors;
 }
 
 const CreateProfessionForm = () => {
+  const { t } = useTranslation();
   const { data: fetchedProfessions = [] } = useGetProfessions();
   const { mutateAsync: createProfession } = useCreateProfession();
 
   const form = useForm<ProfessionFormData>({
     initialValues: { keorId: '', professionName: '' },
-    validate: validateProfession,
+    validate: (values) => validateProfession(values, t),
     validateInputOnBlur: true,
   });
 
@@ -93,7 +98,7 @@ const CreateProfessionForm = () => {
       (p) => p.keorId.toLowerCase() === values.keorId.toLowerCase()
     );
     if (isDuplicate) {
-      form.setFieldError('keorId', 'A profession with this Keor ID already exists.');
+      form.setFieldError('keorId', t('professions.form.duplicate'));
       return;
     }
     await createProfession(values);
@@ -104,25 +109,25 @@ const CreateProfessionForm = () => {
     <form onSubmit={handleSubmit}>
       <Stack>
         <TextInput
-          label="Keor ID"
-          description="Unique identifier for the profession"
+          label={t('professions.form.keorLabel')}
+          description={t('professions.form.keorDesc')}
           leftSection={<IconId size={16} />}
           {...form.getInputProps('keorId')}
           required
         />
         <TextInput
-          label="Profession Name"
-          description="Official name of the profession"
+          label={t('professions.form.nameLabel')}
+          description={t('professions.form.nameDesc')}
           leftSection={<IconBriefcase size={16} />}
           {...form.getInputProps('professionName')}
           required
         />
         <Flex justify="flex-end" mt="xl">
           <Button type="button" variant="subtle" onClick={() => modals.closeAll()} mr="xs">
-            Cancel
+            {t('exams.actions.cancel')}
           </Button>
           <Button type="submit" variant="filled" radius="md">
-            Create Profession
+            {t('exams.actions.create')}
           </Button>
         </Flex>
       </Stack>
@@ -131,6 +136,7 @@ const CreateProfessionForm = () => {
 };
 
 const EditProfessionForm = ({ initialProfession }: { initialProfession: IProfession }) => {
+  const { t } = useTranslation();
   const { data: fetchedProfessions = [] } = useGetProfessions();
   const { mutateAsync: updateProfession } = useUpdateProfession();
 
@@ -139,7 +145,7 @@ const EditProfessionForm = ({ initialProfession }: { initialProfession: IProfess
       keorId: initialProfession.keorId,
       professionName: initialProfession.professionName,
     },
-    validate: validateProfession,
+    validate: (values) => validateProfession(values, t),
     validateInputOnBlur: true,
   });
 
@@ -148,7 +154,7 @@ const EditProfessionForm = ({ initialProfession }: { initialProfession: IProfess
       (p) => p.id !== initialProfession.id && p.keorId.toLowerCase() === values.keorId.toLowerCase()
     );
     if (isDuplicate) {
-      form.setFieldError('keorId', 'A profession with this Keor ID already exists.');
+      form.setFieldError('keorId', t('professions.form.duplicate'));
       return;
     }
     const newValues: IProfession = { ...initialProfession, ...values };
@@ -160,23 +166,23 @@ const EditProfessionForm = ({ initialProfession }: { initialProfession: IProfess
     <form onSubmit={handleSubmit}>
       <Stack>
         <TextInput
-          label="Keor ID"
+          label={t('professions.form.keorLabel')}
           leftSection={<IconId size={16} />}
           {...form.getInputProps('keorId')}
           required
         />
         <TextInput
-          label="Profession Name"
+          label={t('professions.form.nameLabel')}
           leftSection={<IconBriefcase size={16} />}
           {...form.getInputProps('professionName')}
           required
         />
         <Flex justify="flex-end" mt="xl">
           <Button type="button" variant="subtle" onClick={() => modals.closeAll()} mr="xs">
-            Cancel
+            {t('exams.actions.cancel')}
           </Button>
           <Button type="submit" variant="filled" radius="md">
-            Save Changes
+            {t('exams.actions.save')}
           </Button>
         </Flex>
       </Stack>
@@ -185,6 +191,7 @@ const EditProfessionForm = ({ initialProfession }: { initialProfession: IProfess
 };
 
 const DeleteProfessionModal = ({ profession }: { profession: IProfession }) => {
+  const { t } = useTranslation();
   const { mutateAsync: deleteProfession } = useDeleteProfession();
 
   const handleDelete = async () => {
@@ -194,16 +201,13 @@ const DeleteProfessionModal = ({ profession }: { profession: IProfession }) => {
 
   return (
     <Stack>
-      <Text size="sm">
-        Are you sure you want to delete <b>{profession.professionName}</b>? This action cannot be
-        undone.
-      </Text>
+      <Text size="sm">{t('exams.deleteConfirm', { name: profession.professionName })}</Text>
       <Flex justify="flex-end" mt="xl">
         <Button variant="default" onClick={() => modals.closeAll()} mr="xs">
-          Cancel
+          {t('exams.actions.cancel')}
         </Button>
         <Button color="red" variant="filled" onClick={handleDelete}>
-          Delete Profession
+          {t('exams.actions.delete')}
         </Button>
       </Flex>
     </Stack>
@@ -211,6 +215,7 @@ const DeleteProfessionModal = ({ profession }: { profession: IProfession }) => {
 };
 
 const ProfessionTable = () => {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
 
   const {
@@ -232,82 +237,18 @@ const ProfessionTable = () => {
     () => [
       {
         accessorKey: 'keorId',
-        header: 'Keor ID',
+        header: t('professions.table.keorId'),
         size: 150,
         enableClickToCopy: true,
       },
       {
         accessorKey: 'professionName',
-        header: 'Profession Name',
+        header: t('professions.table.name'),
         size: 300,
       },
     ],
-    []
+    [t]
   );
-
-  const openCreateModal = () =>
-    modals.open({
-      id: 'create-profession',
-      title: <Text fw={700}>Create New Profession</Text>,
-      children: <CreateProfessionForm />,
-    });
-
-  const openEditModal = (profession: IProfession) =>
-    modals.open({
-      id: 'edit-profession',
-      title: <Text fw={700}>Edit Profession</Text>,
-      children: <EditProfessionForm initialProfession={profession} />,
-    });
-
-  const openDeleteConfirmModal = (row: MRT_Row<IProfession>) =>
-    modals.open({
-      id: 'delete-profession',
-      title: (
-        <Text fw={700} c="red">
-          Delete Profession
-        </Text>
-      ),
-      children: <DeleteProfessionModal profession={row.original} />,
-    });
-
-  const handleExportData = async (table: any) => {
-    setIsExporting(true);
-    try {
-      const filteredRows = table.getPrePaginationRowModel().rows;
-      const ids = filteredRows.map((row: any) => row.original.id);
-
-      if (ids.length === 0) {
-        notifications.show({
-          title: 'Info',
-          message: 'No data to export',
-          color: 'blue',
-        });
-        return;
-      }
-
-      const response = await api.Exports.exportProfessionsFiltered(ids);
-
-      const url = window.URL.createObjectURL(new Blob([response.data]));
-      const link = document.createElement('a');
-      link.href = url;
-      link.setAttribute(
-        'download',
-        `Professions_Filtered_${new Date().toISOString().slice(0, 10)}.xlsx`
-      );
-      document.body.appendChild(link);
-      link.click();
-      link.parentNode?.removeChild(link);
-    } catch (error) {
-      console.error(error);
-      notifications.show({
-        title: 'Error',
-        message: 'Export failed',
-        color: 'red',
-      });
-    } finally {
-      setIsExporting(false);
-    }
-  };
 
   const table = useMantineReactTable({
     columns,
@@ -318,6 +259,16 @@ const ProfessionTable = () => {
 
     autoResetPageIndex: false,
     onPaginationChange: setPagination,
+    localization: {
+      actions: t('exams.mrt.actions'),
+      showHideFilters: t('exams.mrt.showHideFilters'),
+      showHideColumns: t('exams.mrt.showHideColumns'),
+      clearFilter: t('exams.mrt.clearFilter'),
+      clearSearch: t('exams.mrt.clearSearch'),
+      search: t('exams.mrt.search'),
+      rowsPerPage: t('exams.mrt.rowsPerPage'),
+      of: t('exams.mrt.of'),
+    },
     state: {
       isLoading: isLoadingProfessions,
       isSaving: isDeletingProfession,
@@ -326,32 +277,46 @@ const ProfessionTable = () => {
       pagination,
     },
 
-    mantinePaperProps: {
-      shadow: 'sm',
-      radius: 'md',
-      withBorder: true,
-    },
-    mantineToolbarAlertBannerProps: isLoadingProfessionsError
-      ? { color: 'red', children: 'Error loading data' }
-      : undefined,
+    mantinePaperProps: { shadow: 'sm', radius: 'md', withBorder: true },
     mantineTableContainerProps: { style: { minHeight: '500px' } },
 
     enableDensityToggle: false,
     enableFullScreenToggle: false,
     positionActionsColumn: 'first',
-    initialState: {
-      showGlobalFilter: true,
-      density: 'xs',
-    },
+    initialState: { showGlobalFilter: true, density: 'xs' },
     renderRowActions: ({ row }) => (
       <Flex gap="sm">
-        <Tooltip label="Edit">
-          <ActionIcon color="blue" variant="subtle" onClick={() => openEditModal(row.original)}>
+        <Tooltip label={t('exams.actions.edit')}>
+          <ActionIcon
+            color="blue"
+            variant="subtle"
+            onClick={() =>
+              modals.open({
+                id: 'edit-profession',
+                title: <Text fw={700}>{t('professions.form.editTitle')}</Text>,
+                children: <EditProfessionForm initialProfession={row.original} />,
+              })
+            }
+          >
             <IconEdit size={18} />
           </ActionIcon>
         </Tooltip>
-        <Tooltip label="Delete">
-          <ActionIcon color="red" variant="subtle" onClick={() => openDeleteConfirmModal(row)}>
+        <Tooltip label={t('exams.actions.delete')}>
+          <ActionIcon
+            color="red"
+            variant="subtle"
+            onClick={() =>
+              modals.open({
+                id: 'delete-profession',
+                title: (
+                  <Text fw={700} c="red">
+                    {t('professions.form.deleteTitle')}
+                  </Text>
+                ),
+                children: <DeleteProfessionModal profession={row.original} />,
+              })
+            }
+          >
             <IconTrash size={18} />
           </ActionIcon>
         </Tooltip>
@@ -363,9 +328,15 @@ const ProfessionTable = () => {
           variant="filled"
           radius="md"
           leftSection={<IconPlus size={16} />}
-          onClick={openCreateModal}
+          onClick={() =>
+            modals.open({
+              id: 'create-profession',
+              title: <Text fw={700}>{t('professions.form.createTitle')}</Text>,
+              children: <CreateProfessionForm />,
+            })
+          }
         >
-          Create Entry
+          {t('exams.actions.create')}
         </Button>
 
         <Button
@@ -375,7 +346,7 @@ const ProfessionTable = () => {
           leftSection={<IconUpload size={16} />}
           onClick={openImport}
         >
-          Import
+          {t('exams.actions.import')}
         </Button>
 
         <Button
@@ -384,9 +355,41 @@ const ProfessionTable = () => {
           radius="md"
           leftSection={<IconDownload size={16} />}
           loading={isExporting}
-          onClick={() => handleExportData(table)}
+          onClick={async () => {
+            setIsExporting(true);
+            try {
+              const ids = table.getPrePaginationRowModel().rows.map((row: any) => row.original.id);
+              if (ids.length === 0) {
+                notifications.show({
+                  title: 'Info',
+                  message: t('examiners.notifications.exportNoData'),
+                  color: 'blue',
+                });
+                return;
+              }
+              const response = await api.Exports.exportProfessionsFiltered(ids);
+              const url = window.URL.createObjectURL(new Blob([response.data]));
+              const link = document.createElement('a');
+              link.href = url;
+              link.setAttribute(
+                'download',
+                `Professions_${new Date().toISOString().slice(0, 10)}.xlsx`
+              );
+              document.body.appendChild(link);
+              link.click();
+              link.parentNode?.removeChild(link);
+            } catch {
+              notifications.show({
+                title: t('common.error'),
+                message: t('exams.notifications.exportFailed'),
+                color: 'red',
+              });
+            } finally {
+              setIsExporting(false);
+            }
+          }}
         >
-          Export
+          {t('exams.actions.export')}
         </Button>
       </Flex>
     ),
@@ -395,11 +398,10 @@ const ProfessionTable = () => {
   return (
     <>
       <MantineReactTable table={table} />
-
       <ImportModal
         opened={isImportOpen}
         onClose={closeImport}
-        entityName="Professions"
+        entityName={t('professions.title')}
         onDownloadTemplate={api.Imports.downloadTemplateProfessions}
         onImport={api.Imports.importProfessions}
         onSuccess={() => queryClient.invalidateQueries({ queryKey: ['professions'] })}
@@ -409,22 +411,25 @@ const ProfessionTable = () => {
 };
 
 function useCreateProfession() {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (professionData: ProfessionFormData) =>
       api.Professions.createProfession(professionData),
     onSuccess: (createdProfession) => {
       notifications.show({
-        title: 'Success!',
-        message: `Profession "${createdProfession.professionName}" created successfully.`,
+        title: t('common.success'),
+        message: t('professions.notifications.createSuccess', {
+          name: createdProfession.professionName,
+        }),
         color: 'teal',
       });
       queryClient.invalidateQueries({ queryKey: ['professions'] });
     },
     onError: (error: any) => {
       notifications.show({
-        title: 'Creation Failed',
-        message: error.response?.data?.message || 'Failed to create profession.',
+        title: t('common.error'),
+        message: error.response?.data?.message || t('common.error'),
         color: 'red',
       });
     },
@@ -441,6 +446,7 @@ function useGetProfessions() {
 }
 
 function useUpdateProfession() {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async ({
@@ -458,16 +464,18 @@ function useUpdateProfession() {
     },
     onSuccess: (updatedProfession) => {
       notifications.show({
-        title: 'Success!',
-        message: `Profession "${updatedProfession.professionName}" updated successfully.`,
+        title: t('common.success'),
+        message: t('professions.notifications.updateSuccess', {
+          name: updatedProfession.professionName,
+        }),
         color: 'teal',
       });
       queryClient.invalidateQueries({ queryKey: ['professions'] });
     },
     onError: () => {
       notifications.show({
-        title: 'Update Failed',
-        message: 'Could not update profession. Please try again.',
+        title: t('common.error'),
+        message: t('common.error'),
         color: 'red',
       });
     },
@@ -475,46 +483,50 @@ function useUpdateProfession() {
 }
 
 function useDeleteProfession() {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (professionId: number) =>
       api.Professions.deleteProfession(professionId).then(() => professionId),
     onSuccess: () => {
       notifications.show({
-        title: 'Success!',
-        message: `Profession successfully deleted.`,
+        title: t('common.success'),
+        message: t('professions.notifications.deleteSuccess'),
         color: 'teal',
       });
       queryClient.invalidateQueries({ queryKey: ['professions'] });
     },
     onError: () => {
       notifications.show({
-        title: 'Deletion Failed',
-        message: 'Could not delete profession. Please try again.',
+        title: t('common.error'),
+        message: t('common.error'),
         color: 'red',
       });
     },
   });
 }
 
-const queryClient = new QueryClient();
+const rootQueryClient = new QueryClient();
 
-const ProfessionPage = () => (
-  <MantineProvider>
-    <QueryClientProvider client={queryClient}>
-      <ModalsProvider>
-        <Notifications />
-        <Skeleton>
-          <Stack mb="lg">
-            <Title order={2} style={{ fontFamily: 'Greycliff CF, var(--mantine-font-family)' }}>
-              Professions
-            </Title>
-          </Stack>
-          <ProfessionTable />
-        </Skeleton>
-      </ModalsProvider>
-    </QueryClientProvider>
-  </MantineProvider>
-);
+const ProfessionPage = () => {
+  const { t } = useTranslation();
+  return (
+    <MantineProvider>
+      <QueryClientProvider client={rootQueryClient}>
+        <ModalsProvider>
+          <Notifications />
+          <Skeleton>
+            <Stack mb="lg">
+              <Title order={2} style={{ fontFamily: 'Greycliff CF, var(--mantine-font-family)' }}>
+                {t('professions.title')}
+              </Title>
+            </Stack>
+            <ProfessionTable />
+          </Skeleton>
+        </ModalsProvider>
+      </QueryClientProvider>
+    </MantineProvider>
+  );
+};
 
 export default ProfessionPage;

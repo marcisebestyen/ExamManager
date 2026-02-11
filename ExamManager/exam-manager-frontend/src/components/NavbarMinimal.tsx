@@ -1,12 +1,28 @@
 import { useState } from 'react';
-import { IconBriefcase2, IconBuildings, IconClipboardSearch, IconDashboard, IconDatabase, IconDatabaseExport, IconFileTime, IconHome, IconLogin, IconLogout, IconPencilQuestion, IconSettings, IconUserCog, IconUserQuestion } from '@tabler/icons-react';
+import {
+  IconBriefcase2,
+  IconBuildings,
+  IconClipboardSearch,
+  IconDashboard,
+  IconDatabase,
+  IconDatabaseExport,
+  IconFileTime,
+  IconHome,
+  IconLogin,
+  IconLogout,
+  IconPencilQuestion,
+  IconSettings,
+  IconUserCog,
+  IconUserQuestion,
+} from '@tabler/icons-react';
+import { useTranslation } from 'react-i18next';
+
 import { useLocation, useNavigate } from 'react-router-dom';
 import { rem, Stack, Text, Tooltip, UnstyledButton } from '@mantine/core';
 import { modals } from '@mantine/modals';
 import { notifications } from '@mantine/notifications';
 import api from '../api/api';
 import useAuth from '../hooks/useAuth';
-
 
 const getLinkStyles = (isActive: boolean, isHovered: boolean) => ({
   width: rem(50),
@@ -42,7 +58,7 @@ function NavbarLink({ icon: Icon, label, path, active, onClick }: NavbarLinkProp
       <UnstyledButton
         onClick={() => {
           if (onClick) {onClick();}
-          navigate(path);
+          if (path !== '#') {navigate(path);}
         }}
         onMouseEnter={() => setHovered(true)}
         onMouseLeave={() => setHovered(false)}
@@ -54,24 +70,25 @@ function NavbarLink({ icon: Icon, label, path, active, onClick }: NavbarLinkProp
   );
 }
 
-const mockData = [
-  { icon: IconHome, label: 'Home', path: '/' },
-  { icon: IconDashboard, label: 'Dashboard', path: '/dashboard' },
-  { icon: IconDatabase, label: 'Backups', path: '/backups' },
-  { icon: IconPencilQuestion, label: 'Exams', path: '/exams' },
-  { icon: IconUserQuestion, label: 'Examiners', path: '/examiners' },
-  { icon: IconClipboardSearch, label: 'Exam Types', path: '/exam-types' },
-  { icon: IconFileTime, label: 'File History', path: '/file-history' },
-  { icon: IconBuildings, label: 'Institutions', path: '/institutions' },
-  { icon: IconBriefcase2, label: 'Professions', path: '/professions' },
-  { icon: IconUserCog, label: 'Operators', path: '/operators' },
-  { icon: IconSettings, label: 'Settings', path: '/settings' },
-];
-
 export function NavbarMinimal() {
+  const { t } = useTranslation();
   const { logout, isAuthenticated, user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+
+  const navData = [
+    { icon: IconHome, label: t('navbar.home'), path: '/' },
+    { icon: IconDashboard, label: t('navbar.dashboard'), path: '/dashboard' },
+    { icon: IconDatabase, label: t('navbar.backups'), path: '/backups' },
+    { icon: IconPencilQuestion, label: t('navbar.exams'), path: '/exams' },
+    { icon: IconUserQuestion, label: t('navbar.examiners'), path: '/examiners' },
+    { icon: IconClipboardSearch, label: t('navbar.examTypes'), path: '/exam-types' },
+    { icon: IconFileTime, label: t('navbar.fileHistory'), path: '/file-history' },
+    { icon: IconBuildings, label: t('navbar.institutions'), path: '/institutions' },
+    { icon: IconBriefcase2, label: t('navbar.professions'), path: '/professions' },
+    { icon: IconUserCog, label: t('navbar.operators'), path: '/operators' },
+    { icon: IconSettings, label: t('navbar.settings'), path: '/settings' },
+  ];
 
   const handleLogout = () => {
     logout(() => navigate('/'));
@@ -79,23 +96,18 @@ export function NavbarMinimal() {
 
   const handleManualBackup = () => {
     modals.openConfirmModal({
-      title: 'Manual System Backup',
+      title: t('backup.title'),
       centered: true,
       radius: 'md',
-      children: (
-        <Text size="sm">
-          Are you sure you want to trigger a manual backup immediately? This will dump the database
-          and upload it to Google Drive.
-        </Text>
-      ),
-      labels: { confirm: 'Start Backup', cancel: 'Cancel' },
+      children: <Text size="sm">{t('backup.message')}</Text>,
+      labels: { confirm: t('backup.confirm'), cancel: t('backup.cancel') },
       confirmProps: { color: 'blue', variant: 'filled', radius: 'md' },
       cancelProps: { radius: 'md', variant: 'subtle' },
       onConfirm: async () => {
         const id = notifications.show({
           loading: true,
-          title: 'Backup in progress',
-          message: 'Please wait...',
+          title: t('backup.progress'),
+          message: t('backup.wait'),
           autoClose: false,
           withCloseButton: false,
         });
@@ -105,8 +117,8 @@ export function NavbarMinimal() {
           notifications.update({
             id,
             color: 'teal',
-            title: 'Success',
-            message: 'Manual backup completed successfully!',
+            title: t('common.success'),
+            message: t('backup.done'),
             icon: <IconDatabaseExport size={16} />,
             loading: false,
             autoClose: 3000,
@@ -115,8 +127,8 @@ export function NavbarMinimal() {
           notifications.update({
             id,
             color: 'red',
-            title: 'Backup Failed',
-            message: error.response?.data?.message || 'An unexpected error occurred.',
+            title: t('backup.failed'),
+            message: error.response?.data?.message || t('common.error'),
             loading: false,
             autoClose: 5000,
           });
@@ -125,13 +137,16 @@ export function NavbarMinimal() {
     });
   };
 
-  const filteredData = mockData.filter((link) => {
+  const filteredData = navData.filter((link) => {
     if (!isAuthenticated) {return link.path === '/';}
-    if (user?.role === 'Staff')
+
+    const userRole = String(user?.role).replace('ROLES.', '').toUpperCase();
+
+    if (userRole === 'STAFF' || userRole === '2')
       {return ['/', '/settings', '/operators', '/file-history'].includes(link.path);}
-    if (user?.role === 'Admin')
+    if (userRole === 'ADMIN' || userRole === '1')
       {return ['/', '/settings', '/operators', '/backups'].includes(link.path);}
-    if (user?.role === 'Operator')
+    if (userRole === 'OPERATOR' || userRole === '0')
       {return [
         '/',
         '/settings',
@@ -142,12 +157,9 @@ export function NavbarMinimal() {
         '/institutions',
         '/professions',
       ].includes(link.path);}
+
     return link.path === '/';
   });
-
-  const links = filteredData.map((link) => (
-    <NavbarLink {...link} key={link.label} active={location.pathname === link.path} />
-  ));
 
   return (
     <nav
@@ -165,7 +177,6 @@ export function NavbarMinimal() {
         zIndex: 100,
       }}
     >
-
       <div
         style={{
           flex: 1,
@@ -177,12 +188,16 @@ export function NavbarMinimal() {
         }}
       >
         <Stack gap="xs" align="center">
-          {links}
+          {filteredData.map((link) => (
+            <NavbarLink {...link} key={link.path} active={location.pathname === link.path} />
+          ))}
         </Stack>
       </div>
 
       <Stack gap="xs" align="center" mt="md">
-        {!isAuthenticated && <NavbarLink icon={IconLogin} label="Login" path="/login" />}
+        {!isAuthenticated && (
+          <NavbarLink icon={IconLogin} label={t('navbar.login')} path="/login" />
+        )}
 
         {isAuthenticated && (
           <>
@@ -196,11 +211,16 @@ export function NavbarMinimal() {
             />
             <NavbarLink
               icon={IconDatabaseExport}
-              label="Trigger Manual Backup"
+              label={t('navbar.triggerBackup')}
               path="#"
               onClick={handleManualBackup}
             />
-            <NavbarLink icon={IconLogout} label="Logout" path="/" onClick={handleLogout} />
+            <NavbarLink
+              icon={IconLogout}
+              label={t('navbar.logout')}
+              path="/"
+              onClick={handleLogout}
+            />
           </>
         )}
       </Stack>
