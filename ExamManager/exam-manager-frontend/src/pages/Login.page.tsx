@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import {
   Anchor,
@@ -17,6 +18,7 @@ import { Skeleton } from '../components/Skeleton';
 import useAuth from '../hooks/useAuth';
 
 function Login() {
+  const { t } = useTranslation();
   const { login } = useAuth();
   const navigate = useNavigate();
   const [loginError, setLoginError] = useState<string | null>(null);
@@ -28,28 +30,34 @@ function Login() {
       password: '',
     },
     validate: {
-      userName: (val) => (!val ? 'User name is required' : null),
+      userName: (val) => (!val ? t('auth.login.validation.userReq') : null),
       password: (val) =>
         !val
-          ? 'User password is required'
+          ? t('auth.login.validation.passReq')
           : val.length < 6
-            ? 'Password must be at least 6 characters'
+            ? t('auth.login.validation.passMin')
             : null,
     },
   });
 
   const handleSubmit = async (data: { userName: string; password: string }) => {
-    if (!form.isValid()) {return;}
+    if (!form.isValid()) {
+      return;
+    }
 
     setIsLoading(true);
     setLoginError(null);
 
     try {
-      await login(data.userName, data.password);
-      navigate('/');
+      const userResponse = await login(data.userName, data.password);
+
+      if (userResponse.mustChangePassword) {
+        navigate('/setup-password');
+      } else {
+        navigate('/');
+      }
     } catch (error: any) {
-      setLoginError(error.message || 'Login error. Please try again.');
-      console.error('Login error: ', error);
+      setLoginError(error.message || t('auth.login.error'));
     } finally {
       setIsLoading(false);
     }
@@ -64,10 +72,10 @@ function Login() {
           fontWeight: 900,
         }}
       >
-        Welcome back!
+        {t('auth.login.title')}
       </Title>
       <Text c="dimmed" size="sm" ta="center" mt={5}>
-        Please login to manage exams
+        {t('auth.login.subtitle')}
       </Text>
 
       <Paper
@@ -84,8 +92,8 @@ function Login() {
           <Stack gap="md">
             <TextInput
               required
-              label="Username"
-              placeholder="Your username"
+              label={t('auth.login.username')}
+              placeholder={t('auth.login.usernamePlaceholder')}
               radius="md"
               size="md"
               disabled={isLoading}
@@ -95,8 +103,8 @@ function Login() {
 
             <PasswordInput
               required
-              label="Password"
-              placeholder="Your password"
+              label={t('auth.login.password')}
+              placeholder={t('auth.login.passwordPlaceholder')}
               radius="md"
               size="md"
               disabled={isLoading}
@@ -120,7 +128,7 @@ function Login() {
               onClick={() => navigate('/forgot')}
               disabled={isLoading}
             >
-              Forgot password?
+              {t('auth.login.forgot')}
             </Anchor>
             <Button
               type="submit"
@@ -129,7 +137,7 @@ function Login() {
               variant="filled"
               color="var(--mantine-primary-color-filled)"
             >
-              Login
+              {t('auth.login.submit')}
             </Button>
           </Group>
         </form>

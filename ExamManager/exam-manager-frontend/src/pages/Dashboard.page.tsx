@@ -7,6 +7,7 @@ import {
   IconFileTypeXls,
   IconTableExport,
 } from '@tabler/icons-react';
+import { useTranslation } from 'react-i18next';
 import {
   Alert,
   Badge,
@@ -86,6 +87,7 @@ const ActionButton = ({
 );
 
 const Dashboard = () => {
+  const { t, i18n } = useTranslation();
   const [upcomingExams, setUpcomingExams] = useState<IExamUpcoming[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
@@ -98,14 +100,14 @@ const Dashboard = () => {
         setUpcomingExams(response.data);
       } catch (err) {
         console.error('Failed to fetch upcoming exams', err);
-        setError('Could not load upcoming exams.');
+        setError(t('dashboard.errors.upcoming'));
       } finally {
         setLoading(false);
       }
     };
 
     fetchData();
-  }, []);
+  }, [t]);
 
   const handleDownload = async (
     exportType: string,
@@ -142,8 +144,8 @@ const Dashboard = () => {
       window.URL.revokeObjectURL(url);
     } catch (err) {
       notifications.show({
-        title: 'Error',
-        message: `Failed to download ${exportType}`,
+        title: t('common.error'),
+        message: `${t('dashboard.errors.download')} ${exportType}`,
         color: 'red',
       });
     } finally {
@@ -153,15 +155,17 @@ const Dashboard = () => {
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
+    const locale = i18n.language === 'hu' ? 'hu-HU' : 'en-US';
+
     return {
       day: date.getDate(),
-      month: date.toLocaleDateString('en-US', { month: 'short' }),
-      full: date.toLocaleDateString('en-US', {
+      month: date.toLocaleDateString(locale, { month: 'short' }),
+      full: date.toLocaleDateString(locale, {
         year: 'numeric',
         month: 'long',
         day: 'numeric',
       }),
-      time: date.toLocaleTimeString('en-US', {
+      time: date.toLocaleTimeString(locale, {
         hour: '2-digit',
         minute: '2-digit',
       }),
@@ -173,9 +177,9 @@ const Dashboard = () => {
       <Stack gap="lg">
         <div>
           <Title order={2} style={{ fontFamily: 'Greycliff CF, var(--mantine-font-family)' }}>
-            Dashboard
+            {t('dashboard.title')}
           </Title>
-          <Text c="dimmed">Overview of system operations and upcoming schedules</Text>
+          <Text c="dimmed">{t('dashboard.description')}</Text>
         </div>
 
         <Grid gutter="xl">
@@ -188,26 +192,26 @@ const Dashboard = () => {
                   </ThemeIcon>
                   <div>
                     <Text fw={600} size="lg">
-                      Data Reports
+                      {t('dashboard.reports.title')}
                     </Text>
                     <Text c="dimmed" size="xs">
-                      Export current system data to Excel
+                      {t('dashboard.reports.subtitle')}
                     </Text>
                   </div>
                 </Group>
 
                 <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="md">
                   <ActionButton
-                    label="All Exams"
-                    description="Export full exam history"
+                    label={t('dashboard.reports.exams')}
+                    description={t('dashboard.reports.examsDesc')}
                     icon={IconTableExport}
                     color="teal"
                     loading={downloadingType === 'exams'}
                     onClick={() => handleDownload('exams', api.Exports.exportExams, 'exams.xlsx')}
                   />
                   <ActionButton
-                    label="All Examiners"
-                    description="List of registered examiners"
+                    label={t('dashboard.reports.examiners')}
+                    description={t('dashboard.reports.examinersDesc')}
                     icon={IconTableExport}
                     color="teal"
                     loading={downloadingType === 'examiners'}
@@ -216,8 +220,8 @@ const Dashboard = () => {
                     }
                   />
                   <ActionButton
-                    label="Exam Types"
-                    description="Categories and definitions"
+                    label={t('dashboard.reports.examTypes')}
+                    description={t('dashboard.reports.examTypesDesc')}
                     icon={IconTableExport}
                     color="teal"
                     loading={downloadingType === 'examTypes'}
@@ -226,8 +230,8 @@ const Dashboard = () => {
                     }
                   />
                   <ActionButton
-                    label="Institutions"
-                    description="Partnered centers details"
+                    label={t('dashboard.reports.institutions')}
+                    description={t('dashboard.reports.institutionsDesc')}
                     icon={IconTableExport}
                     color="teal"
                     loading={downloadingType === 'institutions'}
@@ -240,8 +244,8 @@ const Dashboard = () => {
                     }
                   />
                   <ActionButton
-                    label="Professions"
-                    description="Registered professions"
+                    label={t('dashboard.reports.professions')}
+                    description={t('dashboard.reports.professionsDesc')}
                     icon={IconTableExport}
                     color="teal"
                     loading={downloadingType === 'professions'}
@@ -263,18 +267,18 @@ const Dashboard = () => {
                   </ThemeIcon>
                   <div>
                     <Text fw={600} size="lg">
-                      Import Templates
+                      {t('dashboard.templates.title')}
                     </Text>
                     <Text c="dimmed" size="xs">
-                      Blank templates for bulk data entry
+                      {t('dashboard.templates.subtitle')}
                     </Text>
                   </div>
                 </Group>
 
                 <SimpleGrid cols={{ base: 1, sm: 2, lg: 3 }} spacing="md">
                   <ActionButton
-                    label="Exams"
-                    description="Template for new exams"
+                    label={t('dashboard.templates.exams')}
+                    description={t('dashboard.templates.examsDesc')}
                     icon={IconFileTypeXls}
                     color="violet"
                     loading={downloadingType === 'template-exams'}
@@ -287,8 +291,8 @@ const Dashboard = () => {
                     }
                   />
                   <ActionButton
-                    label="Examiners"
-                    description="Template for staff"
+                    label={t('dashboard.templates.examiners')}
+                    description={t('dashboard.templates.examinersDesc')}
                     icon={IconFileTypeXls}
                     color="violet"
                     loading={downloadingType === 'template-examiners'}
@@ -301,8 +305,8 @@ const Dashboard = () => {
                     }
                   />
                   <ActionButton
-                    label="Exam Types"
-                    description="Template for categories"
+                    label={t('dashboard.templates.examTypes')}
+                    description={t('dashboard.templates.examTypesDesc')}
                     icon={IconFileTypeXls}
                     color="violet"
                     loading={downloadingType === 'template-examTypes'}
@@ -315,8 +319,8 @@ const Dashboard = () => {
                     }
                   />
                   <ActionButton
-                    label="Institutions"
-                    description="Template for locations"
+                    label={t('dashboard.templates.institutions')}
+                    description={t('dashboard.templates.institutionsDesc')}
                     icon={IconFileTypeXls}
                     color="violet"
                     loading={downloadingType === 'template-institutions'}
@@ -329,8 +333,8 @@ const Dashboard = () => {
                     }
                   />
                   <ActionButton
-                    label="Professions"
-                    description="Template for roles"
+                    label={t('dashboard.templates.professions')}
+                    description={t('dashboard.templates.professionsDesc')}
                     icon={IconFileTypeXls}
                     color="violet"
                     loading={downloadingType === 'template-professions'}
@@ -355,9 +359,9 @@ const Dashboard = () => {
                     <ThemeIcon color="blue" variant="light" size="md">
                       <IconCalendarEvent size={16} />
                     </ThemeIcon>
-                    <Text fw={600}>Upcoming Exams</Text>
+                    <Text fw={600}>{t('dashboard.upcoming.title')}</Text>
                   </Group>
-                  <Badge variant="light">Next 3 Days</Badge>
+                  <Badge variant="light">{t('dashboard.upcoming.badge')}</Badge>
                 </Group>
               </Card.Section>
 
@@ -366,21 +370,21 @@ const Dashboard = () => {
                   <Stack align="center" py="xl">
                     <Loader size="sm" type="dots" />
                     <Text size="xs" c="dimmed">
-                      Loading schedule...
+                      {t('dashboard.upcoming.loading')}
                     </Text>
                   </Stack>
                 ) : error ? (
-                  <Alert variant="light" color="red" title="Error" radius="md">
+                  <Alert variant="light" color="red" title={t('common.error')} radius="md">
                     {error}
                   </Alert>
                 ) : upcomingExams.length === 0 ? (
                   <Stack align="center" py="xl" gap="xs">
                     <IconCalendarTime size={48} color="var(--mantine-color-gray-3)" stroke={1.5} />
                     <Text c="dimmed" size="sm" ta="center">
-                      No exams scheduled for the next 3 days.
+                      {t('dashboard.upcoming.empty')}
                     </Text>
                     <Button variant="subtle" size="xs">
-                      View Calendar
+                      {t('dashboard.upcoming.viewCalendar')}
                     </Button>
                   </Stack>
                 ) : (
@@ -407,7 +411,7 @@ const Dashboard = () => {
                           }
                         >
                           <Text c="dimmed" size="xs" mt={2}>
-                            Code: {exam.examCode}
+                            {t('dashboard.upcoming.code')}: {exam.examCode}
                           </Text>
                           <Group gap={6} mt={4}>
                             <Badge color="gray" variant="light" size="xs">

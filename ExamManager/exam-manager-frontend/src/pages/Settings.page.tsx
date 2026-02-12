@@ -1,12 +1,12 @@
 import { useEffect, useState } from 'react';
 import {
+  IconLanguage,
   IconMoon,
   IconPalette,
   IconSun,
-  IconUser,
   IconUserCircle,
-  IconX,
 } from '@tabler/icons-react';
+import { useTranslation } from 'react-i18next';
 import {
   Alert,
   Avatar,
@@ -18,7 +18,6 @@ import {
   Group,
   Loader,
   Paper,
-  rem,
   SegmentedControl,
   Stack,
   Tabs,
@@ -37,21 +36,18 @@ enum Role {
   STAFF = 2,
 }
 
-const ROLE_LABELS = {
-  [Role.OPERATOR]: 'Operator',
-  [Role.ADMIN]: 'Admin',
-  [Role.STAFF]: 'Staff',
-};
-
-const ROLE_COLORS = {
+const ROLE_COLORS: Record<number, string> = {
   [Role.OPERATOR]: 'cyan',
   [Role.ADMIN]: 'red',
   [Role.STAFF]: 'indigo',
 };
 
-
 const UserInfoCard = ({ profile }: { profile: IOperator }) => {
+  const { t } = useTranslation();
   const initials = `${profile.firstName[0]}${profile.lastName[0]}`.toUpperCase();
+
+  const roleValue = profile.role as unknown as number;
+  const translatedRole = t(`roles.${roleValue}`, { defaultValue: t('roles.unknown') });
 
   return (
     <Card withBorder shadow="sm" radius="md" padding="xl">
@@ -61,22 +57,14 @@ const UserInfoCard = ({ profile }: { profile: IOperator }) => {
             {initials}
           </Text>
         </Avatar>
-
         <Text fz="lg" fw={700} mt="sm">
           {profile.firstName} {profile.lastName}
         </Text>
-
         <Text c="dimmed" size="sm" mt={-5}>
           @{profile.userName}
         </Text>
-
-        <Badge
-          size="lg"
-          variant="light"
-          color={ROLE_COLORS[profile.role as unknown as Role] || 'gray'}
-          mt="md"
-        >
-          {ROLE_LABELS[profile.role as unknown as Role] || 'Unknown'}
+        <Badge size="lg" variant="light" color={ROLE_COLORS[roleValue] || 'gray'} mt="md">
+          {translatedRole}
         </Badge>
       </Stack>
     </Card>
@@ -84,55 +72,45 @@ const UserInfoCard = ({ profile }: { profile: IOperator }) => {
 };
 
 function Settings() {
+  const { t, i18n } = useTranslation();
   const [profile, setProfile] = useState<IOperator | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const { colorScheme, setColorScheme } = useMantineColorScheme();
 
   useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        const response = await api.Operators.getMyProfile();
+        setProfile(response.data);
+      } catch (error) {
+        console.error(error);
+      } finally {
+        setLoading(false);
+      }
+    };
     fetchProfile();
   }, []);
 
-  const fetchProfile = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      const response = await api.Operators.getMyProfile();
-      setProfile(response.data);
-    } catch (error: any) {
-      setError(error.response?.data?.message || 'Failed to load profile');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  if (loading) {
-    return (
+  if (loading)
+    {return (
       <Center h={400}>
         <Loader size="lg" />
       </Center>
-    );
-  }
-
-  if (!profile) {
-    return (
-      <Container size="sm" mt="xl">
-        <Alert icon={<IconX size="16" />} title="Error" color="red">
-          Failed to load profile data. Please try refreshing.
-        </Alert>
-      </Container>
-    );
-  }
+    );}
+  if (!profile)
+    {return (
+      <Alert color="red" mt="xl">
+        {t('common.error')}
+      </Alert>
+    );}
 
   return (
     <Container size="lg" my="xl">
       <Stack gap="lg">
         <div>
-          <Title order={2} style={{ fontFamily: 'Greycliff CF, var(--mantine-font-family)' }}>
-            Account Settings
-          </Title>
+          <Title order={2}>{t('settings.title')}</Title>
           <Text c="dimmed" size="sm">
-            View your personal information and manage application preferences
+            {t('settings.description')}
           </Text>
         </div>
 
@@ -145,87 +123,79 @@ function Settings() {
             <Paper shadow="sm" radius="md" withBorder>
               <Tabs defaultValue="general" variant="outline">
                 <Tabs.List>
-                  <Tabs.Tab
-                    value="general"
-                    leftSection={<IconUserCircle style={{ width: rem(16), height: rem(16) }} />}
-                  >
-                    General
+                  <Tabs.Tab value="general" leftSection={<IconUserCircle size={16} />}>
+                    {t('settings.tabs.general')}
                   </Tabs.Tab>
-                  <Tabs.Tab
-                    value="appearance"
-                    leftSection={<IconPalette style={{ width: rem(16), height: rem(16) }} />}
-                  >
-                    Appearance
+                  <Tabs.Tab value="appearance" leftSection={<IconPalette size={16} />}>
+                    {t('settings.tabs.appearance')}
                   </Tabs.Tab>
                 </Tabs.List>
 
                 <Tabs.Panel value="general" p="xl">
-                  <Stack gap="md">
-                    <Stack gap="md">
-                      <Group grow>
-                        <TextInput
-                          label="First Name"
-                          value={profile.firstName}
-                          readOnly
-                          variant="filled"
-                          leftSection={<IconUser size={16} />}
-                        />
-                        <TextInput
-                          label="Last Name"
-                          value={profile.lastName}
-                          readOnly
-                          variant="filled"
-                          leftSection={<IconUser size={16} />}
-                        />
-                      </Group>
-                    </Stack>
-                  </Stack>
+                  <Group grow>
+                    <TextInput
+                      label={t('settings.fields.firstName')}
+                      value={profile.firstName}
+                      readOnly
+                      variant="filled"
+                    />
+                    <TextInput
+                      label={t('settings.fields.lastName')}
+                      value={profile.lastName}
+                      readOnly
+                      variant="filled"
+                    />
+                  </Group>
                 </Tabs.Panel>
 
                 <Tabs.Panel value="appearance" p="xl">
-                  <Stack gap="md">
-                    <Title order={4}>Interface Theme</Title>
-                    <Text c="dimmed" size="sm">
-                      Choose how the application looks to you.
-                    </Text>
+                  <Stack gap="xl">
+                    <section>
+                      <Group gap="xs" mb="sm">
+                        <IconLanguage size={20} />
+                        <Title order={4}>{t('settings.language.title')}</Title>
+                      </Group>
+                      <SegmentedControl
+                        fullWidth
+                        value={(i18n.language || 'en').split('-')[0]}
+                        onChange={(val) => i18n.changeLanguage(val)}
+                        data={[
+                          { label: 'English', value: 'en' },
+                          { label: 'Magyar', value: 'hu' },
+                          { label: 'Deutsch', value: 'de' },
+                        ]}
+                      />
+                    </section>
 
-                    <Card withBorder radius="md" p="md" bg="var(--mantine-color-body)">
-                      <Stack gap="xs">
-                        <Text size="sm" fw={500}>
-                          Color Scheme
-                        </Text>
-                        <SegmentedControl
-                          value={colorScheme}
-                          onChange={(value: any) => setColorScheme(value)}
-                          data={[
-                            {
-                              value: 'light',
-                              label: (
-                                <Center style={{ gap: 10 }}>
-                                  <IconSun size={16} />
-                                  <span>Light</span>
-                                </Center>
-                              ),
-                            },
-                            {
-                              value: 'dark',
-                              label: (
-                                <Center style={{ gap: 10 }}>
-                                  <IconMoon size={16} />
-                                  <span>Dark</span>
-                                </Center>
-                              ),
-                            },
-                            {
-                              value: 'auto',
-                              label: <Center>Auto</Center>,
-                            },
-                          ]}
-                          fullWidth
-                          radius="md"
-                        />
-                      </Stack>
-                    </Card>
+                    <section>
+                      <Title order={4} mb="xs">
+                        {t('settings.appearance.title')}
+                      </Title>
+                      <SegmentedControl
+                        fullWidth
+                        value={colorScheme}
+                        onChange={(value: any) => setColorScheme(value)}
+                        data={[
+                          {
+                            value: 'light',
+                            label: (
+                              <Center style={{ gap: 10 }}>
+                                <IconSun size={16} /> {t('settings.appearance.light')}
+                              </Center>
+                            ),
+                          },
+                          {
+                            value: 'dark',
+                            label: (
+                              <Center style={{ gap: 10 }}>
+                                <IconMoon size={16} /> {t('settings.appearance.dark')}
+                              </Center>
+                            ),
+                          },
+                          { value: 'auto', label: t('settings.appearance.auto') },
+                        ]}
+                      />
+                    </section>
                   </Stack>
                 </Tabs.Panel>
               </Tabs>

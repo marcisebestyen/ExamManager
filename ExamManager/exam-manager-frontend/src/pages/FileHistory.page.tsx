@@ -20,6 +20,7 @@ import {
   useQuery,
 } from '@tanstack/react-query';
 import { MantineReactTable, useMantineReactTable, type MRT_ColumnDef } from 'mantine-react-table';
+import { useTranslation } from 'react-i18next';
 import {
   ActionIcon,
   Badge,
@@ -40,7 +41,7 @@ import { Skeleton } from '../components/Skeleton';
 import { IFileHistory } from '../interfaces/IFileHistory';
 
 const formatBytes = (bytes: number, decimals = 2) => {
-  if (!+bytes) return '0 Bytes';
+  if (!+bytes) {return '0 Bytes';}
   const k = 1024;
   const dm = decimals < 0 ? 0 : decimals;
   const sizes = ['Bytes', 'KB', 'MB', 'GB'];
@@ -49,6 +50,7 @@ const formatBytes = (bytes: number, decimals = 2) => {
 };
 
 const FileHistoryTable = () => {
+  const { t, i18n } = useTranslation();
   const { data: historyData = [], isError, isFetching, isLoading, refetch } = useGetFileHistory();
   const { mutate: downloadFile, isPending: isDownloading } = useDownloadFile();
 
@@ -56,13 +58,16 @@ const FileHistoryTable = () => {
     () => [
       {
         accessorKey: 'createdAt',
-        header: 'Date (Local)',
-        Cell: ({ cell }) => new Date(cell.getValue<string>()).toLocaleString(),
+        header: t('fileHistory.table.date'),
+        Cell: ({ cell }) =>
+          new Date(cell.getValue<string>()).toLocaleString(
+            i18n.language === 'hu' ? 'hu-HU' : 'en-US'
+          ),
         size: 180,
       },
       {
         accessorKey: 'fileName',
-        header: 'File Name',
+        header: t('fileHistory.table.fileName'),
         size: 250,
         Cell: ({ row }) => (
           <Group gap="xs">
@@ -77,13 +82,13 @@ const FileHistoryTable = () => {
       },
       {
         accessorKey: 'fileSizeInBytes',
-        header: 'Size',
+        header: t('fileHistory.table.size'),
         size: 100,
         Cell: ({ cell }) => formatBytes(cell.getValue<number>()),
       },
       {
         accessorKey: 'action',
-        header: 'Action',
+        header: t('fileHistory.table.action'),
         size: 120,
         Cell: ({ cell }) => {
           const action = cell.getValue<string>();
@@ -95,14 +100,14 @@ const FileHistoryTable = () => {
           };
           return (
             <Badge color={colors[action] || 'gray'} variant="light">
-              {action}
+              {t(`fileHistory.operations.${action}`, { defaultValue: action })}
             </Badge>
           );
         },
       },
       {
         accessorKey: 'category',
-        header: 'Category',
+        header: t('fileHistory.table.category'),
         size: 120,
         Cell: ({ cell }) => {
           const cat = cell.getValue<string>();
@@ -114,29 +119,32 @@ const FileHistoryTable = () => {
           };
           return (
             <Badge color={colors[cat] || 'gray'} variant="dot">
-              {cat}
+              {t(`fileHistory.categories.${cat}`, { defaultValue: cat })}
             </Badge>
           );
         },
       },
       {
         accessorKey: 'operatorUserName',
-        header: 'Operator',
+        header: t('fileHistory.table.operator'),
         size: 150,
         Cell: ({ cell }) => (
           <Text size="sm" fw={500}>
-            {cell.getValue<string>() || 'System'}
+            {cell.getValue<string>() || t('fileHistory.status.system')}
           </Text>
         ),
       },
       {
         accessorKey: 'isSuccessful',
-        header: 'Status',
+        header: t('fileHistory.table.status'),
         size: 100,
         Cell: ({ cell }) => {
           const success = cell.getValue<boolean>();
+          const statusText = success
+            ? t('fileHistory.status.success')
+            : t('fileHistory.status.failed');
           return (
-            <Tooltip label={success ? 'Success' : 'Failed'}>
+            <Tooltip label={statusText}>
               <ThemeIcon color={success ? 'teal' : 'red'} variant="light" size="sm" radius="xl">
                 {success ? <IconCheck size={14} /> : <IconX size={14} />}
               </ThemeIcon>
@@ -146,7 +154,7 @@ const FileHistoryTable = () => {
       },
       {
         accessorKey: 'processingNotes',
-        header: 'Notes',
+        header: t('fileHistory.table.notes'),
         size: 200,
         Cell: ({ cell }) => (
           <Text size="xs" c="dimmed" truncate="end">
@@ -155,7 +163,7 @@ const FileHistoryTable = () => {
         ),
       },
     ],
-    []
+    [t, i18n.language]
   );
 
   const table = useMantineReactTable({
@@ -165,6 +173,16 @@ const FileHistoryTable = () => {
     enableDensityToggle: false,
     enableFullScreenToggle: false,
     getRowId: (row) => String(row.id),
+    localization: {
+      actions: t('exams.mrt.actions'),
+      showHideFilters: t('exams.mrt.showHideFilters'),
+      showHideColumns: t('exams.mrt.showHideColumns'),
+      clearFilter: t('exams.mrt.clearFilter'),
+      clearSearch: t('exams.mrt.clearSearch'),
+      search: t('exams.mrt.search'),
+      rowsPerPage: t('exams.mrt.rowsPerPage'),
+      of: t('exams.mrt.of'),
+    },
     initialState: {
       sorting: [{ id: 'createdAt', desc: true }],
       density: 'xs',
@@ -179,7 +197,7 @@ const FileHistoryTable = () => {
     mantineTableContainerProps: { style: { minHeight: '500px' } },
     positionActionsColumn: 'first',
     renderRowActions: ({ row }) => (
-      <Tooltip label="Download Archived File">
+      <Tooltip label={t('fileHistory.actions.downloadTooltip')}>
         <ActionIcon
           color="blue"
           variant="subtle"
@@ -199,7 +217,7 @@ const FileHistoryTable = () => {
           onClick={() => refetch()}
           loading={isFetching}
         >
-          Refresh History
+          {t('fileHistory.actions.refresh')}
         </Button>
       </Flex>
     ),
@@ -218,6 +236,7 @@ function useGetFileHistory() {
 }
 
 function useDownloadFile() {
+  const { t } = useTranslation();
   return useMutation({
     mutationFn: async (fileEntry: IFileHistory) => {
       const response = await api.FileHistory.downloadFile(fileEntry.id);
@@ -239,15 +258,15 @@ function useDownloadFile() {
       window.URL.revokeObjectURL(url);
 
       notifications.show({
-        title: 'Download Started',
-        message: `Downloading ${fileName}...`,
+        title: t('fileHistory.notifications.downloadStarted'),
+        message: t('fileHistory.notifications.downloadMsg', { name: fileName }),
         color: 'teal',
       });
     },
     onError: () => {
       notifications.show({
-        title: 'Download Failed',
-        message: 'The file could not be retrieved from the archive.',
+        title: t('common.error'),
+        message: t('fileHistory.notifications.downloadFailed'),
         color: 'red',
       });
     },
@@ -256,22 +275,25 @@ function useDownloadFile() {
 
 const rootQueryClient = new QueryClient();
 
-const FileHistoryPage = () => (
-  <MantineProvider>
-    <QueryClientProvider client={rootQueryClient}>
-      <ModalsProvider>
-        <Notifications />
-        <Skeleton>
-          <Stack mb="lg">
-            <Title order={2} style={{ fontFamily: 'Greycliff CF, var(--mantine-font-family)' }}>
-              File Archive & Audit Log
-            </Title>
-          </Stack>
-          <FileHistoryTable />
-        </Skeleton>
-      </ModalsProvider>
-    </QueryClientProvider>
-  </MantineProvider>
-);
+const FileHistoryPage = () => {
+  const { t } = useTranslation();
+  return (
+    <MantineProvider>
+      <QueryClientProvider client={rootQueryClient}>
+        <ModalsProvider>
+          <Notifications />
+          <Skeleton>
+            <Stack mb="lg">
+              <Title order={2} style={{ fontFamily: 'Greycliff CF, var(--mantine-font-family)' }}>
+                {t('fileHistory.title')}
+              </Title>
+            </Stack>
+            <FileHistoryTable />
+          </Skeleton>
+        </ModalsProvider>
+      </QueryClientProvider>
+    </MantineProvider>
+  );
+};
 
 export default FileHistoryPage;
