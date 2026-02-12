@@ -35,7 +35,7 @@ public class ExportService : IExportService
         _fileHistoryService = fileHistoryService ?? throw new ArgumentNullException(nameof(fileHistoryService));
         _logger = logger;
 
-        ExcelPackage.License.SetNonCommercialPersonal("Sebestyén Marcell Achilles - Exam Manager");    
+        ExcelPackage.License.SetNonCommercialPersonal("Sebestyén Marcell Achilles - Exam Manager");
     }
 
     private void StyleHeader(ExcelWorksheet worksheet, int colCount)
@@ -49,7 +49,9 @@ public class ExportService : IExportService
         }
     }
 
-    public async Task<BaseServiceResponse<byte[]>> ExportExaminersToExcelAsync(List<int>? filteredIds, int operatorId)
+    public async Task<BaseServiceResponse<byte[]>> ExportExaminersToExcelAsync(
+        List<int>? filteredIds, int operatorId, string languageCode = "en"
+    )
     {
         try
         {
@@ -59,7 +61,7 @@ public class ExportService : IExportService
                 return BaseServiceResponse<byte[]>.Failed(
                     response.Errors.FirstOrDefault() ?? "Failed to retrieve examiners.", response.ErrorCode);
             }
-            
+
             var dataToExport = response.Data;
             if (filteredIds != null && filteredIds.Any())
             {
@@ -69,14 +71,40 @@ public class ExportService : IExportService
             using var package = new ExcelPackage();
             var ws = package.Workbook.Worksheets.Add("Examiners");
 
-            ws.Cells[1, 1].Value = "ID";
-            ws.Cells[1, 2].Value = "First Name";
-            ws.Cells[1, 3].Value = "Last Name";
-            ws.Cells[1, 4].Value = "Date of Birth";
-            ws.Cells[1, 5].Value = "Email";
-            ws.Cells[1, 6].Value = "Phone Number";
-            ws.Cells[1, 7].Value = "ID Card Number";
-            ws.Cells[1, 8].Value = "Status";
+            if (languageCode.StartsWith("hu", StringComparison.OrdinalIgnoreCase))
+            {
+                ws.Cells[1, 1].Value = "ID";
+                ws.Cells[1, 2].Value = "Vezetéknév";
+                ws.Cells[1, 3].Value = "Keresztnév";
+                ws.Cells[1, 4].Value = "Születési dátum";
+                ws.Cells[1, 5].Value = "Email";
+                ws.Cells[1, 6].Value = "Telefon";
+                ws.Cells[1, 7].Value = "Személyigazolványszám";
+                ws.Cells[1, 8].Value = "Státusz";
+            }
+            else if (languageCode.StartsWith("de", StringComparison.OrdinalIgnoreCase))
+            {
+                ws.Cells[1, 1].Value = "ID";
+                ws.Cells[1, 2].Value = "Nachname";
+                ws.Cells[1, 3].Value = "Vorname";
+                ws.Cells[1, 4].Value = "Geburtsdatum";
+                ws.Cells[1, 5].Value = "E-Mail-Addresse";
+                ws.Cells[1, 6].Value = "Telefonnummer";
+                ws.Cells[1, 7].Value = "Personalausweisnummer";
+                ws.Cells[1, 8].Value = "Status";
+            }
+            else
+            {
+                ws.Cells[1, 1].Value = "ID";
+                ws.Cells[1, 2].Value = "First Name";
+                ws.Cells[1, 3].Value = "Last Name";
+                ws.Cells[1, 4].Value = "Date of Birth";
+                ws.Cells[1, 5].Value = "Email";
+                ws.Cells[1, 6].Value = "Phone Number";
+                ws.Cells[1, 7].Value = "ID Card Number";
+                ws.Cells[1, 8].Value = "Status";
+            }
+
             StyleHeader(ws, 8);
 
             var row = 2;
@@ -98,7 +126,7 @@ public class ExportService : IExportService
             }
 
             ws.Cells.AutoFitColumns();
-            
+
             var fileBytes = package.GetAsByteArray();
             var fileName = $"Examiners_Export_{DateTime.UtcNow:yyyyMMdd_HHmm}.xlsx";
 
@@ -113,7 +141,7 @@ public class ExportService : IExportService
                 IsSuccessful = true,
                 ProcessingNotes = $"Exported {dataToExport.Count()} rows."
             });
-            
+
             return BaseServiceResponse<byte[]>.Success(fileBytes, "Export successful.");
         }
         catch (Exception ex)
@@ -124,7 +152,9 @@ public class ExportService : IExportService
         }
     }
 
-    public async Task<BaseServiceResponse<byte[]>> ExportProfessionsToExcelAsync(List<int>? filteredIds, int operatorId)
+    public async Task<BaseServiceResponse<byte[]>> ExportProfessionsToExcelAsync(
+        List<int>? filteredIds, int operatorId, string languageCode = "en"
+    )
     {
         try
         {
@@ -134,7 +164,7 @@ public class ExportService : IExportService
                 return BaseServiceResponse<byte[]>.Failed(
                     response.Errors.FirstOrDefault() ?? "Failed to retrieve professions.", response.ErrorCode);
             }
-            
+
             var dataToExport = response.Data;
             if (filteredIds != null && filteredIds.Any())
             {
@@ -144,9 +174,25 @@ public class ExportService : IExportService
             using var package = new ExcelPackage();
             var ws = package.Workbook.Worksheets.Add("Professions");
 
-            ws.Cells[1, 1].Value = "ID";
-            ws.Cells[1, 2].Value = "KEOR ID";
-            ws.Cells[1, 3].Value = "Profession Name";
+            if (languageCode.StartsWith("hu", StringComparison.OrdinalIgnoreCase))
+            {
+                ws.Cells[1, 1].Value = "ID";
+                ws.Cells[1, 2].Value = "KeorId";
+                ws.Cells[1, 3].Value = "Szakma neve";
+            }
+            else if (languageCode.EndsWith("de", StringComparison.OrdinalIgnoreCase))
+            {
+                ws.Cells[1, 1].Value = "ID";
+                ws.Cells[1, 2].Value = "KeorId";
+                ws.Cells[1, 3].Value = "Berufsbezeichnung";
+            }
+            else
+            {
+                ws.Cells[1, 1].Value = "ID";
+                ws.Cells[1, 2].Value = "KeorId";
+                ws.Cells[1, 3].Value = "Profession Name";
+            }
+            
             StyleHeader(ws, 3);
 
             var row = 2;
@@ -157,7 +203,7 @@ public class ExportService : IExportService
                 ws.Cells[row, 3].Value = dto.ProfessionName;
                 row++;
             }
-            
+
             var fileBytes = package.GetAsByteArray();
             var fileName = $"Professions_Export_{DateTime.UtcNow:yyyyMMdd_HHmm}.xlsx";
 
@@ -184,7 +230,9 @@ public class ExportService : IExportService
         }
     }
 
-    public async Task<BaseServiceResponse<byte[]>> ExportInstitutionsToExcelAsync(List<int>? filteredIds, int operatorId)
+    public async Task<BaseServiceResponse<byte[]>> ExportInstitutionsToExcelAsync(
+        List<int>? filteredIds, int operatorId,  string languageCode = "en"
+    )
     {
         try
         {
@@ -194,7 +242,7 @@ public class ExportService : IExportService
                 return BaseServiceResponse<byte[]>.Failed(
                     response.Errors.FirstOrDefault() ?? "Failed to retrieve institutions.", response.ErrorCode);
             }
-            
+
             var dataToExport = response.Data;
             if (filteredIds != null && filteredIds.Any())
             {
@@ -204,12 +252,45 @@ public class ExportService : IExportService
             using var package = new ExcelPackage();
             var ws = package.Workbook.Worksheets.Add("Institutions");
 
-            ws.Cells[1, 1].Value = "ID";
-            ws.Cells[1, 2].Value = "Educational ID";
-            ws.Cells[1, 3].Value = "Institution Name";
-            ws.Cells[1, 4].Value = "Zip Code";
-            ws.Cells[1, 5].Value = "Town";
-            ws.Cells[1, 6].Value = "Address Details";
+            string floorSuffix;
+            string doorSuffix;
+            if (languageCode.StartsWith("hu", StringComparison.OrdinalIgnoreCase))
+            {
+                ws.Cells[1, 1].Value = "ID";
+                ws.Cells[1, 2].Value = "Oktatási azonosító";
+                ws.Cells[1, 3].Value = "Intézmény neve";
+                ws.Cells[1, 4].Value = "Irányítószám";
+                ws.Cells[1, 5].Value = "Település";
+                ws.Cells[1, 6].Value = "Címadatok";
+                
+                floorSuffix = ". emelet";
+                doorSuffix = ". ajtó";
+            }
+            else if (languageCode.EndsWith("de", StringComparison.OrdinalIgnoreCase))
+            {
+                ws.Cells[1, 1].Value = "ID";
+                ws.Cells[1, 2].Value = "Bildungs-ID";
+                ws.Cells[1, 3].Value = "Name der Institution";
+                ws.Cells[1, 4].Value = "Postleitzahl";
+                ws.Cells[1, 5].Value = "Ort";
+                ws.Cells[1, 6].Value = "Adressdetails";
+                
+                floorSuffix = ". Stock"; 
+                doorSuffix = ". Tür";
+            }
+            else
+            {
+                ws.Cells[1, 1].Value = "ID";
+                ws.Cells[1, 2].Value = "Educational ID";
+                ws.Cells[1, 3].Value = "Institution Name";
+                ws.Cells[1, 4].Value = "Zip Code";
+                ws.Cells[1, 5].Value = "Town";
+                ws.Cells[1, 6].Value = "Address Details";
+                
+                floorSuffix = ". Floor";
+                doorSuffix = ". Door";
+            }
+            
             StyleHeader(ws, 6);
 
             var row = 2;
@@ -222,15 +303,15 @@ public class ExportService : IExportService
                 ws.Cells[row, 5].Value = dto.Town;
 
                 var addressParts = new List<string> { dto.Street, dto.Number };
-                if (!string.IsNullOrWhiteSpace(dto.Floor)) addressParts.Add($"{dto.Floor}. Floor");
-                if (!string.IsNullOrWhiteSpace(dto.Door)) addressParts.Add($"{dto.Door}. Door");
+                if (!string.IsNullOrWhiteSpace(dto.Floor)) addressParts.Add($"{dto.Floor}{floorSuffix}");
+                if (!string.IsNullOrWhiteSpace(dto.Door)) addressParts.Add($"{dto.Door}{doorSuffix}");
 
                 ws.Cells[row, 6].Value = string.Join(" ", addressParts);
                 row++;
             }
 
             ws.Cells.AutoFitColumns();
-            
+
             var fileBytes = package.GetAsByteArray();
             var fileName = $"Institutions_Export_{DateTime.UtcNow:yyyyMMdd_HHmm}.xlsx";
 
@@ -245,7 +326,7 @@ public class ExportService : IExportService
                 IsSuccessful = true,
                 ProcessingNotes = $"Exported {dataToExport.Count()} rows."
             });
-            
+
             return BaseServiceResponse<byte[]>.Success(fileBytes, "Export successful.");
         }
         catch (Exception ex)
@@ -256,7 +337,9 @@ public class ExportService : IExportService
         }
     }
 
-    public async Task<BaseServiceResponse<byte[]>> ExportExamTypesToExcelAsync(List<int>? filteredIds, int operatorId)
+    public async Task<BaseServiceResponse<byte[]>> ExportExamTypesToExcelAsync(
+        List<int>? filteredIds, int operatorId, string languageCode = "en"
+    )
     {
         try
         {
@@ -276,9 +359,25 @@ public class ExportService : IExportService
             using var package = new ExcelPackage();
             var ws = package.Workbook.Worksheets.Add("ExamTypes");
 
-            ws.Cells[1, 1].Value = "ID";
-            ws.Cells[1, 2].Value = "Type Name";
-            ws.Cells[1, 3].Value = "Description";
+            if (languageCode.StartsWith("hu", StringComparison.OrdinalIgnoreCase))
+            {
+                ws.Cells[1, 1].Value = "ID";
+                ws.Cells[1, 2].Value = "Típus név";
+                ws.Cells[1, 3].Value = "Leírás";
+            }
+            else if (languageCode.StartsWith("de", StringComparison.OrdinalIgnoreCase))
+            {
+                ws.Cells[1, 1].Value = "ID";
+                ws.Cells[1, 2].Value = "Typname";
+                ws.Cells[1, 3].Value = "Beschreibung";
+            }
+            else
+            {
+                ws.Cells[1, 1].Value = "ID";
+                ws.Cells[1, 2].Value = "Type Name";
+                ws.Cells[1, 3].Value = "Description";
+            }
+            
             StyleHeader(ws, 3);
 
             var row = 2;
@@ -291,7 +390,7 @@ public class ExportService : IExportService
             }
 
             ws.Cells.AutoFitColumns();
-            
+
             var fileBytes = package.GetAsByteArray();
             var fileName = $"ExamTypes_Export_{DateTime.UtcNow:yyyyMMdd_HHmm}.xlsx";
 
@@ -306,7 +405,7 @@ public class ExportService : IExportService
                 IsSuccessful = true,
                 ProcessingNotes = $"Exported {dataToExport.Count()} rows."
             });
-            
+
             return BaseServiceResponse<byte[]>.Success(fileBytes, "Export successful.");
         }
         catch (Exception ex)
@@ -317,7 +416,9 @@ public class ExportService : IExportService
         }
     }
 
-    public async Task<BaseServiceResponse<byte[]>> ExportExamsToExcelAsync(List<int>? filteredIds, int operatorId)
+    public async Task<BaseServiceResponse<byte[]>> ExportExamsToExcelAsync(
+        List<int>? filteredIds, int operatorId, string languageCode = "en"
+    )
     {
         try
         {
@@ -327,7 +428,7 @@ public class ExportService : IExportService
                 return BaseServiceResponse<byte[]>.Failed(
                     response.Errors.FirstOrDefault() ?? "Failed to retrieve exams.", response.ErrorCode);
             }
-            
+
             var dataToExport = response.Data;
             if (filteredIds != null && filteredIds.Any())
             {
@@ -337,18 +438,63 @@ public class ExportService : IExportService
             using var package = new ExcelPackage();
             var ws = package.Workbook.Worksheets.Add("Exams");
 
-            ws.Cells[1, 1].Value = "ID";
-            ws.Cells[1, 2].Value = "Exam Code";
-            ws.Cells[1, 3].Value = "Exam Name";
-            ws.Cells[1, 4].Value = "Date";
-            ws.Cells[1, 5].Value = "Status";
-            ws.Cells[1, 6].Value = "Exam Type";
-            ws.Cells[1, 7].Value = "Profession";
-            ws.Cells[1, 8].Value = "Institution";
-            ws.Cells[1, 9].Value = "Created By";
-            ws.Cells[1, 10].Value = "Board Members";
-            ws.Cells[1, 11].Value = "Deleted?";
-            ws.Cells[1, 12].Value = "Deleted By";
+            string deletionSuffixNegative;
+            string deletionSuffixPositive;
+            if (languageCode.StartsWith("hu", StringComparison.OrdinalIgnoreCase))
+            {
+                ws.Cells[1, 1].Value = "ID";
+                ws.Cells[1, 2].Value = "Vizsgakód";
+                ws.Cells[1, 3].Value = "Vizsga neve";
+                ws.Cells[1, 4].Value = "Dátum";
+                ws.Cells[1, 5].Value = "Státusz";
+                ws.Cells[1, 6].Value = "Vizsga típusa";
+                ws.Cells[1, 7].Value = "Szakma";
+                ws.Cells[1, 8].Value = "Intézmény";
+                ws.Cells[1, 9].Value = "Létrehozta";
+                ws.Cells[1, 10].Value = "Vizsgabizottság";
+                ws.Cells[1, 11].Value = "Törölt?"; 
+                ws.Cells[1, 12].Value = "Törölte";
+
+                deletionSuffixNegative = "Nem";
+                deletionSuffixPositive = "Igen";
+            }
+            else if (languageCode.StartsWith("de", StringComparison.OrdinalIgnoreCase))
+            {
+                ws.Cells[1, 1].Value = "ID";
+                ws.Cells[1, 2].Value = "Prüfungscode";
+                ws.Cells[1, 3].Value = "Prüfungsname";
+                ws.Cells[1, 4].Value = "Datum";
+                ws.Cells[1, 5].Value = "Status";
+                ws.Cells[1, 6].Value = "Prüfungsart";
+                ws.Cells[1, 7].Value = "Beruf";
+                ws.Cells[1, 8].Value = "Institution";
+                ws.Cells[1, 9].Value = "Erstellt von";
+                ws.Cells[1, 10].Value = "Prüfungsausschuss";
+                ws.Cells[1, 11].Value = "Gelöscht?";
+                ws.Cells[1, 12].Value = "Gelöscht von";
+                
+                deletionSuffixNegative = "Nein";
+                deletionSuffixPositive = "Ja";
+            }
+            else
+            {
+                ws.Cells[1, 1].Value = "ID";
+                ws.Cells[1, 2].Value = "Exam Code";
+                ws.Cells[1, 3].Value = "Exam Name";
+                ws.Cells[1, 4].Value = "Date";
+                ws.Cells[1, 5].Value = "Status";
+                ws.Cells[1, 6].Value = "Exam Type";
+                ws.Cells[1, 7].Value = "Profession";
+                ws.Cells[1, 8].Value = "Institution";
+                ws.Cells[1, 9].Value = "Created By";
+                ws.Cells[1, 10].Value = "Board Members";
+                ws.Cells[1, 11].Value = "Deleted?";
+                ws.Cells[1, 12].Value = "Deleted By";
+
+                deletionSuffixNegative = "No";
+                deletionSuffixPositive = "Yes";
+            }
+            
             StyleHeader(ws, 12);
 
             var row = 2;
@@ -378,13 +524,13 @@ public class ExportService : IExportService
 
                 if (dto.IsDeleted)
                 {
-                    ws.Cells[row, 11].Value = "Yes";
+                    ws.Cells[row, 11].Value = deletionSuffixPositive;
                     ws.Cells[row, 12].Value = dto.DeletedByOperatorName;
                     ws.Cells[row, 1, row, 12].Style.Font.Color.SetColor(Color.Red);
                 }
                 else
                 {
-                    ws.Cells[row, 11].Value = "No";
+                    ws.Cells[row, 11].Value = deletionSuffixNegative;
                     ws.Cells[row, 12].Value = "-";
                 }
 
@@ -392,7 +538,7 @@ public class ExportService : IExportService
             }
 
             ws.Cells.AutoFitColumns();
-            
+
             var fileBytes = package.GetAsByteArray();
             var fileName = $"Exams_Export_{DateTime.UtcNow:yyyyMMdd_HHmm}.xlsx";
 
@@ -407,7 +553,7 @@ public class ExportService : IExportService
                 IsSuccessful = true,
                 ProcessingNotes = $"Exported {dataToExport.Count()} rows."
             });
-            
+
             return BaseServiceResponse<byte[]>.Success(fileBytes, "Export successful.");
         }
         catch (Exception ex)

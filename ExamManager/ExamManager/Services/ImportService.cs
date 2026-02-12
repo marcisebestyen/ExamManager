@@ -1126,7 +1126,7 @@ public class ImportService : IImportService
                 sheet.Cells[1, 4].Value = "Ort";
                 sheet.Cells[1, 5].Value = "Straße";
                 sheet.Cells[1, 6].Value = "Hausnummer";
-                sheet.Cells[1, 7].Value = "Etage";
+                sheet.Cells[1, 7].Value = "Stock";
                 sheet.Cells[1, 8].Value = "Tür";
             }
             else
