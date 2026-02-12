@@ -198,7 +198,16 @@ public class BackupService : IBackupService
 
                 foreach (var backup in backupsToDelete)
                 {
-                    await _unitOfWork.BackupHistoryRepository.DeleteAsync(backup);
+                    try
+                    {
+                        await DeleteFromDriveAsync(backup.FileName);
+                    }
+                    catch (Exception driveEx)
+                    {
+                        _logger.LogError(driveEx, $"Failed to delete {backup.FileName} from Google Drive.");
+                    }
+                    
+                    await _unitOfWork.BackupHistoryRepository.DeleteAsync(backup.Id);
                 }
 
                 await _unitOfWork.SaveAsync();
@@ -353,6 +362,28 @@ public class BackupService : IBackupService
         using (var fileStream = new FileStream(localSavePath, FileMode.Create, FileAccess.Write))
         {
             await request.DownloadAsync(fileStream);
+        }
+    }
+
+    private async Task DeleteFromDriveAsync(string filename)
+    {
+        var service = GetDriveService();
+        
+        var listRequest = service.Files.List();
+        listRequest.Q = $"name = '{filename}' and trashed = false";
+        listRequest.Fields = "files(id)";
+        var files = await listRequest.ExecuteAsync();
+        
+        var file = files.Files.FirstOrDefault();
+
+        if (file != null)
+        {
+            await service.Files.Delete(file.Id).ExecuteAsync();
+            _logger.LogInformation($"Deleted file from Drive: {filename}");
+        }
+        else
+        {
+            _logger.LogWarning($"File to delete not found on Drive: {filename}");
         }
     }
 
