@@ -1,8 +1,6 @@
-using System.Security.Claims;
 using ExamManager.Extensions;
 using ExamManager.Interfaces;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 
 namespace ExamManager.Controllers;
@@ -24,7 +22,8 @@ public class ImportController : ControllerBase
     [HttpGet("template-exams")]
     public async Task<IActionResult> DownloadExamsTemplate()
     {
-        var filecontent = await _importService.GenerateExamsImportTemplate(User.GetId());
+        string lang = Request.Headers["Accept-Language"].ToString();
+        var filecontent = await _importService.GenerateExamsImportTemplate(User.GetId(), lang);
         
         var fileName = "Exams_Import_Template.xlsx";
         var contentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
@@ -35,7 +34,8 @@ public class ImportController : ControllerBase
     [HttpGet("template-examiners")]
     public async Task<IActionResult> DownloadExaminersTemplate()
     {
-        var fileContent = await _importService.GenerateExaminersImportTemplate(User.GetId());
+        string lang = Request.Headers["Accept-Language"].ToString();
+        var fileContent = await _importService.GenerateExaminersImportTemplate(User.GetId(), lang);
         
         var fileName = "Examiners_Import_Template.xlsx";
         var contentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
@@ -46,7 +46,8 @@ public class ImportController : ControllerBase
     [HttpGet("template-exam-types")]
     public async Task<IActionResult> DownloadExamTypesTemplate()
     {
-        var fileContent = await _importService.GenerateExamTypesImportTemplate(User.GetId());
+        string lang = Request.Headers["Accept-Language"].ToString();
+        var fileContent = await _importService.GenerateExamTypesImportTemplate(User.GetId(), lang);
 
         var fileName = "ExamTypes_Import_Template.xlsx";
         var contentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
@@ -57,7 +58,8 @@ public class ImportController : ControllerBase
     [HttpGet("template-institutions")]
     public async Task<IActionResult> DownloadInstitutionsTemplate()
     {
-        var fileContent = await _importService.GenerateInstitutionsImportTemplate(User.GetId());
+        string lang = Request.Headers["Accept-Language"].ToString();
+        var fileContent = await _importService.GenerateInstitutionsImportTemplate(User.GetId(), lang);
         
         var fileName = "Institutions_Import_Template.xlsx";
         var contentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
@@ -68,7 +70,8 @@ public class ImportController : ControllerBase
     [HttpGet("template-professions")]
     public async Task<IActionResult> DownloadProfessionTemplate()
     {
-        var fileContent = await _importService.GenerateProfessionsImportTemplate(User.GetId());
+        string lang = Request.Headers["Accept-Language"].ToString();
+        var fileContent = await _importService.GenerateProfessionsImportTemplate(User.GetId(), lang);
         
         var fileName = "Professions_Import_Template.xlsx";
         var contentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";

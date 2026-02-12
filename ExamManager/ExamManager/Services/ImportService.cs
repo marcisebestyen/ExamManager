@@ -822,20 +822,64 @@ public class ImportService : IImportService
 
     // --- Template Generators ---
     
-    public async Task<byte[]> GenerateExamsImportTemplate(int operatorId)
+    public async Task<byte[]> GenerateExamsImportTemplate(int operatorId, string languageCode = "en")
+{
+    var professions = _unitOfWork.ProfessionRepository.GetAllAsync().Result;
+    var institutions = _unitOfWork.InstitutionRepository.GetAllAsync().Result;
+    var examTypes = _unitOfWork.ExamTypeRepository.GetAllAsync().Result;
+    var examiners = _unitOfWork.ExaminerRepository.GetAllAsync().Result;
+    
+    using (var package = new ExcelPackage())
     {
-        var professions = _unitOfWork.ProfessionRepository.GetAllAsync().Result;
-        var institutions = _unitOfWork.InstitutionRepository.GetAllAsync().Result;
-        var examTypes = _unitOfWork.ExamTypeRepository.GetAllAsync().Result;
-        var examiners = _unitOfWork.ExaminerRepository.GetAllAsync().Result;
-        
-        using (var package = new ExcelPackage())
-        {
-            var sheet = package.Workbook.Worksheets.Add("Exam Import");
+        var sheet = package.Workbook.Worksheets.Add("Exam Import");
 
+        if (languageCode.StartsWith("hu", StringComparison.OrdinalIgnoreCase))
+        {
+            sheet.Cells[1, 1].Value = "Vizsganév";
+            sheet.Cells[1, 2].Value = "Vizsga kód";
+            sheet.Cells[1, 3].Value = "Dátum (ÉÉÉÉ-HH-NN)"; 
+            sheet.Cells[1, 4].Value = "Státusz";
+            sheet.Cells[1, 5].Value = "Szakma";
+            sheet.Cells[1, 6].Value = "Intézmény";
+            sheet.Cells[1, 7].Value = "Vizsgatípus";
+            
+             sheet.Cells[1, 8].Value = "Vizsgáztató 1";
+            sheet.Cells[1, 9].Value = "Szerep 1";
+            sheet.Cells[1, 10].Value = "Vizsgáztató 2";
+            sheet.Cells[1, 11].Value = "Szerep 2";
+            sheet.Cells[1, 12].Value = "Vizsgáztató 3";
+            sheet.Cells[1, 13].Value = "Szerep 3";
+            sheet.Cells[1, 14].Value = "Vizsgáztató 4";
+            sheet.Cells[1, 15].Value = "Szerep 4";
+            sheet.Cells[1, 16].Value = "Vizsgáztató 5";
+            sheet.Cells[1, 17].Value = "Szerep 5";
+        }
+        else if (languageCode.StartsWith("de", StringComparison.OrdinalIgnoreCase))
+        {
+            sheet.Cells[1, 1].Value = "Prüfungsname";
+            sheet.Cells[1, 2].Value = "Prüfungscode";
+            sheet.Cells[1, 3].Value = "Datum (JJJJ-MM-TT)"; 
+            sheet.Cells[1, 4].Value = "Status";
+            sheet.Cells[1, 5].Value = "Beruf";
+            sheet.Cells[1, 6].Value = "Institution";
+            sheet.Cells[1, 7].Value = "Prüfungsart";
+            
+            sheet.Cells[1, 8].Value = "Prüfer/in 1";
+            sheet.Cells[1, 9].Value = "Rolle 1";
+            sheet.Cells[1, 10].Value = "Prüfer/in 2";
+            sheet.Cells[1, 11].Value = "Rolle 2";
+            sheet.Cells[1, 12].Value = "Prüfer/in 3";
+            sheet.Cells[1, 13].Value = "Rolle 3";
+            sheet.Cells[1, 14].Value = "Prüfer/in 4";
+            sheet.Cells[1, 15].Value = "Rolle 4";
+            sheet.Cells[1, 16].Value = "Prüfer/in 5";
+            sheet.Cells[1, 17].Value = "Rolle 5";
+        }
+        else
+        {
             sheet.Cells[1, 1].Value = "Exam Name";
             sheet.Cells[1, 2].Value = "Exam Code";
-            sheet.Cells[1, 3].Value = "Date (YYYY-MM-DD)";
+            sheet.Cells[1, 3].Value = "Date (YYYY-MM-DD)"; 
             sheet.Cells[1, 4].Value = "Status";
             sheet.Cells[1, 5].Value = "Profession";
             sheet.Cells[1, 6].Value = "Institution";
@@ -850,147 +894,228 @@ public class ImportService : IImportService
             sheet.Cells[1, 14].Value = "Examiner 4";
             sheet.Cells[1, 15].Value = "Role 4";
             sheet.Cells[1, 16].Value = "Examiner 5";
-            sheet.Cells[1, 17].Value = "Role 5";
-            
-            var refSheet = package.Workbook.Worksheets.Add("RefData");
-            refSheet.Hidden = eWorkSheetHidden.Hidden;
-
-            var statuses = Enum.GetNames(typeof(Status));
-            for (int i = 0; i < statuses.Length; i++)
-            {
-                refSheet.Cells[i + 1, 1].Value = statuses[i];
-            }
-
-            var profList = professions.ToList();
-            for (int i = 0; i < profList.Count; i++)
-            {
-                refSheet.Cells[i + 1, 2].Value = profList[i].ProfessionName;
-            }
-            
-            var instList = institutions.ToList();
-            for (int i = 0; i < instList.Count; i++)
-            {
-                refSheet.Cells[i + 1, 3].Value = instList[i].Name;
-            }
-            
-            var typeList = examTypes.ToList();
-            for (int i = 0; i < typeList.Count; i++)
-            {
-                refSheet.Cells[i + 1, 4].Value = typeList[i].TypeName;
-            }
-
-            var examinerList = examiners.Select(e => $"{e.LastName} {e.FirstName}, {e.IdentityCardNumber}").ToList();
-            for (int i = 0; i < examinerList.Count; i++)
-            {
-                refSheet.Cells[i + 1, 5].Value = examinerList[i];
-            }
-            
-            var roles = new[] { "Chief Examiner", "Deputy Chief Examiner", "Examiner", "Assistant Examiner", "External Examiner" };
-            for (int i = 0; i < roles.Length; i++)
-            {
-                refSheet.Cells[i + 1, 6].Value = roles[i];
-            }
-            
-            void AddValidation(int colIndex, string refCol, int count)
-            {
-                if (count == 0) return;
-                var val = sheet.DataValidations.AddListValidation(sheet.Cells[2, colIndex, 1000, colIndex].Address);
-                val.Formula.ExcelFormula = $"RefData!${refCol}$1:${refCol}${count}";
-            }
-            
-            AddValidation(4, "A", statuses.Length);   
-            AddValidation(5, "B", profList.Count);   
-            AddValidation(6, "C", instList.Count);   
-            AddValidation(7, "D", typeList.Count);   
-
-            AddValidation(8, "E", examinerList.Count);
-            AddValidation(10, "E", examinerList.Count);
-            AddValidation(12, "E", examinerList.Count);
-            AddValidation(14, "E", examinerList.Count);
-            AddValidation(16, "E", examinerList.Count);
-
-            AddValidation(9, "F", roles.Length);
-            AddValidation(11, "F", roles.Length);
-            AddValidation(13, "F", roles.Length);
-            AddValidation(15, "F", roles.Length);
-            AddValidation(17, "F", roles.Length);
-            
-            using (var range = sheet.Cells[1, 1, 1, 17])
-            {
-                range.Style.Font.Bold = true;
-                range.Style.Fill.PatternType = OfficeOpenXml.Style.ExcelFillStyle.Solid;
-                range.Style.Fill.BackgroundColor.SetColor(System.Drawing.Color.LightGray);
-            }
-            
-            sheet.Cells.AutoFitColumns();
-            
-            var fileBytes = package.GetAsByteArray();
-            
-            await _fileHistoryService.CreateFileHistoryAsync(new FileHistoryCreateDto
-            {
-                FileName = "Template_Exams.xlsx",
-                ContentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                FileContent = fileBytes,
-                Action = FileAction.DownloadTemplate,
-                Category = FileCategory.Exam,
-                OperatorId = operatorId,
-                IsSuccessful = true,
-                ProcessingNotes = "Template generated"
-            });
-
-            return fileBytes;
+            sheet.Cells[1, 17].Value = "Role 5";   
         }
-    }
+        
+        sheet.Column(3).Style.Numberformat.Format = "yyyy-mm-dd";
+        
+        var dateVal = sheet.DataValidations.AddDateTimeValidation(sheet.Cells["C2:C1000"].Address);
+        dateVal.ShowErrorMessage = true;
+        dateVal.ShowInputMessage = true;
+        dateVal.Operator = OfficeOpenXml.DataValidation.ExcelDataValidationOperator.greaterThan;
+        // dateVal.Formula.Value = DateTime.Today.AddDays(1);
+        dateVal.Formula.Value = DateTime.Today;
 
-    public async Task<byte[]> GenerateExaminersImportTemplate(int operatorId)
-    {
-        using (var package = new ExcelPackage())
+        if (languageCode.StartsWith("hu", StringComparison.OrdinalIgnoreCase))
         {
-            var sheet = package.Workbook.Worksheets.Add("Examiner Import");
+            dateVal.ErrorTitle = "Érvénytelen dátum";
+            dateVal.Error = "A dátumnak jövőbelinek kell lennie (nem lehet ma vagy múltban)!";
+            dateVal.PromptTitle = "Dátum megadása";
+            dateVal.Prompt = $"Kérlek adj meg egy jövőbeli dátumot ({DateTime.Today.AddDays(1):yyyy-MM-dd}-tól).";
+        }
+        else if (languageCode.StartsWith("de", StringComparison.OrdinalIgnoreCase))
+        {
+            dateVal.ErrorTitle = "Ungültiges Datum";
+            dateVal.Error = "Das Datum muss in der Zukunft liegen!";
+            dateVal.PromptTitle = "Datum eingeben";
+            dateVal.Prompt = $"Bitte geben Sie ein zukünftiges Datum ein (ab {DateTime.Today.AddDays(1):yyyy-MM-dd}).";
+        }
+        else
+        {
+            dateVal.ErrorTitle = "Invalid Date";
+            dateVal.Error = "Date must be in the future (cannot be today or past)!";
+            dateVal.PromptTitle = "Enter Date";
+            dateVal.Prompt = $"Please enter a future date (from {DateTime.Today.AddDays(1):yyyy-MM-dd}).";
+        }
 
-            sheet.Cells[1, 1].Value = "FirstName";
-            sheet.Cells[1, 2].Value = "LastName";
-            sheet.Cells[1, 3].Value = "DateOfBirth";
+        var refSheet = package.Workbook.Worksheets.Add("RefData");
+        refSheet.Hidden = eWorkSheetHidden.Hidden;
+
+        var statuses = Enum.GetNames(typeof(Status));
+        for (int i = 0; i < statuses.Length; i++) refSheet.Cells[i + 1, 1].Value = statuses[i];
+
+        var profList = professions.ToList();
+        for (int i = 0; i < profList.Count; i++) refSheet.Cells[i + 1, 2].Value = profList[i].ProfessionName;
+        
+        var instList = institutions.ToList();
+        for (int i = 0; i < instList.Count; i++) refSheet.Cells[i + 1, 3].Value = instList[i].Name;
+        
+        var typeList = examTypes.ToList();
+        for (int i = 0; i < typeList.Count; i++) refSheet.Cells[i + 1, 4].Value = typeList[i].TypeName;
+
+        var examinerList = examiners.Select(e => $"{e.LastName} {e.FirstName}, {e.IdentityCardNumber}").ToList();
+        for (int i = 0; i < examinerList.Count; i++) refSheet.Cells[i + 1, 5].Value = examinerList[i];
+        
+        var roles = new[] { "Chief Examiner", "Deputy Chief Examiner", "Examiner", "Assistant Examiner", "External Examiner" };
+        for (int i = 0; i < roles.Length; i++) refSheet.Cells[i + 1, 6].Value = roles[i];
+        
+        void AddValidation(int colIndex, string refCol, int count)
+        {
+            if (count == 0) return;
+            var val = sheet.DataValidations.AddListValidation(sheet.Cells[2, colIndex, 1000, colIndex].Address);
+            val.Formula.ExcelFormula = $"RefData!${refCol}$1:${refCol}${count}";
+        }
+        
+        AddValidation(4, "A", statuses.Length);   
+        AddValidation(5, "B", profList.Count);   
+        AddValidation(6, "C", instList.Count);   
+        AddValidation(7, "D", typeList.Count);   
+
+        AddValidation(8, "E", examinerList.Count);
+        AddValidation(10, "E", examinerList.Count);
+        AddValidation(12, "E", examinerList.Count);
+        AddValidation(14, "E", examinerList.Count);
+        AddValidation(16, "E", examinerList.Count);
+
+        AddValidation(9, "F", roles.Length);
+        AddValidation(11, "F", roles.Length);
+        AddValidation(13, "F", roles.Length);
+        AddValidation(15, "F", roles.Length);
+        AddValidation(17, "F", roles.Length);
+        
+        using (var range = sheet.Cells[1, 1, 1, 17])
+        {
+            range.Style.Font.Bold = true;
+            range.Style.Fill.PatternType = OfficeOpenXml.Style.ExcelFillStyle.Solid;
+            range.Style.Fill.BackgroundColor.SetColor(System.Drawing.Color.LightGray);
+        }
+        
+        sheet.Cells.AutoFitColumns();
+        
+        var fileBytes = package.GetAsByteArray();
+        
+        await _fileHistoryService.CreateFileHistoryAsync(new FileHistoryCreateDto
+        {
+            FileName = "Template_Exams.xlsx",
+            ContentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            FileContent = fileBytes,
+            Action = FileAction.DownloadTemplate,
+            Category = FileCategory.Exam,
+            OperatorId = operatorId,
+            IsSuccessful = true,
+            ProcessingNotes = "Template generated"
+        });
+
+        return fileBytes;
+    }
+}
+
+    public async Task<byte[]> GenerateExaminersImportTemplate(int operatorId, string languageCode = "en")
+{
+    using (var package = new ExcelPackage())
+    {
+        var sheet = package.Workbook.Worksheets.Add("Examiner Import");
+
+        if (languageCode.StartsWith("hu", StringComparison.OrdinalIgnoreCase))
+        {
+            sheet.Cells[1, 1].Value = "Vezetéknév";
+            sheet.Cells[1, 2].Value = "Keresztnév";
+            sheet.Cells[1, 3].Value = "Születési dátum"; 
+            sheet.Cells[1, 4].Value = "Email";
+            sheet.Cells[1, 5].Value = "Telefon";
+            sheet.Column(5).Style.Numberformat.Format = "@";
+            sheet.Cells[1, 6].Value = "Személyigazolványszám";
+        }
+        else if (languageCode.StartsWith("de", StringComparison.OrdinalIgnoreCase))
+        {
+            sheet.Cells[1, 1].Value = "Nachname";
+            sheet.Cells[1, 2].Value = "Vorname";
+            sheet.Cells[1, 3].Value = "Geburtsdatum"; 
+            sheet.Cells[1, 4].Value = "E-Mail-Adresse";
+            sheet.Cells[1, 5].Value = "Telefonnummer";
+            sheet.Column(5).Style.Numberformat.Format = "@";
+            sheet.Cells[1, 6].Value = "Personalausweisnummer";
+        }
+        else
+        {
+            sheet.Cells[1, 1].Value = "First Name";
+            sheet.Cells[1, 2].Value = "Last Name";
+            sheet.Cells[1, 3].Value = "Date Of Birth";
             sheet.Cells[1, 4].Value = "Email";
             sheet.Cells[1, 5].Value = "Phone";
             sheet.Column(5).Style.Numberformat.Format = "@";
-            sheet.Cells[1, 6].Value = "IdentityCardNumber";
-
-            using (var range = sheet.Cells[1, 1, 1, 6])
-            {
-                range.Style.Font.Bold = true;
-                range.Style.Fill.PatternType = OfficeOpenXml.Style.ExcelFillStyle.Solid;
-                range.Style.Fill.BackgroundColor.SetColor(System.Drawing.Color.LightGray);
-            }
-
-            sheet.Cells.AutoFitColumns();
-
-            var fileBytes = package.GetAsByteArray();
-            
-            await _fileHistoryService.CreateFileHistoryAsync(new FileHistoryCreateDto
-            {
-                FileName = "Template_Examiners.xlsx",
-                ContentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                FileContent = fileBytes,
-                Action = FileAction.DownloadTemplate,
-                Category = FileCategory.Examiner,
-                OperatorId = operatorId,
-                IsSuccessful = true,
-                ProcessingNotes = "Template generated"
-            });
-
-            return fileBytes;
+            sheet.Cells[1, 6].Value = "Identity Card Number";   
         }
-    }
+        
+        sheet.Column(3).Style.Numberformat.Format = "yyyy-mm-dd";
+        
+        var dateVal = sheet.DataValidations.AddDateTimeValidation(sheet.Cells["C2:C1000"].Address);
+        dateVal.ShowErrorMessage = true;
+        dateVal.ShowInputMessage = true;
+        dateVal.Operator = OfficeOpenXml.DataValidation.ExcelDataValidationOperator.between;
+        dateVal.Formula.Value = DateTime.Parse("1900-01-01");
+        dateVal.Formula2.Value = DateTime.Parse("2100-01-01"); 
 
-    public async Task<byte[]> GenerateExamTypesImportTemplate(int operatorId)
+        if (languageCode.StartsWith("hu", StringComparison.OrdinalIgnoreCase))
+        {
+            dateVal.ErrorTitle = "Érvénytelen dátum";
+            dateVal.Error = "Kérlek a helyes formátumot használd: ÉÉÉÉ-HH-NN";
+            dateVal.PromptTitle = "Születési dátum";
+            dateVal.Prompt = "Formátum: 1980-01-15";
+        }
+        else if (languageCode.StartsWith("de", StringComparison.OrdinalIgnoreCase))
+        {
+            dateVal.ErrorTitle = "Ungültiges Datum";
+            dateVal.Error = "Bitte verwenden Sie das Format JJJJ-MM-TT";
+            dateVal.PromptTitle = "Geburtsdatum";
+            dateVal.Prompt = "Format: 1980-01-15";
+        }
+        else
+        {
+            dateVal.ErrorTitle = "Invalid Date";
+            dateVal.Error = "Please use the format: YYYY-MM-DD";
+            dateVal.PromptTitle = "Date of Birth";
+            dateVal.Prompt = "Format: 1980-01-15";
+        }
+
+        using (var range = sheet.Cells[1, 1, 1, 6])
+        {
+            range.Style.Font.Bold = true;
+            range.Style.Fill.PatternType = OfficeOpenXml.Style.ExcelFillStyle.Solid;
+            range.Style.Fill.BackgroundColor.SetColor(System.Drawing.Color.LightGray);
+        }
+
+        sheet.Cells.AutoFitColumns();
+
+        var fileBytes = package.GetAsByteArray();
+        
+        await _fileHistoryService.CreateFileHistoryAsync(new FileHistoryCreateDto
+        {
+            FileName = "Template_Examiners.xlsx",
+            ContentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            FileContent = fileBytes,
+            Action = FileAction.DownloadTemplate,
+            Category = FileCategory.Examiner,
+            OperatorId = operatorId,
+            IsSuccessful = true,
+            ProcessingNotes = "Template generated"
+        });
+
+        return fileBytes;
+    }
+}
+
+    public async Task<byte[]> GenerateExamTypesImportTemplate(int operatorId, string languageCode = "en")
     {
         using (var package = new ExcelPackage())
         {
             var sheet = package.Workbook.Worksheets.Add("Exam Type Import");
 
-            sheet.Cells[1, 1].Value = "TypeName";
-            sheet.Cells[1, 2].Value = "Description";
+            if (languageCode.StartsWith("hu", StringComparison.OrdinalIgnoreCase))
+            {
+                sheet.Cells[1, 1].Value = "Típusnév";
+                sheet.Cells[1, 2].Value = "Leírás";
+            }
+            else if (languageCode.StartsWith("de", StringComparison.OrdinalIgnoreCase))
+            {
+                sheet.Cells[1, 1].Value = "Typname";
+                sheet.Cells[1, 2].Value = "Beschreibung";
+            }
+            else 
+            {
+                sheet.Cells[1, 1].Value = "Type Name";
+                sheet.Cells[1, 2].Value = "Description";
+            }
 
             using (var range = sheet.Cells[1, 1, 1, 2])
             {
@@ -1019,20 +1144,46 @@ public class ImportService : IImportService
         }
     }
 
-    public async Task<byte[]> GenerateInstitutionsImportTemplate(int operatorId)
+    public async Task<byte[]> GenerateInstitutionsImportTemplate(int operatorId, string languageCode = "en")
     {
         using (var package = new ExcelPackage())
         {
             var sheet = package.Workbook.Worksheets.Add("Institution Import");
-            
-            sheet.Cells[1, 1].Value = "EducationalId";
-            sheet.Cells[1, 2].Value = "Name";
-            sheet.Cells[1, 3].Value = "ZipCode";
-            sheet.Cells[1, 4].Value = "Town";
-            sheet.Cells[1, 5].Value = "Street";
-            sheet.Cells[1, 6].Value = "Number";
-            sheet.Cells[1, 7].Value = "Floor";
-            sheet.Cells[1, 8].Value = "Door";
+
+            if (languageCode.StartsWith("hu", StringComparison.OrdinalIgnoreCase))
+            {
+                sheet.Cells[1, 1].Value = "Oktatási azonosító";
+                sheet.Cells[1, 2].Value = "Intézmény név";
+                sheet.Cells[1, 3].Value = "Irányítószám";
+                sheet.Cells[1, 4].Value = "Település";
+                sheet.Cells[1, 5].Value = "Utca";
+                sheet.Cells[1, 6].Value = "Házszám";
+                sheet.Cells[1, 7].Value = "Emelet";
+                sheet.Cells[1, 8].Value = "Ajtó";
+                
+            }
+            else if (languageCode.StartsWith("de", StringComparison.OrdinalIgnoreCase))
+            {
+                sheet.Cells[1, 1].Value = "Bildungs-ID";
+                sheet.Cells[1, 2].Value = "Name";
+                sheet.Cells[1, 3].Value = "Postleitzahl";
+                sheet.Cells[1, 4].Value = "Ort";
+                sheet.Cells[1, 5].Value = "Straße";
+                sheet.Cells[1, 6].Value = "Hausnummer";
+                sheet.Cells[1, 7].Value = "Stock";
+                sheet.Cells[1, 8].Value = "Tür";
+            }
+            else
+            {
+                sheet.Cells[1, 1].Value = "Educational Id";
+                sheet.Cells[1, 2].Value = "Name";
+                sheet.Cells[1, 3].Value = "Zip Code";
+                sheet.Cells[1, 4].Value = "Town";
+                sheet.Cells[1, 5].Value = "Street";
+                sheet.Cells[1, 6].Value = "Number";
+                sheet.Cells[1, 7].Value = "Floor";
+                sheet.Cells[1, 8].Value = "Door";
+            }
             
             using (var range = sheet.Cells[1, 1, 1, 8])
             {
@@ -1061,14 +1212,27 @@ public class ImportService : IImportService
         }
     }
 
-    public async Task<byte[]> GenerateProfessionsImportTemplate(int operatorId)
+    public async Task<byte[]> GenerateProfessionsImportTemplate(int operatorId, string languageCode = "en")
     {
         using (var package = new ExcelPackage())
         {
             var sheet = package.Workbook.Worksheets.Add("Profession Import");
-            
-            sheet.Cells[1, 1].Value = "KeorId";
-            sheet.Cells[1, 2].Value = "ProfessionName";
+
+            if (languageCode.StartsWith("hu", StringComparison.OrdinalIgnoreCase))
+            {
+                sheet.Cells[1, 1].Value = "KeorId";
+                sheet.Cells[1, 2].Value = "Szakma neve";
+            }
+            else if (languageCode.StartsWith("de", StringComparison.OrdinalIgnoreCase))
+            {
+                sheet.Cells[1, 1].Value = "KeorId";
+                sheet.Cells[1, 2].Value = "Berufsbezeichnung";
+            }
+            else
+            {
+                sheet.Cells[1, 1].Value = "KeorId";
+                sheet.Cells[1, 2].Value = "Profession Name";   
+            }
 
             using (var range = sheet.Cells[1, 1, 1, 2])
             {
