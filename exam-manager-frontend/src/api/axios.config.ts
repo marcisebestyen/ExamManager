@@ -2,7 +2,8 @@ import axios, { InternalAxiosRequestConfig } from 'axios';
 import { tokenKeyName } from '../constants/constants';
 import i18n from 'i18next';
 
-const rootApiUrl = import.meta.env.VITE_REST_API_URL;
+// const rootApiUrl = import.meta.env.VITE_REST_API_URL;
+const rootApiUrl = "http://localhost:7195";
 const cleanRootApiUrl = rootApiUrl ? rootApiUrl.replace(/\/$/, '') : '';
 
 

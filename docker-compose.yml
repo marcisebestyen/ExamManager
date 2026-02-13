@@ -8,18 +8,13 @@ services:
     depends_on:
       - database
     environment:
-      # --- Database Connection ---
-      # IMPORTANT: Host is set to "database" (the service name below), not localhost.
       - ConnectionStrings__DefaultConnection=Host=database;Port=5432;Database=examdb;Username=adminuser;Password=yourStrongPassword123!
       
-      # --- JWT Settings ---
-      # ASP.NET uses double underscore (__) to represent nested JSON keys
       - JwtSettings__Issuer=https://localhost:7195
       - JwtSettings__Audience=https://localhost:7195
       - JwtSettings__SecretKey=32a3f2f3058fd773fb19da3764990da7
       - JwtSettings__ExpirationMinutes=60
       
-      # --- Mailtrap Settings ---
       - MailtrapSettings__Host=sandbox.smtp.mailtrap.io
       - MailtrapSettings__Port=587
       - MailtrapSettings__Username=02cb1cf64f888a
@@ -27,8 +22,12 @@ services:
       - MailtrapSettings__FromEmail=f73e842a1c0f83@inbox.mailtrap.io
       - MailtrapSettings__FromName=Exam Manager Automatic Email
 
+      - ASPNETCORE_URLS=http://+:7195
+
   frontend: 
-    image: ghcr.io/marcisebestyen/exammanager-frontend
+    # image: ghcr.io/marcisebestyen/exammanager-frontend
+    build: 
+      context: exam-manager-frontend
     ports: 
       - 7285:7285
     networks:
@@ -40,6 +39,8 @@ services:
     image: postgres
     networks:
       - exam_net
+    ports: 
+      - 5433:5432
     environment:
       # These must match the Connection String above
       - POSTGRES_USER=adminuser
