@@ -1,51 +1,49 @@
-services: 
-  backend: 
-    image: ghcr.io/marcisebestyen/exammanager
-    ports: 
-      - 7195:7195
-    networks:
-      - exam_net
-    depends_on:
-      - database
-    environment:
-      - ConnectionStrings__DefaultConnection=Host=database;Port=5432;Database=examdb;Username=adminuser;Password=yourStrongPassword123!
-      
-      - JwtSettings__Issuer=https://localhost:7195
-      - JwtSettings__Audience=https://localhost:7195
-      - JwtSettings__SecretKey=32a3f2f3058fd773fb19da3764990da7
-      - JwtSettings__ExpirationMinutes=60
-      
-      - MailtrapSettings__Host=sandbox.smtp.mailtrap.io
-      - MailtrapSettings__Port=587
-      - MailtrapSettings__Username=02cb1cf64f888a
-      - MailtrapSettings__Password=f8a79696c5ce53
-      - MailtrapSettings__FromEmail=f73e842a1c0f83@inbox.mailtrap.io
-      - MailtrapSettings__FromName=Exam Manager Automatic Email
-
-      - ASPNETCORE_URLS=http://+:7195
-
-  frontend: 
-    # image: ghcr.io/marcisebestyen/exammanager-frontend
-    build: 
-      context: exam-manager-frontend
-    ports: 
-      - 7285:7285
-    networks:
-      - exam_net
-    environment:
-      - BACKEND_URL=https://backend:7195
-    command: npm run dev -- --host
+services:
   database: 
     image: postgres
+    ports:
+      - "5433:5432"
     networks:
       - exam_net
-    ports: 
-      - 5433:5432
     environment:
-      # These must match the Connection String above
       - POSTGRES_USER=adminuser
       - POSTGRES_PASSWORD=yourStrongPassword123!
       - POSTGRES_DB=examdb
+    # PART 1: The Healthcheck
+    # This runs the 'pg_isready' command inside the container every 5 seconds.
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U adminuser -d examdb"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  backend: 
+    image: ghcr.io/marcisebestyen/exammanager
+    ports: 
+      - "7195:7195"
+    networks:
+      - exam_net
+    environment:
+      - ASPNETCORE_URLS=http://+:7195
+      - ConnectionStrings__DefaultConnection=Host=database;Port=5432;Database=examdb;Username=adminuser;Password=yourStrongPassword123!
+    # PART 2: The Condition
+    # This pauses the backend startup until the database healthcheck passes.
+    depends_on:
+      database:
+        condition: service_healthy
+
+  frontend: 
+    image: ghcr.io/marcisebestyen/exammanager-frontend
+    ports: 
+      - "7285:7285"
+    networks:
+      - exam_net
+    environment:
+      - BACKEND_URL=http://backend:7195
+    command: npm run dev
+    # Optional: Wait for backend to be ready (if backend had a healthcheck)
+    depends_on:
+      - backend
 
 networks:
   exam_net:
