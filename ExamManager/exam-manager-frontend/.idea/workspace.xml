@@ -1,0 +1,217 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="AutoImportSettings">
+    <option name="autoReloadType" value="SELECTIVE" />
+  </component>
+  <component name="ChangeListManager">
+    <list default="true" id="9a0ffbc2-2dea-4e8d-a4cb-c9a9d1f3a3ef" name="Changes" comment="" />
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="CopilotPersistence">
+    <persistenceIdMap>
+      <entry key="_/Users/sebestyenmarcell/Documents/ExamManager/ExamManager/exam-manager-frontend" value="33VofwQNAx7gizICS9aIMxMn79J" />
+    </persistenceIdMap>
+  </component>
+  <component name="FileTemplateManagerImpl">
+    <option name="RECENT_TEMPLATES">
+      <list>
+        <option value="TypeScript JSX File" />
+        <option value="TypeScript File" />
+      </list>
+    </option>
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_BRANCH_BY_REPOSITORY">
+      <map>
+        <entry key="$PROJECT_DIR$/../.." value="updated_ui" />
+      </map>
+    </option>
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$/../.." />
+  </component>
+  <component name="ProjectColorInfo">{
+  &quot;associatedIndex&quot;: 1
+}</component>
+  <component name="ProjectId" id="33VofwQNAx7gizICS9aIMxMn79J" />
+  <component name="ProjectLevelVcsManager">
+    <ConfirmationsSetting value="2" id="Add" />
+  </component>
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.typescript.service.memoryLimit.init&quot;: &quot;true&quot;,
+    &quot;com.intellij.ml.llm.matterhorn.ej.ui.settings.DefaultAutoModeForALLUsers.v1&quot;: &quot;true&quot;,
+    &quot;com.intellij.ml.llm.matterhorn.ej.ui.settings.DefaultModelSelectionForGA.v1&quot;: &quot;true&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;main&quot;,
+    &quot;javascript.preferred.runtime.type.id&quot;: &quot;node&quot;,
+    &quot;junie.onboarding.icon.badge.shown&quot;: &quot;true&quot;,
+    &quot;last_opened_file_path&quot;: &quot;/Users/sebestyenmarcell/Documents/ExamManager/ExamManager/exam-manager-frontend&quot;,
+    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
+    &quot;node.js.detected.package.stylelint&quot;: &quot;true&quot;,
+    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
+    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
+    &quot;node.js.selected.package.stylelint&quot;: &quot;/Users/sebestyenmarcell/Documents/ExamManager/ExamManager/exam-manager-frontend/node_modules/stylelint&quot;,
+    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
+    &quot;nodejs_interpreter_path&quot;: &quot;node&quot;,
+    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
+    &quot;npm.dev.executor&quot;: &quot;Run&quot;,
+    &quot;prettierjs.PrettierConfiguration.Package&quot;: &quot;/Users/sebestyenmarcell/Documents/ExamManager/ExamManager/exam-manager-frontend/node_modules/prettier&quot;,
+    &quot;settings.editor.selected.configurable&quot;: &quot;settings.nodejs&quot;,
+    &quot;to.speed.mode.migration.done&quot;: &quot;true&quot;,
+    &quot;ts.external.directory.path&quot;: &quot;/Users/sebestyenmarcell/Documents/ExamManager/ExamManager/exam-manager-frontend/node_modules/typescript/lib&quot;,
+    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
+  }
+}</component>
+  <component name="RecentsManager">
+    <key name="MoveFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$/src/components" />
+    </key>
+  </component>
+  <component name="RunManager">
+    <configuration name="dev" type="js.build_tools.npm" nameIsGenerated="true">
+      <package-json value="$PROJECT_DIR$/package.json" />
+      <command value="run" />
+      <scripts>
+        <script value="dev" />
+      </scripts>
+      <node-interpreter value="project" />
+      <envs />
+      <method v="2" />
+    </configuration>
+  </component>
+  <component name="SharedIndexes">
+    <attachedChunks>
+      <set>
+        <option value="bundled-js-predefined-d6986cc7102b-9b0f141eb926-JavaScript-WS-253.30387.83" />
+      </set>
+    </attachedChunks>
+  </component>
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="9a0ffbc2-2dea-4e8d-a4cb-c9a9d1f3a3ef" name="Changes" comment="" />
+      <created>1759411706935</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1759411706935</updated>
+      <workItem from="1759411708330" duration="245000" />
+      <workItem from="1759413485492" duration="3391000" />
+      <workItem from="1759418381137" duration="926000" />
+      <workItem from="1759492233251" duration="850000" />
+      <workItem from="1759652214828" duration="7000" />
+      <workItem from="1759744309717" duration="104000" />
+      <workItem from="1759744436664" duration="7605000" />
+      <workItem from="1759820699134" duration="4290000" />
+      <workItem from="1760009325976" duration="662000" />
+      <workItem from="1760115156502" duration="615000" />
+      <workItem from="1760253280372" duration="4713000" />
+      <workItem from="1760342135157" duration="685000" />
+      <workItem from="1760463298611" duration="2364000" />
+      <workItem from="1760511043731" duration="1292000" />
+      <workItem from="1760516539110" duration="532000" />
+      <workItem from="1760529920120" duration="2000" />
+      <workItem from="1760692532827" duration="13743000" />
+      <workItem from="1760719613477" duration="3501000" />
+      <workItem from="1760771583485" duration="4134000" />
+      <workItem from="1760875122923" duration="602000" />
+      <workItem from="1761030839320" duration="47000" />
+      <workItem from="1761033875174" duration="56000" />
+      <workItem from="1761045982660" duration="617000" />
+      <workItem from="1761047717581" duration="619000" />
+      <workItem from="1761118465137" duration="119000" />
+      <workItem from="1761205676111" duration="10167000" />
+      <workItem from="1761218980209" duration="82000" />
+      <workItem from="1761662011560" duration="68000" />
+      <workItem from="1761662100514" duration="6000" />
+      <workItem from="1761743592223" duration="58000" />
+      <workItem from="1761899742255" duration="74000" />
+      <workItem from="1761899828522" duration="7977000" />
+      <workItem from="1761986249565" duration="625000" />
+      <workItem from="1762157356507" duration="488000" />
+      <workItem from="1762197498153" duration="45000" />
+      <workItem from="1762197696522" duration="38000" />
+      <workItem from="1762250915878" duration="12980000" />
+      <workItem from="1762265146023" duration="25000" />
+      <workItem from="1762268014189" duration="201000" />
+      <workItem from="1762328759303" duration="811000" />
+      <workItem from="1762363147268" duration="2000" />
+      <workItem from="1762524322057" duration="1202000" />
+      <workItem from="1762590864116" duration="614000" />
+      <workItem from="1762677973157" duration="190000" />
+      <workItem from="1762679700285" duration="1000" />
+      <workItem from="1763285036858" duration="7000" />
+      <workItem from="1765194481613" duration="97000" />
+      <workItem from="1765194612408" duration="248000" />
+      <workItem from="1765198525669" duration="10000" />
+      <workItem from="1765198615293" duration="11000" />
+      <workItem from="1765569098906" duration="628000" />
+      <workItem from="1765570905214" duration="139000" />
+      <workItem from="1765788728318" duration="7384000" />
+      <workItem from="1765803498694" duration="89000" />
+      <workItem from="1766043641418" duration="9088000" />
+      <workItem from="1766057543711" duration="2595000" />
+      <workItem from="1766060209408" duration="27000" />
+      <workItem from="1766320525790" duration="627000" />
+      <workItem from="1766914602528" duration="20000" />
+      <workItem from="1767707118833" duration="96000" />
+      <workItem from="1767707235369" duration="1039000" />
+      <workItem from="1767773600725" duration="1880000" />
+      <workItem from="1767859932455" duration="7456000" />
+      <workItem from="1768162822856" duration="994000" />
+      <workItem from="1768163832551" duration="7000" />
+      <workItem from="1768163851832" duration="20000" />
+      <workItem from="1768994596137" duration="716000" />
+      <workItem from="1769005648531" duration="41000" />
+      <workItem from="1769076205375" duration="10667000" />
+      <workItem from="1769281924080" duration="662000" />
+      <workItem from="1769362003344" duration="637000" />
+      <workItem from="1769504627613" duration="4411000" />
+      <workItem from="1769514502659" duration="3969000" />
+      <workItem from="1769598593442" duration="3004000" />
+      <workItem from="1769676248915" duration="4075000" />
+      <workItem from="1769702686036" duration="1380000" />
+      <workItem from="1769762021615" duration="19804000" />
+      <workItem from="1770044585062" duration="12000" />
+      <workItem from="1770638837947" duration="458000" />
+      <workItem from="1770713235192" duration="885000" />
+      <workItem from="1770733521568" duration="3983000" />
+      <workItem from="1770804972686" duration="73000" />
+      <workItem from="1770805053303" duration="7547000" />
+      <workItem from="1770883075489" duration="4094000" />
+      <workItem from="1770898462926" duration="4000" />
+      <workItem from="1770919038033" duration="5000" />
+      <workItem from="1770968478769" duration="1314000" />
+      <workItem from="1770986618872" duration="1788000" />
+    </task>
+    <servers />
+  </component>
+  <component name="TypeScriptGeneratedFilesManager">
+    <option name="version" value="3" />
+  </component>
+  <component name="Vcs.Log.Tabs.Properties">
+    <option name="TAB_STATES">
+      <map>
+        <entry key="MAIN">
+          <value>
+            <State />
+          </value>
+        </entry>
+      </map>
+    </option>
+  </component>
+  <component name="github-copilot-workspace">
+    <instructionFileLocations>
+      <option value=".github/instructions" />
+    </instructionFileLocations>
+    <promptFileLocations>
+      <option value=".github/prompts" />
+    </promptFileLocations>
+  </component>
+</project>

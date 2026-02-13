@@ -3,3 +3,7 @@ services:
     image: ghcr.io/marcisebestyen/exammanager
     ports: 
       - 7195:7195
+  frontend: 
+    image: ghcr.io/marcisebestyen/exammanager-frontend
+    ports: 
+      - 7285:7285
