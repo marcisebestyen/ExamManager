@@ -1,0 +1,5 @@
+services: 
+  backend: 
+    image: ghcr.io/marcisebestyen/exammanager
+    ports: 
+      - 7195:7195
