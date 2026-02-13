@@ -40,7 +40,7 @@ services:
       - exam_net
     environment:
       - BACKEND_URL=http://backend:7195
-    command: npm run dev
+    command: npm run dev -- --host
     # Optional: Wait for backend to be ready (if backend had a healthcheck)
     depends_on:
       - backend
