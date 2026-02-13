@@ -545,7 +545,7 @@ public class ExamService : IExamService
         }
     }
     
-    public async Task<BaseServiceResponse<byte[]>> GenerateExamBoardReportAsync(int examId, int operatorId)
+    public async Task<BaseServiceResponse<byte[]>> GenerateExamBoardReportAsync(int examId, int operatorId, string languageCode = "en")
     {
         try
         {
@@ -571,7 +571,7 @@ public class ExamService : IExamService
                     "This exam has no examiners assigned yet.", "NO_EXAMINERS_FOUND");
             }
 
-            var document = new ExamBoardDocument(examEntity);
+            var document = new ExamBoardDocument(examEntity, languageCode);
             var pdfBytes = document.GeneratePdf();
             var fileName = $"{examEntity.ExamCode}_BoardReport.pdf";
             

@@ -11,7 +11,7 @@ i18n
     resources: {
       en: {
         translation: {
-          common: { error: 'Error', success: 'Success', appTitle: 'Exam Manager' },
+          common: { error: 'Error', success: 'Success', appTitle: 'ExamManager' },
           dashboard: {
             title: 'Dashboard',
             description: 'Overview of system operations and upcoming schedules',
@@ -509,7 +509,7 @@ i18n
       },
       hu: {
         translation: {
-          common: { error: 'Hiba', success: 'Siker', appTitle: 'Vizsga Kezelő' },
+          common: { error: 'Hiba', success: 'Siker', appTitle: 'ExamManager' },
           dashboard: {
             title: 'Vezérlőpult',
             description: 'Rendszerfolyamatok áttekintése és közelgő események',
@@ -988,7 +988,7 @@ i18n
             failed: 'Mentés sikertelen',
           },
           welcome: {
-            title: 'Üdvözöli a',
+            title: 'Üdvözöli az',
             description:
               'Vizsgák létrehozásának és kezelésének egyszerűsítésére tervezve. Minden, amire szüksége van, egyetlen biztonságos helyen.',
             designedBy: 'Készítette',
@@ -1010,7 +1010,7 @@ i18n
       },
       de: {
         translation: {
-          common: { error: 'Fehler', success: 'Erfolg', appTitle: 'Prüfungsmanager' },
+          common: { error: 'Fehler', success: 'Erfolg', appTitle: 'ExamManager' },
           dashboard: {
             title: 'Dashboard',
             description: 'Übersicht über den Systembetrieb und anstehende Termine',

@@ -8,10 +8,73 @@ namespace ExamManager.Configurations;
 public class ExamBoardDocument : IDocument
 {
     private readonly Exam _exam;
+
+    private readonly string _title;
+    private readonly string _generatedOn;
+    private readonly string _dateLabel;
+    private readonly string _institutionLabel;
+    private readonly string _professionLabel;
+    private readonly string _typeLabel;
+    private readonly string _tableHeaderName;
+    private readonly string _tableHeaderRole;
+    private readonly string _chiefSig;
+    private readonly string _headSig;
+    private readonly string _unknown;
+    private readonly string _confidential;
+    private readonly string _code;
     
-    public ExamBoardDocument(Exam exam)
+    public ExamBoardDocument(Exam exam, string languageCode = "en")
     {
         _exam = exam ?? throw new ArgumentNullException(nameof(exam));
+        
+        if (languageCode.StartsWith("hu", StringComparison.OrdinalIgnoreCase))
+        {
+            _title = "Vizsgabizottsági Jelentés";
+            _generatedOn = "Létrehozva: ";
+            _dateLabel = "Dátum";
+            _institutionLabel = "Intézmény";
+            _professionLabel = "Szakma";
+            _typeLabel = "Vizsgatípus";
+            _tableHeaderName = "Vizsgáztató neve";
+            _tableHeaderRole = "Szerepkör";
+            _chiefSig = "Elnök aláírása";
+            _headSig = "Intézményvezető aláírása";
+            _unknown = "Ismeretlen vizsgáztató";
+            _confidential = "ExamManager rendszer – Bizalmas";
+            _code = "Kód";
+        }
+        else if (languageCode.StartsWith("de", StringComparison.OrdinalIgnoreCase))
+        {
+            _title = "Prüfungsausschussbericht";
+            _generatedOn = "Erstellt am: ";
+            _dateLabel = "Datum";
+            _institutionLabel = "Institution";
+            _professionLabel = "Beruf";
+            _typeLabel = "Prüfungsart";
+            _tableHeaderName = "Name des Prüfers";
+            _tableHeaderRole = "Rolle";
+            _chiefSig = "Unterschrift des Vorsitzenden";
+            _headSig = "Unterschrift der Schulleitung";
+            _unknown = "Unbekannter Prüfer/in";
+            _confidential = "ExamManager-System – Vertraulich";
+            _code = "Code";
+        }
+        else
+        {
+            _title = "Exam Board Report";
+            _generatedOn = "Generated on: ";
+            _dateLabel = "Date";
+            _institutionLabel = "Institution";
+            _professionLabel = "Profession";
+            _typeLabel = "Exam Type";
+            _tableHeaderName = "Examiner Name";
+            _tableHeaderRole = "Assigned Role";
+            _chiefSig = "Chief Examiner Signature";
+            _headSig = "Institution Head Signature";
+            _unknown = "Unknown Examiner";
+            _confidential = "ExamManager System - Confidential";
+            _code = "Code";
+        }
     }
     
     public DocumentMetadata GetMetadata() => DocumentMetadata.Default;
@@ -38,10 +101,10 @@ public class ExamBoardDocument : IDocument
         {
             row.RelativeItem().Column(column =>
             {
-                column.Item().Text($"Exam Board Report").Style(titleStyle);
+                column.Item().Text(_title).Style(titleStyle);
                 column.Item().Text(text =>
                 {
-                    text.Span("Generated on: ");
+                    text.Span(_generatedOn);
                     text.Span($"{DateTime.Now:d}").SemiBold();
                 });
             });
@@ -70,7 +133,7 @@ public class ExamBoardDocument : IDocument
         {
             column.Spacing(5);
             column.Item().Text(_exam.ExamName).FontSize(16).SemiBold().FontColor(Colors.Black);
-            column.Item().Text($"Code: {_exam.ExamCode}").FontSize(12).Italic();
+            column.Item().Text($"{_code}: {_exam.ExamCode}").FontSize(12).Italic();
             
             column.Item().PaddingTop(10).Grid(grid =>
             {
@@ -86,10 +149,10 @@ public class ExamBoardDocument : IDocument
                     });
                 }
 
-                InfoRow("Date", _exam.ExamDate.ToString("d")); 
-                InfoRow("Institution", _exam.Institution?.Name ?? "N/A");
-                InfoRow("Profession", _exam.Profession?.ProfessionName ?? "N/A");
-                InfoRow("Exam Type", _exam.ExamType?.TypeName ?? "N/A");
+                InfoRow(_dateLabel, _exam.ExamDate.ToString("d")); 
+                InfoRow(_institutionLabel, _exam.Institution?.Name ?? "N/A");
+                InfoRow(_professionLabel, _exam.Profession?.ProfessionName ?? "N/A");
+                InfoRow(_typeLabel, _exam.ExamType?.TypeName ?? "N/A");
             });
         });
     }
@@ -110,8 +173,8 @@ public class ExamBoardDocument : IDocument
             table.Header(header =>
             {
                 header.Cell().RowSpan(1).Element(CellStyle).Text("#");
-                header.Cell().Element(CellStyle).Text("Examiner Name");
-                header.Cell().Element(CellStyle).Text("Assigned Role");
+                header.Cell().Element(CellStyle).Text(_tableHeaderName);
+                header.Cell().Element(CellStyle).Text(_tableHeaderRole);
 
                 static IContainer CellStyle(IContainer container)
                 {
@@ -130,7 +193,7 @@ public class ExamBoardDocument : IDocument
             {
                 var examinerName = board.Examiner != null 
                     ? $"{board.Examiner.FirstName} {board.Examiner.LastName}" 
-                    : "Unknown Examiner";
+                    : $"{_unknown}";
 
                 table.Cell().Element(Block).Text($"{index}");
                 table.Cell().Element(Block).Text(examinerName);
@@ -157,15 +220,15 @@ public class ExamBoardDocument : IDocument
             row.RelativeItem().Column(col =>
             {
                 col.Item().Text("_________________________").AlignCenter();
-                col.Item().Text("Chief Examiner Signature").AlignCenter().FontSize(9);
+                col.Item().Text(_chiefSig).AlignCenter().FontSize(9);
             });
             
-            row.ConstantItem(50); // Spacer
+            row.ConstantItem(50); 
 
             row.RelativeItem().Column(col =>
             {
                 col.Item().Text("_________________________").AlignCenter();
-                col.Item().Text("Institution Head Signature").AlignCenter().FontSize(9);
+                col.Item().Text(_headSig).AlignCenter().FontSize(9);
             });
         });
     }
@@ -176,7 +239,7 @@ public class ExamBoardDocument : IDocument
         {
             row.RelativeItem().Text(x =>
             {
-                x.Span("ExamManager System - Confidential").FontSize(8).FontColor(Colors.Grey.Medium);
+                x.Span(_confidential).FontSize(8).FontColor(Colors.Grey.Medium);
             });
             
             row.RelativeItem().AlignRight().Text(x =>
