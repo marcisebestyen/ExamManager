@@ -19,6 +19,6 @@ export default defineConfig({
     },
     port: 7285,
     open: true,
-    host: 'localhost'
+    host: true
   },
 });
