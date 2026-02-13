@@ -283,7 +283,8 @@ public class ExamController : ControllerBase
     [HttpGet("generate-exam-board-report/{examId}")]
     public async Task<IActionResult> GenerateExamBoardReport(int examId)
     {
-        var result = await _examService.GenerateExamBoardReportAsync(examId, User.GetId());
+        var lang = Request.Headers["Accept-Language"].ToString();
+        var result = await _examService.GenerateExamBoardReportAsync(examId, User.GetId(),  lang);
 
         if (!result.Succeeded)
         {
